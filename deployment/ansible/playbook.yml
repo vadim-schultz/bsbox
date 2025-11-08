@@ -1,0 +1,12 @@
+---
+- name: Provision Raspberry Pi Meeting Hotspot
+  hosts: hotspot
+  become: true
+  vars:
+    backend_repo_dir: /opt/meeting-hotspot/backend
+    frontend_repo_dir: /opt/meeting-hotspot/frontend
+  roles:
+    - hotspot
+    - backend
+    - frontend
+

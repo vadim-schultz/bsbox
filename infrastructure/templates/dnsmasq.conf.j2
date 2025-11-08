@@ -1,0 +1,8 @@
+interface={{ hotspot_interface | default("wlan0") }}
+dhcp-range=192.168.12.10,192.168.12.100,12h
+dhcp-option=3,192.168.12.1
+dhcp-option=6,1.1.1.1,8.8.8.8
+address=/#/{{ captive_portal_ip | default("192.168.12.1") }}
+log-queries
+log-dhcp
+

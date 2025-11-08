@@ -1,0 +1,44 @@
+---
+- name: Ensure backend virtualenv directory exists
+  ansible.builtin.file:
+    path: "{{ backend_repo_dir }}/.venv"
+    state: directory
+    owner: pi
+    group: pi
+    mode: "0755"
+
+- name: Install backend dependencies
+  ansible.builtin.pip:
+    requirements: "{{ backend_repo_dir }}/requirements.txt"
+    virtualenv: "{{ backend_repo_dir }}/.venv"
+    virtualenv_python: python3
+
+- name: Apply database migrations
+  ansible.builtin.command: >
+    {{ backend_repo_dir }}/.venv/bin/alembic upgrade head
+  args:
+    chdir: "{{ backend_repo_dir }}"
+
+- name: Deploy backend environment file
+  ansible.builtin.template:
+    src: backend.env.j2
+    dest: "{{ backend_repo_dir }}/.env"
+    owner: pi
+    group: pi
+    mode: "0600"
+
+- name: Install backend systemd unit
+  ansible.builtin.template:
+    src: meeting-backend.service.j2
+    dest: /etc/systemd/system/meeting-backend.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd and start backend
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: meeting-backend.service
+    enabled: true
+    state: restarted
+

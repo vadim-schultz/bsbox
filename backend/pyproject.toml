@@ -1,0 +1,57 @@
+[tool.poetry]
+name = "meeting-hotspot-backend"
+version = "0.1.0"
+description = "Litestar backend for meeting hotspot analytics"
+authors = ["Pi Meeting Team <dev@example.com>"]
+readme = "../README.md"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+litestar = "^2.10.0"
+sqlmodel = "^0.0.16"
+sqlalchemy = { version = "^2.0.30", extras = ["asyncio"] }
+asyncpg = "^0.29.0"
+aiosqlite = "^0.19.0"
+redis = "^5.0.5"
+pydantic-settings = "^2.3.3"
+pydantic = "^2.7.0"
+uvicorn = { version = "^0.30.0", extras = ["standard"] }
+python-dotenv = "^1.0.1"
+alembic = "^1.13.2"
+
+[tool.poetry.group.dev.dependencies]
+build = "^1.2.1"
+tox = "^4.18.0"
+tox-poetry-installer = "^0.10.3"
+ruff = "^0.5.0"
+mypy = "^1.10.0"
+pytest = "^8.2.0"
+pytest-asyncio = "^0.23.6"
+pytest-cov = "^5.0.0"
+pip-audit = "^2.6.0"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_unreachable = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+strict_optional = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--strict-markers --disable-warnings --cov=app --cov-report=term-missing --cov-report=xml --cov-fail-under=85"
+
+[build-system]
+requires = ["poetry-core>=1.8.2"]
+build-backend = "poetry.core.masonry.api"
+

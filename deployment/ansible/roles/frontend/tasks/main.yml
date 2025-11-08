@@ -1,0 +1,33 @@
+---
+- name: Install pnpm
+  community.general.npm:
+    name: pnpm
+    global: true
+
+- name: Install frontend dependencies
+  ansible.builtin.command: >
+    pnpm install
+  args:
+    chdir: "{{ frontend_repo_dir }}"
+
+- name: Build frontend assets
+  ansible.builtin.command: >
+    pnpm run build
+  args:
+    chdir: "{{ frontend_repo_dir }}"
+
+- name: Install frontend systemd unit
+  ansible.builtin.template:
+    src: meeting-frontend.service.j2
+    dest: /etc/systemd/system/meeting-frontend.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd and start frontend
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: meeting-frontend.service
+    enabled: true
+    state: restarted
+

@@ -1,0 +1,16 @@
+[Unit]
+Description=Meeting Hotspot Poller
+After=meeting-backend.service
+
+[Service]
+WorkingDirectory=/opt/meeting-hotspot/backend
+EnvironmentFile=/opt/meeting-hotspot/backend/.env
+ExecStart=/opt/meeting-hotspot/backend/.venv/bin/python -m app.scripts.poller
+Restart=on-failure
+RestartSec=5
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target
+
