@@ -41,3 +41,9 @@
 - Smartphone-first frontend delivers realtime analytics and toggle interactions against live backend.
 - Backend persists meeting data, emits accurate analytics, and tolerates hotspot polling variances.
 - Deployment assets (lockfiles, Ansible roles, systemd units) enable Raspberry Pi rollout with monitoring guidance.
+
+## Status
+- Backend/Frontend scaffolding, analytics services, and deployment assets are in place and exercised by expanded unit tests (meeting persistence, React hooks, Chart components).
+- Hotspot polling utilities implemented with fallback logic; additional tests now cover polling loop behavior.
+- README now documents tooling prerequisites, dev stack usage, and operations guidance (background poller vs. standalone script).
+- Outstanding work: refresh `poetry.lock` and run `poetry run tox -e ci` once connectivity is available to demonstrate end-to-end automation.

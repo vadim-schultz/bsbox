@@ -14,3 +14,9 @@
 - `dev-script`: Create `scripts/dev_stack.sh` (or similar) to bootstrap Poetry shell, install deps, run backend via `uvicorn` and frontend via `pnpm dev` with log output and cleanup, then document usage in `README.md`.
 - `verification`: Document and execute `tox` smoke runs (`tox -e py311-test,node20-test`) and the new dev script in README, capturing any manual setup (corepack enable, env vars).
 
+## Status
+- ✅ `backend-tests`, `frontend-tests`: Expanded pytest/Vitest suites with coverage thresholds.
+- ✅ `frontend-tox`, `tox-orchestration`, `dev-script`: Tox matrix updated; root `dev_stack.sh` documented.
+- ⚠️ `backend-tox` tooling installed but `poetry run tox -e ci` still pending until `poetry lock` can be regenerated (current workflow blocked by network/lock mismatch).
+- 🔄 `verification`: instructions added; once lock refresh succeeds, rerun full tox matrix to close out the plan.
+

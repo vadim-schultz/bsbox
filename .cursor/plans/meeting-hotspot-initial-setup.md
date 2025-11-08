@@ -25,3 +25,8 @@ Establish repository scaffolding for Raspberry Pi–friendly meeting hotspot ana
 - Build hotspot polling integration and background tasks for visit detection.
 - Generate lock files (`poetry lock`, `pnpm install --frozen-lockfile`) and systemd unit definitions.
 - Expand automated tests (integration, end-to-end) and add monitoring/observability tooling.
+
+## Status
+- Core scaffolding, tooling, and documentation described above exist in the repository.
+- Persistent storage, analytics services, and hotspot polling have since been implemented and tested.
+- Remaining follow-up: ensure dependency lock files stay refreshed (`poetry lock`, `pnpm install --frozen-lockfile`) whenever manifests change to keep automation reproducible.

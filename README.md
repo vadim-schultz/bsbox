@@ -150,20 +150,91 @@ Customize `hostapd.conf.j2` variables `hotspot_ssid`, `hotspot_passphrase`, and 
 4. Configure captive portal redirect to `http://192.168.12.1:3000`.
 
 ## Local Development
+
+### Backend quick start
 ```bash
-# Backend
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 litestar --app app.main:create_app run --reload
+```
 
-# Frontend
+### Frontend quick start
+```bash
 cd frontend
+corepack enable
 pnpm install
 pnpm dev
 ```
+
 Use `docker-compose` or external Redis/PostgreSQL as required.
+
+### Full-stack dev runner
+
+The repository includes a top-level `dev_stack.sh` script that installs dependencies and boots both
+the backend (Litestar) and frontend (Vite) with sensible defaults.
+
+> **Python requirement:** the backend targets Python versions `3.11` or `3.12`. If your system
+> Python is `3.13`, create a matching virtual environment before running the script. One option is:
+> ```bash
+> /usr/bin/python3.11 -m venv .venv311
+> source .venv311/bin/activate
+> pip install poetry
+> ```
+> After activating the `3.11/3.12` virtualenv, run the script so Poetry installs backend dependencies
+> into the correct interpreter.
+
+To launch the stack from the repository root:
+```bash
+chmod +x dev_stack.sh          # first run only
+./dev_stack.sh
+```
+
+The script performs the following steps:
+- Ensures `poetry` and `corepack` are available.
+- Installs backend dependencies via `poetry install --sync`.
+- Installs frontend dependencies via `pnpm install --frozen-lockfile`.
+- Starts the backend on `http://127.0.0.1:8000`.
+- Starts the frontend on `http://127.0.0.1:5173` with `VITE_API_BASE` pointing at the backend.
+
+Press `Ctrl+C` in the terminal to gracefully stop both services. The script registers an exit trap, so
+both processes are terminated even if the script is interrupted.
+
+### Installing required tooling on macOS
+
+If you are setting up a new development machine (macOS 14+), ensure the following tools are available
+before running the stack:
+
+1. **Python 3.11 or 3.12**
+   - With Homebrew:
+     ```bash
+     brew install python@3.12
+     echo 'export PATH="/opt/homebrew/opt/python@3.12/bin:$PATH"' >> ~/.zprofile
+     source ~/.zprofile
+     ```
+   - Or via pyenv:
+     ```bash
+     brew install pyenv
+     pyenv install 3.12.6
+     pyenv global 3.12.6
+     ```
+2. **Poetry**
+   ```bash
+   curl -sSL https://install.python-poetry.org | python3 -
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile
+   source ~/.zprofile
+   ```
+3. **Corepack (enables pnpm)**
+   - Node 20+ includes Corepack; install via Homebrew if needed:
+     ```bash
+     brew install node@20
+     corepack enable
+     ```
+
+After installing these tools, `./dev_stack.sh` can bootstrap the project automatically. The script
+will attempt to install Poetry/Corepack if they are missing, but having the prerequisites installed
+ahead of time avoids interactive prompts and ensures they are on your PATH.
 
 ### Tox Tasks
 - `tox run -e py311-lint` – Ruff lint (backend).
@@ -178,6 +249,7 @@ Use `docker-compose` or external Redis/PostgreSQL as required.
 ### Generating Lockfiles
 - Backend: `cd backend && poetry lock`
 - Frontend: `cd frontend && pnpm install --frozen-lockfile`
+- Whenever you modify `backend/pyproject.toml`, rerun `poetry lock` (or `poetry update`) before committing so the lock file stays in sync with dependency changes.
 
 ## Deployment Automation
 - Update `deployment/ansible/inventory.ini` (create file) with your Pi host(s).
@@ -198,6 +270,12 @@ Use `docker-compose` or external Redis/PostgreSQL as required.
   sudo python3 infrastructure/scripts/monitor_clients.py
   ```
 - Track system metrics using `htop`, `iotop`. Consider enabling `prometheus-node-exporter` for remote monitoring.
+- **Polling modes**
+  - *In-app polling*: set `POLLING_ENABLED=true` in `backend/.env`. The Litestar lifespan will spawn a background task that polls `hostapd_cli`/`iw` at `POLL_INTERVAL_SECONDS` and streams results into `MeetingService`.
+  - *Standalone poller*: run `poetry run python -m app.scripts.poller` (or configure the provided `deployment/systemd/meeting-poller.service`) when you want the poller to run independently of the API process. This mode is useful if you deploy the API behind a WSGI/ASGI server that does not allow background tasks.
+- **Logging**
+  - Hotspot polling emits logs via the `app.utils.hotspot_monitor` logger; increase verbosity with `LOG_LEVEL=DEBUG` to inspect command failures and fallbacks.
+  - Capture systemd logs with `journalctl -u meeting-backend.service -f` and `journalctl -u meeting-poller.service -f` to monitor poll cycle health.
 - Configure log rotation via `/etc/logrotate.d/meeting-hotspot`.
 
 ## Testing Strategy
