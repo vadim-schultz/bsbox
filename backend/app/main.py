@@ -14,7 +14,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
 
     return Litestar(
         route_handlers=[MeetingController],
-        lifespan=lifespan(current_settings),
+        lifespan=[lifespan(current_settings)],
         dependencies={
             "settings": Provide(lambda: current_settings),
             "session": Provide(session_dependency),

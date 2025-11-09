@@ -1,7 +1,8 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -19,10 +20,11 @@ class Settings(BaseSettings):
     history_limit: int = Field(10, alias="HISTORY_LIMIT")
     polling_enabled: bool = Field(True, alias="POLLING_ENABLED")
 
-    class Config:
-        env_file = Path(__file__).parent.parent.parent / ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).parent.parent.parent / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
 
 @lru_cache

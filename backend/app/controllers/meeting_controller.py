@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 from litestar import Controller, get, post
-from litestar.response import EventSourceResponse
+from litestar.response import Stream
 
 from ..schemas.meeting import MeetingAnalyticsResponse, MeetingEventRequest
 from ..services.meeting_service import MeetingService
@@ -41,7 +41,7 @@ class MeetingController(Controller):
     async def stream_analytics(
         self,
         meeting_service: MeetingService,
-    ) -> EventSourceResponse:
+    ) -> Stream:
         """Server-sent events stream providing near-realtime analytics."""
 
         async def event_generator() -> AsyncIterator[str]:
@@ -50,5 +50,5 @@ class MeetingController(Controller):
                 yield f"data: {metrics.model_dump_json()}\n\n"
                 await asyncio.sleep(5)
 
-        return EventSourceResponse(event_generator())
+        return Stream(event_generator(), media_type="text/event-stream")
 

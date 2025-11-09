@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from types import SimpleNamespace
 from typing import Any
 
-from litestar.types import LifespanHandler
+from litestar.types import LifespanHook
 
 from ..cache import get_redis
 from ..config.settings import Settings
@@ -15,7 +15,8 @@ from ..services.meeting_service import MeetingService
 from .hotspot_monitor import HotspotMonitor
 
 
-def lifespan(settings: Settings) -> LifespanHandler:
+def lifespan(settings: Settings) -> LifespanHook:
+    @contextlib.asynccontextmanager
     async def handler(app: Any) -> AsyncIterator[None]:
         await init_models(settings)
         redis = await get_redis(settings)

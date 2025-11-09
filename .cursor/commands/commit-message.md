@@ -1,4 +1,4 @@
-# /commit — Conventional Commit Workflow
+# /commit-message — Conventional Commit Workflow
 
 Run this slash command as a checklist whenever you prepare a commit. It combines the
 repository’s commit guidelines and the step-by-step workflow so every message stays
