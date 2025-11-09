@@ -1,19 +1,11 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MantineProvider } from "@mantine/core";
-import App from "./App";
-import "./styles/tailwind.css";
+import { render } from "preact";
+import { App } from "./App";
+import "./styles.css";
 
-const queryClient = new QueryClient();
+const rootElement = document.getElementById("root");
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <MantineProvider withGlobalStyles withNormalizeCSS>
-        <App />
-      </MantineProvider>
-    </QueryClientProvider>
-  </React.StrictMode>,
-);
+if (!rootElement) {
+  throw new Error("Root element not found");
+}
 
+render(<App />, rootElement);

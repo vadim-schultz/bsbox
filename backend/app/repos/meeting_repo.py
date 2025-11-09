@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Iterable, Sequence
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models import ConnectionEvent, EngagementEvent, Meeting, Participant
+from ..models import ConnectionEvent, EngagementEvent, Meeting, MeetingParticipantLink, Participant
 from ..schemas.meeting import MeetingAnalyticsResponse, ParticipantSnapshot
 
 MEETING_SLOT_MINUTES = 30
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class MeetingRepository:
@@ -18,7 +22,8 @@ class MeetingRepository:
         self.session = session
 
     async def get_or_create_active_meeting(self, now: datetime) -> Meeting:
-        scheduled_start = now.replace(minute=0 if now.minute < MEETING_SLOT_MINUTES else 30, second=0, microsecond=0)
+        now_utc = now if now.tzinfo else now.replace(tzinfo=timezone.utc)
+        scheduled_start = now_utc.replace(minute=0 if now_utc.minute < MEETING_SLOT_MINUTES else 30, second=0, microsecond=0)
 
         stmt = (
             select(Meeting)
@@ -29,7 +34,7 @@ class MeetingRepository:
         if meeting:
             return meeting
 
-        meeting = Meeting(scheduled_start=scheduled_start, actual_start=now)
+        meeting = Meeting(scheduled_start=scheduled_start, actual_start=now_utc)
         self.session.add(meeting)
         await self.session.flush()
         return meeting
@@ -52,8 +57,17 @@ class MeetingRepository:
         return participant
 
     async def attach_participant_to_meeting(self, meeting: Meeting, participant: Participant) -> None:
-        if participant not in meeting.participants:
-            meeting.participants.append(participant)
+        exists_stmt = select(MeetingParticipantLink).where(
+            MeetingParticipantLink.meeting_id == meeting.id,
+            MeetingParticipantLink.participant_id == participant.id,
+        )
+        existing = (await self.session.execute(exists_stmt)).scalar_one_or_none()
+        if existing is None:
+            link = MeetingParticipantLink(
+                meeting_id=meeting.id,
+                participant_id=participant.id,
+            )
+            self.session.add(link)
             await self.session.flush()
 
     async def record_connection_events(
@@ -92,14 +106,15 @@ class MeetingRepository:
         return event
 
     async def update_meeting_end(self, meeting_id: str, ended_at: datetime) -> None:
+        ended = ended_at if ended_at.tzinfo else ended_at.replace(tzinfo=timezone.utc)
         stmt = select(Meeting).where(Meeting.id == meeting_id)
         meeting = (await self.session.execute(stmt)).scalar_one_or_none()
         if meeting and meeting.actual_end is None:
-            meeting.actual_end = ended_at
-            meeting.updated_at = datetime.utcnow()
+            meeting.actual_end = ended
+            meeting.updated_at = _utcnow()
 
     async def current_metrics(self, meeting: Meeting) -> MeetingAnalyticsResponse:
-        now = datetime.utcnow()
+        now = _utcnow()
         speaking_stmt = (
             select(func.count(func.distinct(EngagementEvent.participant_id)))
             .where(
@@ -155,7 +170,7 @@ class MeetingRepository:
         )
         results = await self.session.execute(stmt)
         snapshots: list[ParticipantSnapshot] = []
-        now = datetime.utcnow()
+        now = _utcnow()
         for participant, strength in results.all():
             snapshots.append(
                 ParticipantSnapshot(

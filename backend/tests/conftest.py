@@ -1,28 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Any
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
-from app.config.settings import Settings
 from app import models as _models  # noqa: F401
-
-
-class FakeRedis:
-    def __init__(self) -> None:
-        self._store: dict[str, str] = {}
-
-    async def get(self, key: str) -> str | None:
-        return self._store.get(key)
-
-    async def set(self, key: str, value: str, ex: int | None = None) -> None:
-        self._store[key] = value
-
-    async def flushdb(self) -> None:
-        self._store.clear()
+from app.config.settings import Settings
 
 
 @pytest.fixture()
@@ -30,7 +15,6 @@ def settings() -> Settings:
     return Settings(
         environment="test",
         database_url="sqlite+aiosqlite:///:memory:",
-        redis_url="redis://localhost:6379/0",
         hotspot_interface="wlan0",
         meeting_threshold=2,
         meeting_window_minutes=5,
@@ -38,11 +22,6 @@ def settings() -> Settings:
         history_limit=5,
         polling_enabled=False,
     )
-
-
-@pytest.fixture()
-def fake_redis() -> FakeRedis:
-    return FakeRedis()
 
 
 @pytest.fixture()

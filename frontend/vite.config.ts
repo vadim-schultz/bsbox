@@ -1,14 +1,11 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import preact from "@preact/preset-vite";
 
 export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: true,
-    port: 5173,
-  },
-  preview: {
-    port: 4173,
-  },
+  plugins: [preact()],
+  build: {
+    outDir: "dist",
+    sourcemap: false
+  }
 });
 

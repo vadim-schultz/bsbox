@@ -8,7 +8,6 @@ from typing import Any
 
 from litestar.types import LifespanHook
 
-from ..cache import get_redis
 from ..config.settings import Settings
 from ..database import get_session_factory, init_models
 from ..services.meeting_service import MeetingService
@@ -19,7 +18,6 @@ def lifespan(settings: Settings) -> LifespanHook:
     @contextlib.asynccontextmanager
     async def handler(app: Any) -> AsyncIterator[None]:
         await init_models(settings)
-        redis = await get_redis(settings)
         session_factory = get_session_factory(settings)
         polling_task: asyncio.Task[None] | None = None
         monitor: HotspotMonitor | None = None
@@ -33,7 +31,7 @@ def lifespan(settings: Settings) -> LifespanHook:
                 while True:
                     snapshot = await monitor.poll_once()
                     async with session_factory() as session:
-                        service = MeetingService(session=session, redis=redis, settings=settings)
+                        service = MeetingService(session=session, settings=settings)
                         await service.ingest_connection_snapshot(snapshot)
                     await asyncio.sleep(settings.poll_interval_seconds)
 

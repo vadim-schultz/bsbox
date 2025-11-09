@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -9,7 +9,7 @@ from app.repos.meeting_repo import MeetingRepository
 async def test_get_or_create_active_meeting_reuses_existing(session):
     repo = MeetingRepository(session)
 
-    now = datetime(2024, 1, 1, 12, 5)
+    now = datetime(2024, 1, 1, 12, 5, tzinfo=timezone.utc)
     meeting = await repo.get_or_create_active_meeting(now)
     duplicate = await repo.get_or_create_active_meeting(now)
 
@@ -21,7 +21,7 @@ async def test_get_or_create_active_meeting_reuses_existing(session):
 async def test_current_metrics_counts_recent_engagement(session):
     repo = MeetingRepository(session)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     meeting = await repo.get_or_create_active_meeting(now)
     participant = await repo.upsert_participant(
         device_id="aa:bb:cc:dd:ee:ff",
@@ -57,7 +57,7 @@ async def test_current_metrics_counts_recent_engagement(session):
 async def test_update_meeting_end_sets_actual_end(session):
     repo = MeetingRepository(session)
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     meeting = await repo.get_or_create_active_meeting(now)
 
     ended_at = now + timedelta(minutes=30)
