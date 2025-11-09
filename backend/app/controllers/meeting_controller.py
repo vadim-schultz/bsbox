@@ -1,6 +1,3 @@
-import asyncio
-from collections.abc import AsyncIterator
-
 from litestar import Controller, get, post
 
 from ..schemas.meeting import MeetingAnalyticsResponse, MeetingEventRequest
@@ -35,4 +32,3 @@ class MeetingController(Controller):
     ) -> list[MeetingAnalyticsResponse]:
         """Return historical analytics for recent meetings."""
         return await meeting_service.historical_analytics(limit=limit)
-

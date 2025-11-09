@@ -22,9 +22,9 @@ async def run_polling(
 ) -> None:
     settings = get_settings()
     if interface:
-        settings.hotspot_interface = interface  # type: ignore[attr-defined]
+        settings.hotspot_interface = interface
     if interval:
-        settings.poll_interval_seconds = interval  # type: ignore[attr-defined]
+        settings.poll_interval_seconds = interval
 
     session_factory = get_session_factory(settings)
 
@@ -75,8 +75,12 @@ async def run_polling(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run hotspot polling loop.")
-    parser.add_argument("--interface", dest="interface", help="Wireless interface to monitor.")
-    parser.add_argument("--interval", dest="interval", type=int, help="Polling interval seconds.")
+    parser.add_argument(
+        "--interface", dest="interface", help="Wireless interface to monitor."
+    )
+    parser.add_argument(
+        "--interval", dest="interval", type=int, help="Polling interval seconds."
+    )
     parser.add_argument(
         "--sample",
         type=Path,
@@ -87,9 +91,12 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    asyncio.run(run_polling(interface=args.interface, interval=args.interval, sample_path=args.sample))
+    asyncio.run(
+        run_polling(
+            interface=args.interface, interval=args.interval, sample_path=args.sample
+        )
+    )
 
 
 if __name__ == "__main__":
     main()
-

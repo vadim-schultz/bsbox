@@ -2,7 +2,12 @@ import asyncio
 
 import pytest
 
-from app.utils.hotspot_monitor import HotspotClient, HotspotMonitor, parse_hostapd_output, parse_iw_output
+from app.utils.hotspot_monitor import (
+    HotspotClient,
+    HotspotMonitor,
+    parse_hostapd_output,
+    parse_iw_output,
+)
 
 
 def test_parse_hostapd_output_single_client():
@@ -13,7 +18,11 @@ def test_parse_hostapd_output_single_client():
     """
     clients = parse_hostapd_output(payload)
     assert clients == [
-        HotspotClient(mac_address="02:11:22:33:44:55", ip_address="192.168.12.20", signal_strength=-45)
+        HotspotClient(
+            mac_address="02:11:22:33:44:55",
+            ip_address="192.168.12.20",
+            signal_strength=-45,
+        )
     ]
 
 
@@ -82,4 +91,3 @@ async def test_broadcast_overwrites_full_queue(monkeypatch):
         assert latest[0].mac_address == "fresh"
     finally:
         monitor._subscribers.clear()
-

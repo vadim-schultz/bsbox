@@ -36,5 +36,3 @@ async def session() -> AsyncIterator[AsyncSession]:
         yield db_session
 
     await engine.dispose()
-
-

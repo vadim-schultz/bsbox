@@ -1,8 +1,11 @@
 from pathlib import Path
 
+from typing import Any, cast
+
 from litestar import Litestar
 from litestar.di import Provide
-from litestar.static_files import StaticFilesConfig
+from litestar.static_files import create_static_files_router
+from litestar.types import LifespanHook
 
 from .config.settings import Settings, get_settings
 from .controllers.meeting_controller import MeetingController
@@ -16,24 +19,24 @@ FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
 def create_app(settings: Settings | None = None) -> Litestar:
     current_settings = settings or get_settings()
 
-    static_configs: list[StaticFilesConfig] = []
+    route_handlers: list[Any] = [MeetingController]
     if FRONTEND_DIST.exists():
-        static_configs.append(
-            StaticFilesConfig(
+        route_handlers.append(
+            create_static_files_router(
                 path="/",
                 directories=[FRONTEND_DIST],
                 html_mode=True,
             )
         )
 
-    return Litestar(
-        route_handlers=[MeetingController],
-        lifespan=[lifespan(current_settings)],
-        dependencies={
-            "settings": Provide(lambda: current_settings),
-            "session": Provide(session_dependency),
-            "meeting_service": Provide(provide_meeting_service),
-        },
-        static_files_config=static_configs or None,
-    )
+    lifespan_handler: LifespanHook = lifespan(current_settings)
 
+    return Litestar(
+        route_handlers=route_handlers,
+        lifespan=[cast(Any, lifespan_handler)],
+        dependencies={
+            "settings": Provide(lambda: current_settings, sync_to_thread=False),
+            "session": Provide(session_dependency, sync_to_thread=False),
+            "meeting_service": Provide(provide_meeting_service, sync_to_thread=False),
+        },
+    )

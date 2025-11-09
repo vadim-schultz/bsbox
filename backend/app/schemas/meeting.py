@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 class MeetingEventRequest(BaseModel):
     visitor_id: str = Field(..., description="Unique identifier of the hotspot client")
     is_speaking: bool = Field(False, description="Whether the participant is speaking")
-    is_relevant: bool = Field(False, description="Whether the meeting is relevant for the participant")
+    is_relevant: bool = Field(
+        False, description="Whether the meeting is relevant for the participant"
+    )
     timestamp: datetime | None = Field(None, description="Client-reported timestamp")
 
 
@@ -26,4 +28,3 @@ class MeetingAnalyticsResponse(BaseModel):
     speaking_score: float
     timestamp: datetime
     participants: list[ParticipantSnapshot] = Field(default_factory=list)
-

@@ -7,4 +7,3 @@ def test_app_starts(settings) -> None:
     with TestClient(app) as client:
         response = client.get("/meetings/analytics")
         assert response.status_code == 200
-

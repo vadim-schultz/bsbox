@@ -12,4 +12,3 @@ class BaseModel(SQLModel):
 
 
 __all__ = ["BaseModel", "SQLModel"]
-

@@ -29,3 +29,20 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-q"
 
+[tool.mypy]
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+show_error_codes = true
+
+[tool.pydantic-mypy]
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
+[[tool.mypy.overrides]]
+module = ["app.repos.*"]
+ignore_errors = true
+

@@ -53,4 +53,3 @@ def lifespan(settings: Settings) -> LifespanHook:
                     await polling_task
 
     return handler
-

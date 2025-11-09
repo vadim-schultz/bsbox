@@ -6,7 +6,7 @@ import random
 import sys
 import time
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -36,7 +36,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    event_parser = subparsers.add_parser("event", help="Send a single engagement event.")
+    event_parser = subparsers.add_parser(
+        "event", help="Send a single engagement event."
+    )
     event_parser.add_argument("visitor_id", help="Identifier for the participant.")
     event_parser.add_argument(
         "--speaking",
@@ -127,25 +129,31 @@ def iso_datetime(timestamp: str | None) -> str:
     return datetime.now(tz=timezone.utc).isoformat()
 
 
-def post_event(client: httpx.Client, base_url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def post_event(
+    client: httpx.Client, base_url: str, payload: dict[str, Any]
+) -> dict[str, Any]:
     response = client.post(f"{base_url}/meetings/events", json=payload)
     response.raise_for_status()
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 
 def get_analytics(client: httpx.Client, base_url: str) -> dict[str, Any]:
     response = client.get(f"{base_url}/meetings/analytics")
     response.raise_for_status()
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 
-def get_history(client: httpx.Client, base_url: str, limit: int) -> list[dict[str, Any]]:
-    response = client.get(f"{base_url}/meetings/analytics/history", params={"limit": limit})
+def get_history(
+    client: httpx.Client, base_url: str, limit: int
+) -> list[dict[str, Any]]:
+    response = client.get(
+        f"{base_url}/meetings/analytics/history", params={"limit": limit}
+    )
     response.raise_for_status()
     data = response.json()
     if not isinstance(data, list):
         raise SimulationError("History endpoint returned unexpected payload.")
-    return data
+    return cast(list[dict[str, Any]], data)
 
 
 def format_json(payload: Any) -> str:
@@ -163,13 +171,17 @@ def run_event(args: argparse.Namespace) -> None:
 
     with httpx.Client(timeout=args.timeout) as client:
         analytics = post_event(client, base_url, payload)
-        print(f"✅ Sent event for {args.visitor_id} (speaking={args.speaking}, relevant={args.relevant})")
+        print(
+            f"✅ Sent event for {args.visitor_id} (speaking={args.speaking}, relevant={args.relevant})"
+        )
         if args.echo:
             print("Current analytics:")
             print(format_json(analytics))
 
 
-def random_payload(participant_id: str, speak_prob: float, relevant_prob: float) -> dict[str, Any]:
+def random_payload(
+    participant_id: str, speak_prob: float, relevant_prob: float
+) -> dict[str, Any]:
     is_speaking = random.random() < speak_prob
     is_relevant = random.random() < relevant_prob
     return {
@@ -187,7 +199,7 @@ def run_burst(args: argparse.Namespace) -> None:
         raise SimulationError("iterations must be greater than zero")
 
     base_url = normalize_base_url(args.base_url)
-    participant_ids = [f"visitor-{i+1}" for i in range(args.participants)]
+    participant_ids = [f"visitor-{i + 1}" for i in range(args.participants)]
 
     with httpx.Client(timeout=args.timeout) as client:
         for iteration in range(1, args.iterations + 1):
@@ -200,9 +212,8 @@ def run_burst(args: argparse.Namespace) -> None:
                     f" relevant={payload['is_relevant']}"
                 )
             if args.echo:
-                metrics = get_analytics(client, base_url)
                 print("Analytics snapshot:")
-                print(format_json(metrics))
+                print(format_json(analytics))
             if iteration != args.iterations:
                 time.sleep(args.delay)
 

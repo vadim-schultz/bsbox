@@ -45,16 +45,22 @@ class MeetingService:
             timestamp=now,
         )
         await self._repository.session.commit()
-        await self._repository.session.refresh(meeting, attribute_names=["participants"])
+        await self._repository.session.refresh(
+            meeting, attribute_names=["participants"]
+        )
         return await self._repository.current_metrics(meeting)
 
     async def current_analytics(self) -> MeetingAnalyticsResponse:
         now = _utcnow()
         meeting = await self._repository.get_or_create_active_meeting(now)
-        await self._repository.session.refresh(meeting, attribute_names=["participants"])
+        await self._repository.session.refresh(
+            meeting, attribute_names=["participants"]
+        )
         return await self._repository.current_metrics(meeting)
 
-    async def historical_analytics(self, limit: int = 10) -> list[MeetingAnalyticsResponse]:
+    async def historical_analytics(
+        self, limit: int = 10
+    ) -> list[MeetingAnalyticsResponse]:
         limit = min(limit, self._settings.history_limit)
         meetings = await self._repository.historical_metrics(limit=limit)
         return list(meetings)
@@ -88,7 +94,9 @@ class MeetingService:
             await self._repository.update_meeting_end(meeting.id, now)
 
         await self._repository.session.commit()
-        await self._repository.session.refresh(meeting, attribute_names=["participants"])
+        await self._repository.session.refresh(
+            meeting, attribute_names=["participants"]
+        )
         return await self._repository.current_metrics(meeting)
 
 
@@ -97,4 +105,3 @@ async def provide_meeting_service(
     settings: Settings,
 ) -> MeetingService:
     return MeetingService(session=session, settings=settings)
-

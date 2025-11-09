@@ -45,4 +45,3 @@ async def session_dependency(settings: Settings) -> AsyncIterator[AsyncSession]:
     factory = get_session_factory(settings)
     async with factory() as session:
         yield session
-

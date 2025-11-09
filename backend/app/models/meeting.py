@@ -34,8 +34,12 @@ class Participant(BaseModel, table=True):
         back_populates="participants",
         link_model=MeetingParticipantLink,
     )
-    engagement_events: List["EngagementEvent"] = Relationship(back_populates="participant")
-    connection_events: List["ConnectionEvent"] = Relationship(back_populates="participant")
+    engagement_events: List["EngagementEvent"] = Relationship(
+        back_populates="participant"
+    )
+    connection_events: List["ConnectionEvent"] = Relationship(
+        back_populates="participant"
+    )
 
 
 class Meeting(BaseModel, table=True):
@@ -82,4 +86,3 @@ class EngagementEvent(BaseModel, table=True):
 
     meeting: Meeting = Relationship(back_populates="engagement_events")
     participant: Participant = Relationship(back_populates="engagement_events")
-

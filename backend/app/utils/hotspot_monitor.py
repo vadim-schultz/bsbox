@@ -99,7 +99,9 @@ class HotspotMonitor:
         )
         stdout, stderr = await process.communicate()
         if process.returncode != 0:
-            raise RuntimeError(f"Command {' '.join(command)} failed: {stderr.decode().strip()}")
+            raise RuntimeError(
+                f"Command {' '.join(command)} failed: {stderr.decode().strip()}"
+            )
         return parser(stdout.decode())
 
 
@@ -116,7 +118,11 @@ def parse_hostapd_output(payload: str) -> list[HotspotClient]:
         if MAC_PATTERN.match(line):
             if current_mac:
                 clients.append(
-                    HotspotClient(mac_address=current_mac, ip_address=ip_address, signal_strength=signal)
+                    HotspotClient(
+                        mac_address=current_mac,
+                        ip_address=ip_address,
+                        signal_strength=signal,
+                    )
                 )
             current_mac = line
             signal = None
@@ -132,7 +138,11 @@ def parse_hostapd_output(payload: str) -> list[HotspotClient]:
             ip_address = line.split("=", 1)[1].strip()
 
     if current_mac:
-        clients.append(HotspotClient(mac_address=current_mac, ip_address=ip_address, signal_strength=signal))
+        clients.append(
+            HotspotClient(
+                mac_address=current_mac, ip_address=ip_address, signal_strength=signal
+            )
+        )
 
     return clients
 
@@ -146,7 +156,9 @@ def parse_iw_output(payload: str) -> list[HotspotClient]:
         line = line.strip()
         if line.startswith("Station"):
             if current_mac:
-                clients.append(HotspotClient(mac_address=current_mac, signal_strength=signal))
+                clients.append(
+                    HotspotClient(mac_address=current_mac, signal_strength=signal)
+                )
             current_mac = line.split()[1]
             signal = None
         elif "signal:" in line:
@@ -160,4 +172,3 @@ def parse_iw_output(payload: str) -> list[HotspotClient]:
         clients.append(HotspotClient(mac_address=current_mac, signal_strength=signal))
 
     return clients
-

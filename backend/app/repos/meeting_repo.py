@@ -7,7 +7,13 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models import ConnectionEvent, EngagementEvent, Meeting, MeetingParticipantLink, Participant
+from ..models import (
+    ConnectionEvent,
+    EngagementEvent,
+    Meeting,
+    MeetingParticipantLink,
+    Participant,
+)
 from ..schemas.meeting import MeetingAnalyticsResponse, ParticipantSnapshot
 
 MEETING_SLOT_MINUTES = 30
@@ -23,7 +29,11 @@ class MeetingRepository:
 
     async def get_or_create_active_meeting(self, now: datetime) -> Meeting:
         now_utc = now if now.tzinfo else now.replace(tzinfo=timezone.utc)
-        scheduled_start = now_utc.replace(minute=0 if now_utc.minute < MEETING_SLOT_MINUTES else 30, second=0, microsecond=0)
+        scheduled_start = now_utc.replace(
+            minute=0 if now_utc.minute < MEETING_SLOT_MINUTES else 30,
+            second=0,
+            microsecond=0,
+        )
 
         stmt = (
             select(Meeting)
@@ -51,12 +61,16 @@ class MeetingRepository:
             participant.last_seen = seen_at
             participant.signal_strength = signal_strength
         else:
-            participant = Participant(device_id=device_id, last_seen=seen_at, signal_strength=signal_strength)
+            participant = Participant(
+                device_id=device_id, last_seen=seen_at, signal_strength=signal_strength
+            )
             self.session.add(participant)
             await self.session.flush()
         return participant
 
-    async def attach_participant_to_meeting(self, meeting: Meeting, participant: Participant) -> None:
+    async def attach_participant_to_meeting(
+        self, meeting: Meeting, participant: Participant
+    ) -> None:
         exists_stmt = select(MeetingParticipantLink).where(
             MeetingParticipantLink.meeting_id == meeting.id,
             MeetingParticipantLink.participant_id == participant.id,
@@ -115,29 +129,31 @@ class MeetingRepository:
 
     async def current_metrics(self, meeting: Meeting) -> MeetingAnalyticsResponse:
         now = _utcnow()
-        speaking_stmt = (
-            select(func.count(func.distinct(EngagementEvent.participant_id)))
-            .where(
-                EngagementEvent.meeting_id == meeting.id,
-                EngagementEvent.is_speaking.is_(True),
-                EngagementEvent.timestamp >= now - timedelta(minutes=5),
-            )
+        speaking_stmt = select(
+            func.count(func.distinct(EngagementEvent.participant_id))
+        ).where(
+            EngagementEvent.meeting_id == meeting.id,
+            EngagementEvent.is_speaking.is_(True),
+            EngagementEvent.timestamp >= now - timedelta(minutes=5),
         )
         speaking_count = (await self.session.execute(speaking_stmt)).scalar_one() or 0
 
-        relevance_stmt = (
-            select(func.count(func.distinct(EngagementEvent.participant_id)))
-            .where(
-                EngagementEvent.meeting_id == meeting.id,
-                EngagementEvent.is_relevant.is_(True),
-                EngagementEvent.timestamp >= now - timedelta(minutes=5),
-            )
+        relevance_stmt = select(
+            func.count(func.distinct(EngagementEvent.participant_id))
+        ).where(
+            EngagementEvent.meeting_id == meeting.id,
+            EngagementEvent.is_relevant.is_(True),
+            EngagementEvent.timestamp >= now - timedelta(minutes=5),
         )
         relevance_count = (await self.session.execute(relevance_stmt)).scalar_one() or 0
 
         participant_count = len(meeting.participants)
-        relevance_score = relevance_count / participant_count if participant_count else 0.0
-        speaking_score = speaking_count / participant_count if participant_count else 0.0
+        relevance_score = (
+            relevance_count / participant_count if participant_count else 0.0
+        )
+        speaking_score = (
+            speaking_count / participant_count if participant_count else 0.0
+        )
 
         snapshot = await self._participant_snapshot(meeting.id)
 
@@ -151,9 +167,14 @@ class MeetingRepository:
             participants=snapshot,
         )
 
-    async def historical_metrics(self, limit: int = 10) -> Sequence[MeetingAnalyticsResponse]:
-        stmt = select(Meeting).order_by(desc(Meeting.actual_start)).limit(limit).options(
-            selectinload(Meeting.participants)
+    async def historical_metrics(
+        self, limit: int = 10
+    ) -> Sequence[MeetingAnalyticsResponse]:
+        stmt = (
+            select(Meeting)
+            .order_by(desc(Meeting.actual_start))
+            .limit(limit)
+            .options(selectinload(Meeting.participants))
         )
         meetings = (await self.session.execute(stmt)).scalars().all()
         metrics: list[MeetingAnalyticsResponse] = []
@@ -177,8 +198,12 @@ class MeetingRepository:
                     visitor_id=participant.device_id,
                     display_name=None,
                     signal_strength=strength,
-                    is_speaking=await self._is_recent_engagement(meeting_id, participant.id, "speaking", now),
-                    is_relevant=await self._is_recent_engagement(meeting_id, participant.id, "relevant", now),
+                    is_speaking=await self._is_recent_engagement(
+                        meeting_id, participant.id, "speaking", now
+                    ),
+                    is_relevant=await self._is_recent_engagement(
+                        meeting_id, participant.id, "relevant", now
+                    ),
                 )
             )
         return snapshots
@@ -190,15 +215,13 @@ class MeetingRepository:
         kind: str,
         now: datetime,
     ) -> bool:
-        column = getattr(EngagementEvent, "is_speaking" if kind == "speaking" else "is_relevant")
-        stmt = (
-            select(func.count(EngagementEvent.id))
-            .where(
-                EngagementEvent.meeting_id == meeting_id,
-                EngagementEvent.participant_id == participant_id,
-                column.is_(True),
-                EngagementEvent.timestamp >= now - timedelta(minutes=5),
-            )
+        column = getattr(
+            EngagementEvent, "is_speaking" if kind == "speaking" else "is_relevant"
+        )
+        stmt = select(func.count(EngagementEvent.id)).where(
+            EngagementEvent.meeting_id == meeting_id,
+            EngagementEvent.participant_id == participant_id,
+            column.is_(True),
+            EngagementEvent.timestamp >= now - timedelta(minutes=5),
         )
         return ((await self.session.execute(stmt)).scalar_one() or 0) > 0
-

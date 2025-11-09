@@ -64,11 +64,14 @@ async def test_historical_analytics_respects_history_limit(session, settings):
     base_time = datetime.now(timezone.utc)
     for index in range(3):
         await service.ingest_connection_snapshot(
-            [HotspotClient(mac_address=f"00:11:22:33:44:{index:02x}", signal_strength=-40)],
+            [
+                HotspotClient(
+                    mac_address=f"00:11:22:33:44:{index:02x}", signal_strength=-40
+                )
+            ],
             timestamp=base_time - timedelta(minutes=index * 15),
         )
 
     history = await service.historical_analytics(limit=5)
 
     assert len(history) == 2
-

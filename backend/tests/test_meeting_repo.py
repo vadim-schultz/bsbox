@@ -67,4 +67,3 @@ async def test_update_meeting_end_sets_actual_end(session):
     refreshed = await repo.session.get(type(meeting), meeting.id)
 
     assert refreshed.actual_end == ended_at
-
