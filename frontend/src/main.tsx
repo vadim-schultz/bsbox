@@ -1,11 +1,13 @@
-import { render } from "preact";
-import { App } from "./App";
-import "./styles.css";
+import React from "react";
+import ReactDOM from "react-dom/client";
 
-const rootElement = document.getElementById("root");
+import App from "./App";
+import { AppChakraProvider } from "./app/providers/ChakraProvider";
 
-if (!rootElement) {
-  throw new Error("Root element not found");
-}
-
-render(<App />, rootElement);
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  <React.StrictMode>
+    <AppChakraProvider>
+      <App />
+    </AppChakraProvider>
+  </React.StrictMode>
+);

@@ -1,41 +1,49 @@
-# Python artifacts
+# Python
 __pycache__/
-*.py[cod]
-*.so
-.mypy_cache/
+*.pyc
+.venv/
+backend/.venv/
+*.db
 .pytest_cache/
-.ruff_cache/
-.tox/
-/.venv/
-/backend/.venv/
-*.egg-info/
-coverage.xml
-.coverage*
-/backend/.env
-/backend/.env.*
 
-# Node / frontend artifacts
-/node_modules/
-**/node_modules/
-dist/
+# Node / Vite
+frontend/node_modules/
 frontend/dist/
-frontend/coverage/
-.pnpm-store/
-pnpm-debug.log*
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment files
-.env
-.env.*
-
-# Editor and OS files
-.DS_Store
-.idea/
-.vscode/
-
-# Logs
 *.log
 
+# OS
+.DS_Store
+Thumbs.db
+
+# Packaging artifacts
+*.egg-info/
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Build / dist artifacts
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Local database
+muda.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage*
 

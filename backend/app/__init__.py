@@ -1,3 +1,4 @@
-from .main import create_app
+"""
+Litestar meetings API package.
+"""
 
-__all__ = ["create_app"]

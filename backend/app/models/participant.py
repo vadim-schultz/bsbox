@@ -1,0 +1,26 @@
+from datetime import datetime
+from typing import List
+from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.base import Base
+
+
+class Participant(Base):
+    __tablename__ = "participants"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    meeting_id: Mapped[str] = mapped_column(ForeignKey("meetings.id"), nullable=False, index=True)
+    device_fingerprint: Mapped[str] = mapped_column(
+        String(128), nullable=False, index=True, server_default=""
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    last_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False), server_default=func.now(), nullable=False
+    )
+
+    meeting: Mapped["Meeting"] = relationship(back_populates="participants")
+    engagement_samples: Mapped[List["EngagementSample"]] = relationship(
+        back_populates="participant", cascade="all, delete-orphan"
+    )

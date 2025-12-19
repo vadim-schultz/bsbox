@@ -1,16 +1,10 @@
-"""initial schema
-
-Revision ID: 0001_initial
-Revises:
-Create Date: 2025-11-08 00:00:00.000000
-"""
+"""Initial schema"""
 
 from __future__ import annotations
 
-import sqlalchemy as sa
 from alembic import op
+import sqlalchemy as sa
 
-# revision identifiers, used by Alembic.
 revision = "0001_initial"
 down_revision = None
 branch_labels = None
@@ -19,81 +13,47 @@ depends_on = None
 
 def upgrade() -> None:
     op.create_table(
-        "participants",
-        sa.Column("id", sa.String(length=36), primary_key=True),
-        sa.Column(
-            "device_id", sa.String(length=64), nullable=False, unique=True, index=True
-        ),
-        sa.Column("last_seen", sa.DateTime(timezone=False), nullable=False),
-        sa.Column("signal_strength", sa.Integer(), nullable=True),
-    )
-
-    op.create_table(
         "meetings",
-        sa.Column("id", sa.String(length=36), primary_key=True),
-        sa.Column(
-            "scheduled_start", sa.DateTime(timezone=False), nullable=False, index=True
-        ),
-        sa.Column("actual_start", sa.DateTime(timezone=False), nullable=False),
-        sa.Column("actual_end", sa.DateTime(timezone=False), nullable=True, index=True),
-        sa.Column("created_at", sa.DateTime(timezone=False), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=False), nullable=False),
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("start_ts", sa.DateTime(), nullable=False),
+        sa.Column("end_ts", sa.DateTime(), nullable=False),
+        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
     )
 
     op.create_table(
-        "meeting_participants",
-        sa.Column(
-            "meeting_id",
-            sa.String(length=36),
-            sa.ForeignKey("meetings.id"),
-            primary_key=True,
-        ),
-        sa.Column(
-            "participant_id",
-            sa.String(length=36),
-            sa.ForeignKey("participants.id"),
-            primary_key=True,
-        ),
+        "participants",
+        sa.Column("id", sa.String(length=36), nullable=False),
+        sa.Column("meeting_id", sa.Integer(), sa.ForeignKey("meetings.id"), nullable=False),
+        sa.Column("device_fingerprint", sa.String(length=128), server_default=sa.text("''"), nullable=False),
+        sa.Column("expires_at", sa.DateTime(), nullable=False),
+        sa.Column("last_status", sa.String(length=32), nullable=True),
+        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
     )
+    op.create_index("ix_participants_meeting_id", "participants", ["meeting_id"])
+    op.create_index("ix_participants_device_fingerprint", "participants", ["device_fingerprint"])
 
     op.create_table(
-        "connection_events",
-        sa.Column("id", sa.String(length=36), primary_key=True),
-        sa.Column(
-            "meeting_id", sa.String(length=36), sa.ForeignKey("meetings.id"), index=True
-        ),
-        sa.Column(
-            "participant_id",
-            sa.String(length=36),
-            sa.ForeignKey("participants.id"),
-            index=True,
-        ),
-        sa.Column("timestamp", sa.DateTime(timezone=False), nullable=False, index=True),
-        sa.Column("is_connected", sa.Boolean(), nullable=False),
-        sa.Column("signal_strength", sa.Integer(), nullable=True),
+        "engagement_samples",
+        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column("participant_id", sa.String(length=36), sa.ForeignKey("participants.id"), nullable=False),
+        sa.Column("bucket", sa.DateTime(), nullable=False),
+        sa.Column("status", sa.String(length=32), nullable=False),
+        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("participant_id", "bucket", name="uq_sample_bucket"),
     )
-
-    op.create_table(
-        "engagement_events",
-        sa.Column("id", sa.String(length=36), primary_key=True),
-        sa.Column(
-            "meeting_id", sa.String(length=36), sa.ForeignKey("meetings.id"), index=True
-        ),
-        sa.Column(
-            "participant_id",
-            sa.String(length=36),
-            sa.ForeignKey("participants.id"),
-            index=True,
-        ),
-        sa.Column("timestamp", sa.DateTime(timezone=False), nullable=False, index=True),
-        sa.Column("is_speaking", sa.Boolean(), nullable=False, default=False),
-        sa.Column("is_relevant", sa.Boolean(), nullable=False, default=False),
-    )
+    op.create_index("ix_engagement_samples_participant_id", "engagement_samples", ["participant_id"])
 
 
 def downgrade() -> None:
-    op.drop_table("engagement_events")
-    op.drop_table("connection_events")
-    op.drop_table("meeting_participants")
-    op.drop_table("meetings")
+    op.drop_index("ix_engagement_samples_participant_id", table_name="engagement_samples")
+    op.drop_table("engagement_samples")
+
+    op.drop_index("ix_participants_device_fingerprint", table_name="participants")
+    op.drop_index("ix_participants_meeting_id", table_name="participants")
     op.drop_table("participants")
+
+    op.drop_table("meetings")
+

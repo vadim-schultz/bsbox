@@ -1,14 +1,6 @@
-from __future__ import annotations
-
-from sqlmodel import SQLModel
+from sqlalchemy.orm import DeclarativeBase
 
 
-class BaseModel(SQLModel):
-    """Base SQLModel to inherit common config."""
+class Base(DeclarativeBase):
+    pass
 
-    class Config:
-        arbitrary_types_allowed = True
-        validate_assignment = True
-
-
-__all__ = ["BaseModel", "SQLModel"]

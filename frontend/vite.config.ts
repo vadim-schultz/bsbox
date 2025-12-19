@@ -1,21 +1,36 @@
 import { defineConfig } from "vite";
-import preact from "@preact/preset-vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  plugins: [preact()],
-  build: {
-    outDir: "dist",
-    sourcemap: false,
+  plugins: [react()],
+  server: {
+    port: 80,
+    proxy: {
+      '/ws': {
+        target: 'http://localhost:8000',
+        ws: true,
+        changeOrigin: true,
+      },
+      '/meetings': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/visit': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/users': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
   test: {
-    environment: "jsdom",
     globals: true,
-    css: true,
-    setupFiles: "./src/test/setup.ts",
+    environment: "jsdom",
+    setupFiles: [],
     coverage: {
-      reporter: ["text", "lcov"],
-      enabled: false,
+      provider: "v8",
     },
   },
 });
-

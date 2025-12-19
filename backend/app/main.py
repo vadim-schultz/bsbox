@@ -1,42 +1,48 @@
 from pathlib import Path
 
-from typing import Any, cast
-
-from litestar import Litestar
+from litestar import Litestar, get
 from litestar.di import Provide
 from litestar.static_files import create_static_files_router
-from litestar.types import LifespanHook
 
-from .config.settings import Settings, get_settings
-from .controllers.meeting_controller import MeetingController
-from .database import session_dependency
-from .services.meeting_service import provide_meeting_service
-from .utils.lifespan import lifespan
-
-FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+from app.controllers import MeetingsController, UsersController, VisitsController
+from app.controllers.realtime import meeting_stream
+from app.dependencies import dependencies as app_dependencies
+from app.db import provide_session
+from app.logging_config import configure_logging
+from app.migrations import run_migrations_on_startup
 
 
-def create_app(settings: Settings | None = None) -> Litestar:
-    current_settings = settings or get_settings()
+def setup_logging(app: object | None = None) -> None:
+    """Litestar startup hook to configure application logging."""
+    configure_logging()
 
-    route_handlers: list[Any] = [MeetingController]
-    if FRONTEND_DIST.exists():
-        route_handlers.append(
-            create_static_files_router(
-                path="/",
-                directories=[FRONTEND_DIST],
-                html_mode=True,
-            )
-        )
 
-    lifespan_handler: LifespanHook = lifespan(current_settings)
+def _static_routes():
+    project_root = Path(__file__).resolve().parent.parent.parent
+    dist_dir = project_root / "frontend" / "dist"
+    if not dist_dir.exists():
+        return []
 
+    return [
+        create_static_files_router(
+            path="/assets",
+            directories=[dist_dir / "assets"],
+            name="static-assets",
+            html_mode=False,
+        ),
+        # Note: Root static router is disabled in dev mode because it can
+        # interfere with API routes when html_mode=True catches all paths.
+        # For production, the frontend is served from a separate process.
+    ]
+
+
+def create_app() -> Litestar:
     return Litestar(
-        route_handlers=route_handlers,
-        lifespan=[cast(Any, lifespan_handler)],
-        dependencies={
-            "settings": Provide(lambda: current_settings, sync_to_thread=False),
-            "session": Provide(session_dependency, sync_to_thread=False),
-            "meeting_service": Provide(provide_meeting_service, sync_to_thread=False),
-        },
+        route_handlers=[MeetingsController, UsersController, VisitsController, meeting_stream, *_static_routes()],
+        dependencies={"session": Provide(provide_session), **app_dependencies},
+        on_startup=[run_migrations_on_startup, setup_logging],
     )
+
+
+app = create_app()
+
