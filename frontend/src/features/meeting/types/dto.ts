@@ -48,6 +48,10 @@ export type MeetingDto = {
   end_ts: string;
 };
 
+export type MeetingDurationUpdateDto = {
+  duration_minutes: 30 | 60;
+};
+
 export type MeetingWithParticipantsDto = MeetingDto & {
   participants: ParticipantDto[];
 };

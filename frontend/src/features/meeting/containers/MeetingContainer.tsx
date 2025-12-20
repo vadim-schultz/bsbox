@@ -2,6 +2,7 @@ import { Stack, Text } from "@chakra-ui/react";
 import { useMemo } from "react";
 
 import { useMeetingExperience } from "../hooks/useMeetingExperience";
+import { useMeetingDuration } from "../hooks/useMeetingDuration";
 import { useEngagementStream } from "../hooks/useEngagementStream";
 import { buildChartData } from "../domain/engagement";
 import { formatTimespan } from "../utils/time";
@@ -20,7 +21,15 @@ export function MeetingContainer() {
     loading,
     error,
     sendStatus,
+    refreshMeeting,
   } = useMeetingExperience();
+
+  const { isLocked, durationMinutes, updateDuration } = useMeetingDuration({
+    meetingId,
+    meetingTimes,
+    onDurationUpdated: () => refreshMeeting(meetingId),
+  });
+
   const {
     summary: engagementSummary,
     loading: engagementLoading,
@@ -48,6 +57,11 @@ export function MeetingContainer() {
     <Stack gap={6}>
       <MeetingInfo
         meetingLabel={formatTimespan(meetingTimes?.start, meetingTimes?.end)}
+        meetingStart={meetingTimes?.start}
+        meetingEnd={meetingTimes?.end}
+        currentDurationMinutes={durationMinutes ?? 60}
+        onDurationChange={updateDuration}
+        durationLocked={isLocked}
         participantCount={displayParticipantCount}
       />
 

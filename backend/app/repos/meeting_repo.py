@@ -34,6 +34,10 @@ class MeetingRepo:
         )
         return self.session.scalars(stmt).first()
 
+    def get_by_id(self, meeting_id: str) -> Meeting | None:
+        stmt = select(Meeting).where(Meeting.id == meeting_id)
+        return self.session.scalars(stmt).first()
+
     def get_by_start(self, start_ts: datetime) -> Meeting | None:
         stmt = select(Meeting).where(Meeting.start_ts == start_ts)
         return self.session.scalars(stmt).first()
@@ -41,6 +45,12 @@ class MeetingRepo:
     def create(self, start_ts: datetime, end_ts: datetime) -> Meeting:
         meeting = Meeting(start_ts=start_ts, end_ts=end_ts)
         self.session.add(meeting)
+        self.session.flush()
+        self.session.refresh(meeting)
+        return meeting
+
+    def update_end(self, meeting: Meeting, end_ts: datetime) -> Meeting:
+        meeting.end_ts = end_ts
         self.session.flush()
         self.session.refresh(meeting)
         return meeting

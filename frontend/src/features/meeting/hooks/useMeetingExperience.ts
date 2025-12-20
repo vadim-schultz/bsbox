@@ -40,12 +40,19 @@ export function useMeetingExperience() {
 
   return {
     meeting,
-    meetingTimes: session?.meetingTimes,
+    meetingTimes: useMemo(
+      () =>
+        meeting
+          ? { start: meeting.start, end: meeting.end }
+          : session?.meetingTimes,
+      [meeting, session]
+    ),
     meetingId: session?.meetingId ?? null,
     participantCount,
     activeStatus,
     loading,
     error,
     sendStatus,
+    refreshMeeting,
   };
 }

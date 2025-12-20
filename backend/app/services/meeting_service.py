@@ -9,12 +9,15 @@ class MeetingService:
         self.meeting_repo = meeting_repo
 
     @staticmethod
-    def _truncate_to_hour(ts: datetime) -> datetime:
-        """Align meeting start to the current hour (never in the future)."""
-        return ts.replace(minute=0, second=0, microsecond=0)
+    def _ceil_to_quarter_hour(ts: datetime) -> datetime:
+        """Round up to the top of the nearest 15-minute bucket."""
+        remainder = ts.minute % 15
+        minutes_to_add = (15 - remainder) % 15
+        adjusted = ts + timedelta(minutes=minutes_to_add)
+        return adjusted.replace(second=0, microsecond=0)
 
     def ensure_meeting_for_visit(self, now: datetime) -> Meeting:
-        start_ts = self._truncate_to_hour(now)
+        start_ts = self._ceil_to_quarter_hour(now)
         existing = self.meeting_repo.get_by_start(start_ts)
         if existing:
             return existing
@@ -28,3 +31,16 @@ class MeetingService:
 
     def get_meeting(self, meeting_id: str) -> Meeting | None:
         return self.meeting_repo.get_with_participants(meeting_id)
+
+    def update_duration(self, meeting_id: str, duration_minutes: int) -> Meeting:
+        meeting = self.meeting_repo.get_by_id(meeting_id)
+        if not meeting:
+            raise ValueError("Meeting not found")
+
+        default_duration = timedelta(hours=1)
+        current_duration = meeting.end_ts - meeting.start_ts
+        if current_duration != default_duration:
+            raise ValueError("Meeting duration already updated")
+
+        new_end = meeting.start_ts + timedelta(minutes=duration_minutes)
+        return self.meeting_repo.update_end(meeting, new_end)

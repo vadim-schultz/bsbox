@@ -1,8 +1,10 @@
 import type {
   EngagementSummaryDto,
   MeetingWithParticipantsDto,
+  MeetingDto,
   StatusLiteral,
   VisitResponseDto,
+  MeetingDurationUpdateDto,
 } from "../types/dto";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -49,6 +51,20 @@ export async function getEngagementSummary(
   meetingId: string
 ): Promise<EngagementSummaryDto> {
   return getJSON<EngagementSummaryDto>(`/meetings/${meetingId}/engagement`);
+}
+
+export async function updateMeetingDuration(params: {
+  meetingId: string;
+  data: MeetingDurationUpdateDto;
+}): Promise<MeetingDto> {
+  const res = await fetch(`${API_BASE}/meetings/${params.meetingId}/duration`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params.data),
+  });
+  return parse<MeetingDto>(res);
 }
 
 export async function updateStatus(params: {

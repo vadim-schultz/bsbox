@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from litestar import Controller, get, post
+from litestar import Controller, get, patch, post
 from litestar.exceptions import HTTPException
 
 from app.models import Meeting
@@ -9,6 +9,7 @@ from app.schema import (
     EngagementSampleRead,
     EngagementSummary,
     MeetingRead,
+    MeetingDurationUpdate,
     MeetingWithParticipants,
     PaginatedMeetings,
     PaginationParams,
@@ -109,3 +110,19 @@ class MeetingsController(Controller):
             overall=[EngagementPoint(**point) for point in summary["overall"]],
             participants=[ParticipantEngagementSeries(**participant) for participant in summary["participants"]],
         )
+
+    @patch("/{meeting_id:str}/duration", sync_to_thread=False)
+    def update_duration(
+        self,
+        meeting_id: str,
+        data: MeetingDurationUpdate,
+        meeting_service: MeetingService,
+    ) -> MeetingRead:
+        try:
+            meeting = meeting_service.update_duration(meeting_id=meeting_id, duration_minutes=data.duration_minutes)
+        except ValueError as exc:
+            message = str(exc)
+            status = 404 if "not found" in message.lower() else 400
+            raise HTTPException(status_code=status, detail=message)
+
+        return _to_meeting_read(meeting)

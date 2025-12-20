@@ -1,4 +1,4 @@
-from app.schema.meeting import MeetingRead, MeetingWithParticipants
+from app.schema.meeting import MeetingDurationUpdate, MeetingRead, MeetingWithParticipants
 from app.schema.participant import ParticipantRead
 from app.schema.engagement import (
     EngagementSampleRead,
@@ -11,6 +11,7 @@ from app.schema.visit import VisitRequest, VisitResponse
 
 __all__ = [
     "MeetingRead",
+    "MeetingDurationUpdate",
     "MeetingWithParticipants",
     "ParticipantRead",
     "EngagementSampleRead",
