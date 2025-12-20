@@ -9,14 +9,12 @@ class MeetingService:
         self.meeting_repo = meeting_repo
 
     @staticmethod
-    def _round_to_nearest_hour(ts: datetime) -> datetime:
-        base = ts.replace(minute=0, second=0, microsecond=0)
-        if ts.minute >= 30:
-            base += timedelta(hours=1)
-        return base
+    def _truncate_to_hour(ts: datetime) -> datetime:
+        """Align meeting start to the current hour (never in the future)."""
+        return ts.replace(minute=0, second=0, microsecond=0)
 
     def ensure_meeting_for_visit(self, now: datetime) -> Meeting:
-        start_ts = self._round_to_nearest_hour(now)
+        start_ts = self._truncate_to_hour(now)
         existing = self.meeting_repo.get_by_start(start_ts)
         if existing:
             return existing

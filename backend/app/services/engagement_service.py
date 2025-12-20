@@ -2,7 +2,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, Iterable, List, Tuple
 
-from app.models import Meeting, Participant
+from app.models import (
+    BucketRollupDTO,
+    EngagementPointDTO,
+    EngagementSummaryDTO,
+    ParticipantSeriesDTO,
+    Meeting,
+    Participant,
+)
 from app.repos import EngagementRepo, ParticipantRepo
 
 
@@ -69,57 +76,83 @@ class EngagementService:
                 smoothed.append(sum(window_slice) / len(window_slice) * 100.0)
         return smoothed
 
-    def build_engagement_summary(
-        self, meeting: Meeting, bucket_minutes: int = 1, window_minutes: int = 5
-    ) -> dict:
-        start = self._bucketize(meeting.start_ts)
-        end = self._bucketize(meeting.end_ts)
+    @staticmethod
+    def _generate_buckets(start: datetime, end: datetime, step_minutes: int) -> List[datetime]:
         buckets: List[datetime] = []
         current = start
-        step = timedelta(minutes=bucket_minutes)
+        step = timedelta(minutes=step_minutes)
         while current <= end:
             buckets.append(current)
             current += step
+        return buckets
 
-        participant_ids = [p.id for p in meeting.participants]
-        sample_map = self._load_sample_map(meeting.id, start=start, end=end)
-        flags = self._build_flags(buckets, participant_ids, sample_map)
+    def _compose_participants_payload(
+        self,
+        buckets: List[datetime],
+        participant_ids: List[str],
+        participant_series: Dict[str, List[float]],
+        fingerprint_by_participant: Dict[str, str],
+    ) -> List[ParticipantSeriesDTO]:
+        participants: List[ParticipantSeriesDTO] = []
+        for pid in participant_ids:
+            smoothed = participant_series.get(pid, [0.0] * len(buckets))
+            series = [
+                EngagementPointDTO(bucket=buckets[idx], value=smoothed[idx]) for idx in range(len(buckets))
+            ]
+            participants.append(
+                ParticipantSeriesDTO(
+                    participant_id=pid,
+                    device_fingerprint=fingerprint_by_participant.get(pid, ""),
+                    series=series,
+                )
+            )
+        return participants
 
-        participant_series = {}
-        for pid, pid_flags in flags.items():
-            participant_series[pid] = self._smooth_flags(pid_flags, window_minutes)
-
-        overall: List[Tuple[datetime, float]] = []
+    def _compose_overall(self, buckets: List[datetime], participant_series: Dict[str, List[float]]) -> List[EngagementPointDTO]:
+        overall: List[EngagementPointDTO] = []
+        participant_ids = list(participant_series.keys())
         for idx, bucket in enumerate(buckets):
             if participant_ids:
                 avg = sum(participant_series[pid][idx] for pid in participant_ids) / len(participant_ids)
             else:
                 avg = 0.0
-            overall.append((bucket, avg))
+            overall.append(EngagementPointDTO(bucket=bucket, value=avg))
+        return overall
 
-        participants_payload = []
+    def build_engagement_summary(
+        self, meeting: Meeting, bucket_minutes: int = 1, window_minutes: int = 5
+    ) -> dict:
+        start = self._bucketize(meeting.start_ts)
+        end = self._bucketize(meeting.end_ts)
+        buckets = self._generate_buckets(start, end, bucket_minutes)
+
+        participant_ids = [p.id for p in meeting.participants]
+        sample_map = self._load_sample_map(meeting.id, start=start, end=end)
+        flags = self._build_flags(buckets, participant_ids, sample_map)
+
+        participant_series: Dict[str, List[float]] = {}
+        for pid, pid_flags in flags.items():
+            participant_series[pid] = self._smooth_flags(pid_flags, window_minutes)
+
         fingerprint_by_participant = {p.id: p.device_fingerprint for p in meeting.participants}
-        for pid in participant_ids:
-            series = [
-                {"bucket": buckets[idx], "value": participant_series[pid][idx]} for idx in range(len(buckets))
-            ]
-            participants_payload.append(
-                {
-                    "participant_id": pid,
-                    "device_fingerprint": fingerprint_by_participant.get(pid, ""),
-                    "series": series,
-                }
-            )
+        participants_payload = self._compose_participants_payload(
+            buckets=buckets,
+            participant_ids=participant_ids,
+            participant_series=participant_series,
+            fingerprint_by_participant=fingerprint_by_participant,
+        )
+        overall_points = self._compose_overall(buckets, participant_series)
 
-        return {
-            "meeting_id": meeting.id,
-            "start": start,
-            "end": end,
-            "bucket_minutes": bucket_minutes,
-            "window_minutes": window_minutes,
-            "participants": participants_payload,
-            "overall": [{"bucket": bucket, "value": value} for bucket, value in overall],
-        }
+        summary = EngagementSummaryDTO(
+            meeting_id=meeting.id,
+            start=start,
+            end=end,
+            bucket_minutes=bucket_minutes,
+            window_minutes=window_minutes,
+            participants=participants_payload,
+            overall=overall_points,
+        )
+        return summary.model_dump()
 
     def bucket_rollup(self, meeting: Meeting, bucket: datetime, window_minutes: int = 5) -> dict:
         bucket = self._bucketize(bucket)
@@ -129,7 +162,7 @@ class EngagementService:
         buckets = [start + timedelta(minutes=i) for i in range(window_minutes)]
         flags = self._build_flags(buckets, participant_ids, sample_map)
 
-        participant_values = {}
+        participant_values: Dict[str, float] = {}
         for pid, pid_flags in flags.items():
             smoothed = self._smooth_flags(pid_flags, window_minutes)
             participant_values[pid] = smoothed[-1] if smoothed else 0.0
@@ -138,8 +171,5 @@ class EngagementService:
             sum(participant_values.values()) / len(participant_values) if participant_values else 0.0
         )
 
-        return {
-            "bucket": bucket,
-            "participants": participant_values,
-            "overall": overall_value,
-        }
+        rollup = BucketRollupDTO(bucket=bucket, participants=participant_values, overall=overall_value)
+        return rollup.model_dump()

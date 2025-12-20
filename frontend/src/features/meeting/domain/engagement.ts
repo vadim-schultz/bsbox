@@ -89,79 +89,101 @@ type StatusBucketData = {
   statuses: StatusLiteral[];
 };
 
-/**
- * Build chart data from raw meeting data with engagement samples.
- * Counts engaged (speaking/engaged) vs not_engaged per bucket.
- * Participants without a sample for a bucket are counted as "not engaged".
- */
-export const buildChartData = (
+const clampPercent = (value: number) => Math.min(Math.max(value, 0), 100);
+
+const collectBucketsFromSummary = (
+  engagementSummary: EngagementSummary | null,
+  bucketMap: Map<string, StatusBucketData>
+) => {
+  if (!engagementSummary) return;
+  engagementSummary.overall.forEach((point) => {
+    const label = formatBucketLabel(point.bucket);
+    bucketMap.set(label, {
+      bucket: point.bucket,
+      label,
+      overall: point.value,
+      statuses: [],
+    });
+  });
+};
+
+const collectBucketsFromMeeting = (
   meeting: Meeting | null,
-  engagementSummary: EngagementSummary | null
-): ChartPoint[] => {
-  if (!meeting) return [];
-
-  const bucketMap = new Map<string, StatusBucketData>();
-  const totalParticipants = meeting.participants.length;
-
-  // Collect statuses per bucket from all participants
+  bucketMap: Map<string, StatusBucketData>
+) => {
+  if (!meeting) return;
   meeting.participants.forEach((participant) => {
     participant.engagementSamples.forEach((sample) => {
-      const bucketKey = sample.bucket;
+      const bucketDate = new Date(sample.bucket);
+      const bucketKey = formatBucketLabel(bucketDate);
       const existing = bucketMap.get(bucketKey);
       if (existing) {
         existing.statuses.push(sample.status);
       } else {
-        const bucketDate = new Date(sample.bucket);
         bucketMap.set(bucketKey, {
           bucket: bucketDate,
-          label: formatBucketLabel(bucketDate),
+          label: bucketKey,
           statuses: [sample.status],
         });
       }
     });
   });
+};
 
-  // Add overall engagement values from the summary if available
-  // Match by bucket label (HH:MM) since timestamps may differ
-  if (engagementSummary) {
-    engagementSummary.overall.forEach((point) => {
-      const pointLabel = formatBucketLabel(point.bucket);
-      for (const data of bucketMap.values()) {
-        if (data.label === pointLabel) {
-          data.overall = point.value;
-          break;
-        }
-      }
-    });
-  }
+const toChartPoint = (
+  data: StatusBucketData,
+  totalParticipants: number
+): ChartPoint => {
+  const engagedCountFromSamples = data.statuses.filter(isEngagedStatus).length;
+  const engagedPercentFromSamples =
+    totalParticipants > 0
+      ? (engagedCountFromSamples / totalParticipants) * 100
+      : 0;
 
-  // Transform to ChartPoints
-  // Stacked area should sum to 100% of total participants:
-  // - engagedCount = participants with speaking/engaged status
-  // - notEngagedCount = all other participants (including those without samples)
+  const engagedPercent = data.overall ?? engagedPercentFromSamples;
+  const clampedEngagedPercent = clampPercent(engagedPercent);
+  const notEngagedPercent = Math.max(0, 100 - clampedEngagedPercent);
+  const engagedCount = Math.round(
+    (clampedEngagedPercent / 100) * totalParticipants
+  );
+  const notEngagedCount = Math.max(totalParticipants - engagedCount, 0);
+  const overall = data.overall ?? clampedEngagedPercent;
+
+  return {
+    bucket: data.bucket,
+    label: data.label,
+    overall,
+    engagedCount,
+    notEngagedCount,
+    engagedPercent: clampedEngagedPercent,
+    notEngagedPercent,
+    totalParticipants,
+  };
+};
+
+const buildBucketMap = (
+  meeting: Meeting | null,
+  engagementSummary: EngagementSummary | null
+) => {
+  const bucketMap = new Map<string, StatusBucketData>();
+  collectBucketsFromSummary(engagementSummary, bucketMap);
+  collectBucketsFromMeeting(meeting, bucketMap);
+  return bucketMap;
+};
+
+export const buildChartData = (
+  meeting: Meeting | null,
+  engagementSummary: EngagementSummary | null
+): ChartPoint[] => {
+  const totalParticipants =
+    engagementSummary?.participants.length ??
+    meeting?.participants.length ??
+    0;
+
+  const bucketMap = buildBucketMap(meeting, engagementSummary);
+  if (bucketMap.size === 0) return [];
+
   return Array.from(bucketMap.values())
-    .map((data): ChartPoint => {
-      const engagedCount = data.statuses.filter(isEngagedStatus).length;
-      // All participants not engaged = total - engaged
-      const notEngagedCount = totalParticipants - engagedCount;
-      const engagedPercent =
-        totalParticipants > 0 ? (engagedCount / totalParticipants) * 100 : 0;
-      const notEngagedPercent =
-        totalParticipants > 0 ? (notEngagedCount / totalParticipants) * 100 : 0;
-
-      // Use server-provided overall if available, otherwise use engagedPercent
-      const overall = data.overall ?? engagedPercent;
-
-      return {
-        bucket: data.bucket,
-        label: data.label,
-        overall,
-        engagedCount,
-        notEngagedCount,
-        engagedPercent,
-        notEngagedPercent,
-        totalParticipants,
-      };
-    })
+    .map((data) => toChartPoint(data, totalParticipants))
     .sort((a, b) => a.bucket.getTime() - b.bucket.getTime());
 };

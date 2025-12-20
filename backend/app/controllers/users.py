@@ -33,6 +33,22 @@ def _participant_to_schema(participant: Participant) -> ParticipantRead:
     )
 
 
+def _build_delta_message(
+    meeting_id: str, participant_id: str, bucket: datetime, status: StatusLiteral, rollup: dict
+) -> dict:
+    return {
+        "type": "delta",
+        "data": {
+            "meeting_id": meeting_id,
+            "participant_id": participant_id,
+            "bucket": bucket.isoformat(),
+            "status": status,
+            "overall": rollup["overall"],
+            "participants": rollup["participants"],
+        },
+    }
+
+
 class UsersController(Controller):
     path = "/users"
 
@@ -59,17 +75,13 @@ class UsersController(Controller):
         # Fire and forget; if no listeners, nothing happens.
         ws_manager.broadcast_sync(
             meeting_id=meeting.id,
-            message={
-                "type": "delta",
-                "data": {
-                    "meeting_id": meeting.id,
-                    "participant_id": participant.id,
-                    "bucket": bucket.isoformat(),
-                    "status": data.status,
-                    "overall": rollup["overall"],
-                    "participants": rollup["participants"],
-                },
-            },
+            message=_build_delta_message(
+                meeting_id=meeting.id,
+                participant_id=participant.id,
+                bucket=bucket,
+                status=data.status,
+                rollup=rollup,
+            ),
         )
 
         refreshed = participant_service.participant_repo.get_with_engagement(participant.id)

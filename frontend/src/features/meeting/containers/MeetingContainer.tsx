@@ -27,6 +27,9 @@ export function MeetingContainer() {
     error: engagementError,
   } = useEngagementStream(meetingId);
 
+  const displayParticipantCount =
+    engagementSummary?.participants.length ?? participantCount;
+
   // Prepare chart data in the container (business logic)
   const chartData = useMemo(
     () => buildChartData(meeting, engagementSummary),
@@ -45,7 +48,7 @@ export function MeetingContainer() {
     <Stack gap={6}>
       <MeetingInfo
         meetingLabel={formatTimespan(meetingTimes?.start, meetingTimes?.end)}
-        participantCount={participantCount}
+        participantCount={displayParticipantCount}
       />
 
       {error ? (

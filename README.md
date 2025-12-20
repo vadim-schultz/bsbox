@@ -31,3 +31,16 @@ python scripts/build_and_serve.py
 ```
 
 The script installs backend deps, runs tests, installs frontend deps, builds the Vite app, then serves the built assets from the backend at `/` while keeping API routes intact.
+
+## Demo engagement simulator
+
+From `backend/`, the engagement simulator drives the UI and API with synthetic status updates:
+
+```bash
+python -m scripts.demo  # continuous loop until interrupted
+```
+
+Behavior:
+- Runs continuous meeting cycles with a short delay between them
+- Uses 10 participants and fixed fingerprints so IDs stay stable across restarts
+- Duration, tick interval, delay, and participant count are defined as constants in `backend/scripts/demo.py`
