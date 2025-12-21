@@ -50,5 +50,12 @@ export type Meeting = {
   id: string;
   start: Date;
   end: Date;
+  cityId?: string | null;
+  cityName?: string | null;
+  meetingRoomId?: string | null;
+  meetingRoomName?: string | null;
+  msTeamsThreadId?: string | null;
+  msTeamsMeetingId?: string | null;
+  msTeamsInviteUrl?: string | null;
   participants: Participant[];
 };

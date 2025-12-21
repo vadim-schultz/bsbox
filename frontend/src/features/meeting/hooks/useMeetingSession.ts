@@ -2,15 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import { mapVisitResponse } from "../domain/mappers";
 import { visit } from "../api/client";
-import {
-  clearSession,
-  loadSessionAsync,
-} from "../services/session";
+import { clearSession, loadSessionAsync } from "../services/session";
 import type { VisitSession } from "../types/domain";
 
-export function useMeetingSession() {
-  const [session, setSession] = useState<VisitSession | null>(null);
-  const [loading, setLoading] = useState(true);
+type Options = {
+  initialSession?: VisitSession | null;
+  autoVisit?: boolean;
+};
+
+export function useMeetingSession(options?: Options) {
+  const [session, setSession] = useState<VisitSession | null>(options?.initialSession ?? null);
+  const [loading, setLoading] = useState(!options?.initialSession);
   const [error, setError] = useState<string | null>(null);
 
   const bootstrap = useCallback(async () => {
@@ -18,7 +20,7 @@ export function useMeetingSession() {
     setError(null);
     try {
       const stored = await loadSessionAsync();
-      const response = await visit(stored.deviceFingerprint ?? "");
+      const response = await visit({ deviceFingerprint: stored.deviceFingerprint ?? "" });
       const mapped = mapVisitResponse(response);
       setSession(mapped);
     } catch (err) {
@@ -33,8 +35,17 @@ export function useMeetingSession() {
   }, []);
 
   useEffect(() => {
+    if (options?.initialSession) {
+      setSession(options.initialSession);
+      setLoading(false);
+      return;
+    }
+    if (options?.autoVisit === false) {
+      setLoading(false);
+      return;
+    }
     void bootstrap();
-  }, [bootstrap]);
+  }, [bootstrap, options?.initialSession, options?.autoVisit]);
 
   return {
     session,

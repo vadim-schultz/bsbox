@@ -12,6 +12,13 @@ class MeetingRead(BaseModel):
     id: str
     start_ts: datetime
     end_ts: datetime
+    city_id: str | None = None
+    city_name: str | None = None
+    meeting_room_id: str | None = None
+    meeting_room_name: str | None = None
+    ms_teams_thread_id: str | None = None
+    ms_teams_meeting_id: str | None = None
+    ms_teams_invite_url: str | None = None
 
 
 class MeetingDurationUpdate(BaseModel):
@@ -23,6 +30,14 @@ class MeetingDurationUpdate(BaseModel):
         if value not in {30, 60}:
             raise ValueError("duration_minutes must be 30 or 60")
         return value
+
+
+class MeetingCreateRequest(BaseModel):
+    city_id: str | None = None
+    meeting_room_id: str | None = None
+    ms_teams_input: str | None = Field(
+        default=None, description="Teams invite URL or meeting ID"
+    )
 
 
 class MeetingWithParticipants(MeetingRead):

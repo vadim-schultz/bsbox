@@ -5,6 +5,8 @@ import type {
   StatusLiteral,
   VisitResponseDto,
   MeetingDurationUpdateDto,
+  CityDto,
+  MeetingRoomDto,
 } from "../types/dto";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -33,11 +35,17 @@ async function getJSON<T>(path: string): Promise<T> {
   return parse<T>(res);
 }
 
-export async function visit(
-  deviceFingerprint: string
-): Promise<VisitResponseDto> {
+export async function visit(params: {
+  deviceFingerprint: string;
+  cityId?: string;
+  meetingRoomId?: string;
+  msTeamsInput?: string;
+}): Promise<VisitResponseDto> {
   return postJSON<VisitResponseDto>("/visit", {
-    device_fingerprint: deviceFingerprint,
+    device_fingerprint: params.deviceFingerprint,
+    city_id: params.cityId,
+    meeting_room_id: params.meetingRoomId,
+    ms_teams_input: params.msTeamsInput,
   });
 }
 
@@ -77,4 +85,20 @@ export async function updateStatus(params: {
     participant_id: params.participantId,
     status: params.status,
   });
+}
+
+export async function getCities(): Promise<CityDto[]> {
+  return getJSON<CityDto[]>("/cities");
+}
+
+export async function getMeetingRooms(cityId: string): Promise<MeetingRoomDto[]> {
+  return getJSON<MeetingRoomDto[]>(`/meeting-rooms?city_id=${cityId}`);
+}
+
+export async function createCity(name: string): Promise<CityDto> {
+  return postJSON<CityDto>("/cities", { name });
+}
+
+export async function createMeetingRoom(params: { name: string; cityId: string }): Promise<MeetingRoomDto> {
+  return postJSON<MeetingRoomDto>("/meeting-rooms", { name: params.name, city_id: params.cityId });
 }

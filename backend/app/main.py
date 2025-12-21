@@ -4,7 +4,13 @@ from litestar import Litestar, get
 from litestar.di import Provide
 from litestar.static_files import create_static_files_router
 
-from app.controllers import MeetingsController, UsersController, VisitsController
+from app.controllers import (
+    MeetingsController,
+    UsersController,
+    VisitsController,
+    CitiesController,
+    MeetingRoomsController,
+)
 from app.controllers.realtime import meeting_stream
 from app.dependencies import dependencies as app_dependencies
 from app.db import provide_session
@@ -38,7 +44,15 @@ def _static_routes():
 
 def create_app() -> Litestar:
     return Litestar(
-        route_handlers=[MeetingsController, UsersController, VisitsController, meeting_stream, *_static_routes()],
+        route_handlers=[
+            MeetingsController,
+            UsersController,
+            VisitsController,
+            CitiesController,
+            MeetingRoomsController,
+            meeting_stream,
+            *_static_routes(),
+        ],
         dependencies={"session": Provide(provide_session), **app_dependencies},
         on_startup=[run_migrations_on_startup, setup_logging],
     )

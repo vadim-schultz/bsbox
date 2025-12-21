@@ -30,6 +30,13 @@ export const mapMeeting = (detail: MeetingWithParticipantsDto): Meeting => ({
   id: detail.id,
   start: toDate(detail.start_ts),
   end: toDate(detail.end_ts),
+  cityId: detail.city_id ?? null,
+  cityName: detail.city_name ?? null,
+  meetingRoomId: detail.meeting_room_id ?? null,
+  meetingRoomName: detail.meeting_room_name ?? null,
+  msTeamsThreadId: detail.ms_teams_thread_id ?? null,
+  msTeamsMeetingId: detail.ms_teams_meeting_id ?? null,
+  msTeamsInviteUrl: detail.ms_teams_invite_url ?? null,
   participants: detail.participants.map(mapParticipant),
 });
 

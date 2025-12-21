@@ -5,6 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class VisitRequest(BaseModel):
     device_fingerprint: str = Field(..., description="Device/browser fingerprint for identifying returning visitor")
+    city_id: str | None = None
+    meeting_room_id: str | None = None
+    ms_teams_input: str | None = None
 
 
 class VisitResponse(BaseModel):

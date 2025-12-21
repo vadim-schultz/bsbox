@@ -25,6 +25,13 @@ def _to_meeting_read(meeting: Meeting) -> MeetingRead:
         id=meeting.id,
         start_ts=meeting.start_ts,
         end_ts=meeting.end_ts,
+        city_id=meeting.city_id,
+        city_name=getattr(meeting.city, "name", None) if meeting.city_id else None,
+        meeting_room_id=meeting.meeting_room_id,
+        meeting_room_name=getattr(meeting.meeting_room, "name", None) if meeting.meeting_room_id else None,
+        ms_teams_thread_id=meeting.ms_teams_thread_id,
+        ms_teams_meeting_id=meeting.ms_teams_meeting_id,
+        ms_teams_invite_url=meeting.ms_teams_invite_url,
     )
 
 
@@ -44,12 +51,8 @@ def _to_meeting_with_participants(meeting: Meeting) -> MeetingWithParticipants:
                 engagement_samples=samples,
             )
         )
-    return MeetingWithParticipants(
-        id=meeting.id,
-        start_ts=meeting.start_ts,
-        end_ts=meeting.end_ts,
-        participants=participants,
-    )
+    meeting_data = _to_meeting_read(meeting).model_dump()
+    return MeetingWithParticipants(participants=participants, **meeting_data)
 
 
 class MeetingsController(Controller):

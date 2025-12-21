@@ -10,6 +10,9 @@ type Props = {
   currentDurationMinutes?: number;
   onDurationChange?: (minutes: 30 | 60) => Promise<void> | void;
   durationLocked?: boolean;
+  cityName?: string | null;
+  meetingRoomName?: string | null;
+  msTeamsMeetingId?: string | null;
 };
 
 export function MeetingInfo({
@@ -20,7 +23,13 @@ export function MeetingInfo({
   currentDurationMinutes = 60,
   onDurationChange,
   durationLocked,
+  cityName,
+  meetingRoomName,
+  msTeamsMeetingId,
 }: Props) {
+  const locationLabel = [cityName, meetingRoomName].filter(Boolean).join(" • ");
+  const teamsLabel = msTeamsMeetingId ? `Teams: ${msTeamsMeetingId}` : null;
+
   return (
     <Stack gap={4}>
       <Flex
@@ -32,6 +41,16 @@ export function MeetingInfo({
         <Stack gap={1}>
           <Heading size="lg">Current meeting</Heading>
           <Text color="muted">{meetingLabel}</Text>
+          {locationLabel ? (
+            <Text color="muted" fontSize="sm">
+              {locationLabel}
+            </Text>
+          ) : null}
+          {teamsLabel ? (
+            <Text color="muted" fontSize="sm">
+              {teamsLabel}
+            </Text>
+          ) : null}
         </Stack>
         <ParticipantBadge count={participantCount} />
       </Flex>

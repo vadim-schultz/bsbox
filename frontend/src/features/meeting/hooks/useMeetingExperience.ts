@@ -3,13 +3,14 @@ import { useMemo } from "react";
 import { useMeetingData } from "./useMeetingData";
 import { useMeetingSession } from "./useMeetingSession";
 import { useStatusActions } from "./useStatusActions";
+import type { VisitSession } from "../types/domain";
 
-export function useMeetingExperience() {
+export function useMeetingExperience(initialSession?: VisitSession | null) {
   const {
     session,
     loading: sessionLoading,
     error: sessionError,
-  } = useMeetingSession();
+  } = useMeetingSession({ initialSession });
 
   const {
     meeting,

@@ -46,6 +46,13 @@ export type MeetingDto = {
   id: string;
   start_ts: string;
   end_ts: string;
+  city_id?: string | null;
+  city_name?: string | null;
+  meeting_room_id?: string | null;
+  meeting_room_name?: string | null;
+  ms_teams_thread_id?: string | null;
+  ms_teams_meeting_id?: string | null;
+  ms_teams_invite_url?: string | null;
 };
 
 export type MeetingDurationUpdateDto = {
@@ -54,4 +61,15 @@ export type MeetingDurationUpdateDto = {
 
 export type MeetingWithParticipantsDto = MeetingDto & {
   participants: ParticipantDto[];
+};
+
+export type CityDto = {
+  id: string;
+  name: string;
+};
+
+export type MeetingRoomDto = {
+  id: string;
+  name: string;
+  city_id: string;
 };

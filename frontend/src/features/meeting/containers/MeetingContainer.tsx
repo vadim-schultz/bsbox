@@ -1,4 +1,4 @@
-import { Stack, Text } from "@chakra-ui/react";
+import { Button, Flex, Stack, Text } from "@chakra-ui/react";
 import { useMemo } from "react";
 
 import { useMeetingExperience } from "../hooks/useMeetingExperience";
@@ -10,8 +10,14 @@ import { ErrorNotice, LoadingState } from "../components/feedback";
 import { MeetingInfo } from "../components/meeting-info";
 import { StatusSelector } from "../components/cards";
 import { EngagementChart } from "../components/charts/EngagementChart";
+import type { VisitSession } from "../types/domain";
 
-export function MeetingContainer() {
+type Props = {
+  initialSession?: VisitSession | null;
+  onBackToSelection?: () => void;
+};
+
+export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
   const {
     meeting,
     meetingTimes,
@@ -22,7 +28,7 @@ export function MeetingContainer() {
     error,
     sendStatus,
     refreshMeeting,
-  } = useMeetingExperience();
+  } = useMeetingExperience(initialSession);
 
   const { isLocked, durationMinutes, updateDuration } = useMeetingDuration({
     meetingId,
@@ -55,6 +61,18 @@ export function MeetingContainer() {
 
   return (
     <Stack gap={6}>
+      {onBackToSelection && (
+        <Flex justify="flex-start">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBackToSelection}
+          >
+            ← Change Location
+          </Button>
+        </Flex>
+      )}
+      
       <MeetingInfo
         meetingLabel={formatTimespan(meetingTimes?.start, meetingTimes?.end)}
         meetingStart={meetingTimes?.start}
@@ -63,6 +81,9 @@ export function MeetingContainer() {
         onDurationChange={updateDuration}
         durationLocked={isLocked}
         participantCount={displayParticipantCount}
+        cityName={meeting?.cityName ?? null}
+        meetingRoomName={meeting?.meetingRoomName ?? null}
+        msTeamsMeetingId={meeting?.msTeamsMeetingId ?? null}
       />
 
       {error ? (

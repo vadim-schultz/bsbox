@@ -8,6 +8,8 @@ from app.models.engagement_dto import (
     EngagementSummaryDTO,
     BucketRollupDTO,
 )
+from app.models.city import City
+from app.models.meeting_room import MeetingRoom
 
 __all__ = [
     "Base",
@@ -18,5 +20,7 @@ __all__ = [
     "ParticipantSeriesDTO",
     "EngagementSummaryDTO",
     "BucketRollupDTO",
+    "City",
+    "MeetingRoom",
 ]
 
