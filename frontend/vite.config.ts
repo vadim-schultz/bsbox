@@ -23,6 +23,14 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/cities': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/meeting-rooms': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
   test: {
