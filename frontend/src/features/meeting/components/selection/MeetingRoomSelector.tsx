@@ -1,6 +1,5 @@
-import { Input, Stack, Text } from "@chakra-ui/react";
-
 import type { MeetingRoomDto } from "../../types/dto";
+import { BaseCombobox } from "./BaseCombobox";
 
 type Props = {
   rooms: MeetingRoomDto[];
@@ -12,23 +11,14 @@ type Props = {
 
 export function MeetingRoomSelector({ rooms, value, onChange, loading, disabled }: Props) {
   return (
-    <Stack gap={1}>
-      <Text fontWeight="medium" fontSize="sm">
-        Meeting room
-      </Text>
-      <Input
-        list="meeting-room-options"
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || null)}
-        disabled={disabled || loading}
-        placeholder={disabled ? "Select a city first" : "Select or type a room"}
-        size="md"
-      />
-      <datalist id="meeting-room-options">
-        {rooms.map((room) => (
-          <option key={room.id} value={room.name} />
-        ))}
-      </datalist>
-    </Stack>
+    <BaseCombobox
+      label="Meeting room"
+      items={rooms}
+      value={value}
+      onChange={onChange}
+      placeholder={disabled ? "Select a city first" : "Select or type a room"}
+      loading={loading}
+      disabled={disabled}
+    />
   );
 }
