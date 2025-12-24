@@ -31,11 +31,5 @@ class MeetingDurationUpdate(BaseModel):
         return value
 
 
-class MeetingCreateRequest(BaseModel):
-    city_id: str | None = None
-    meeting_room_id: str | None = None
-    ms_teams_input: str | None = Field(default=None, description="Teams invite URL or meeting ID")
-
-
 class MeetingWithParticipants(MeetingRead):
     participants: list[ParticipantRead] = Field(default_factory=list)

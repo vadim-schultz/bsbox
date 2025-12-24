@@ -61,14 +61,6 @@ function loadInputsFromSession(): PersistedInputs | null {
   }
 }
 
-export function clearSelectionSession() {
-  try {
-    sessionStorage.removeItem(STORAGE_KEY);
-  } catch (err) {
-    console.warn("Failed to clear selection from sessionStorage:", err);
-  }
-}
-
 export function useSelectionFlow() {
   const [state, setState] = useState<State>(() => {
     const persisted = loadInputsFromSession();
@@ -145,13 +137,6 @@ export function useSelectionFlow() {
     }
   }, [state.cityInput, state.cities, state.selectedCityId, fetchRooms, findCityByName]);
 
-  const selectCity = useCallback(
-    (cityId: string | null) => {
-      setState((prev) => ({ ...prev, selectedCityId: cityId }));
-    },
-    []
-  );
-
   const setCityInput = useCallback(
     (value: string) => {
       setState((prev) => ({ ...prev, cityInput: value }));
@@ -166,14 +151,6 @@ export function useSelectionFlow() {
   const setMsTeamsInput = useCallback((value: string | null) => {
     setState((prev) => ({ ...prev, msTeamsInput: value ?? "" }));
   }, []);
-
-  const findRoomByName = useCallback(
-    (name: string) => {
-      const trimmed = name.trim().toLowerCase();
-      return state.rooms.find((r) => r.name.trim().toLowerCase() === trimmed) ?? null;
-    },
-    [state.rooms]
-  );
 
   const submit = useCallback(async (): Promise<VisitSession> => {
     setState((prev) => ({ ...prev, submitting: true, error: null }));
@@ -230,7 +207,7 @@ export function useSelectionFlow() {
     } finally {
       setState((prev) => ({ ...prev, submitting: false }));
     }
-  }, [state.cityInput, state.roomInput, state.msTeamsInput, findCityByName, findRoomByName]);
+  }, [state.cityInput, state.roomInput, state.msTeamsInput, findCityByName]);
 
   const combinedLoading = useMemo(
     () => state.loadingCities || state.loadingRooms || state.submitting,
@@ -240,7 +217,6 @@ export function useSelectionFlow() {
   return {
     ...state,
     loading: combinedLoading,
-    selectCity,
     setCityInput,
     setRoomInput,
     setMsTeamsInput,

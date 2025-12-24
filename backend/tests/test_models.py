@@ -1,21 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo
-from app.services import EngagementService, MeetingService
-
-
-def test_round_to_nearest_hour(session_factory):
-    with session_factory() as session:
-        repo = MeetingRepo(session)
-        service = MeetingService(repo)
-
-        early = datetime(2025, 1, 1, 14, 5, tzinfo=UTC)
-        late = datetime(2025, 1, 1, 13, 58, tzinfo=UTC)
-
-        assert service._round_to_nearest_hour(early).hour == 14
-        assert service._round_to_nearest_hour(early).minute == 0
-        assert service._round_to_nearest_hour(late).hour == 14
-        assert service._round_to_nearest_hour(late).minute == 0
+from app.services import EngagementService
 
 
 def test_engagement_bucket_rounding(session_factory):

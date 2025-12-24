@@ -6,7 +6,6 @@ from app.schema.engagement import (
     ParticipantEngagementSeries,
 )
 from app.schema.meeting import (
-    MeetingCreateRequest,
     MeetingDurationUpdate,
     MeetingRead,
     MeetingWithParticipants,
@@ -20,7 +19,6 @@ __all__ = [
     "MeetingRead",
     "MeetingDurationUpdate",
     "MeetingWithParticipants",
-    "MeetingCreateRequest",
     "ParticipantRead",
     "EngagementSampleRead",
     "EngagementSummary",

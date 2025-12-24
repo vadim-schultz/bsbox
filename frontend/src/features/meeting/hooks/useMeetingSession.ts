@@ -51,6 +51,5 @@ export function useMeetingSession(options?: Options) {
     session,
     loading,
     error,
-    refreshSession: bootstrap,
   };
 }

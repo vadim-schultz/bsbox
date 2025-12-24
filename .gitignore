@@ -48,4 +48,5 @@ muda.db
 .tox/
 htmlcov/
 .coverage*
+coverage.xml
 

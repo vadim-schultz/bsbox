@@ -50,14 +50,9 @@ export function useStatusActions({
     [meetingId, participantId, onStatusUpdated]
   );
 
-  const setInactive = useCallback(async () => {
-    await sendStatus("not_engaged");
-  }, [sendStatus]);
-
   return {
     activeStatus,
     sendStatus,
-    setInactive,
     loading,
     error,
   };
