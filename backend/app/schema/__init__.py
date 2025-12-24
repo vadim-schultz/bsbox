@@ -1,5 +1,6 @@
 from app.schema.city import CityCreate, CityRead
 from app.schema.engagement import (
+    BucketRollup,
     EngagementPoint,
     EngagementSampleRead,
     EngagementSummary,
@@ -11,8 +12,8 @@ from app.schema.meeting import (
     MeetingWithParticipants,
 )
 from app.schema.meeting_room import MeetingRoomCreate, MeetingRoomRead
-from app.schema.pagination import PaginatedMeetings, PaginationParams
-from app.schema.participant import ParticipantRead
+from app.schema.pagination import Paginated, PaginationParams
+from app.schema.participant import ParticipantCreate, ParticipantRead
 from app.schema.visit import VisitRequest, VisitResponse
 
 __all__ = [
@@ -20,12 +21,14 @@ __all__ = [
     "MeetingDurationUpdate",
     "MeetingWithParticipants",
     "ParticipantRead",
+    "ParticipantCreate",
     "EngagementSampleRead",
     "EngagementSummary",
     "ParticipantEngagementSeries",
     "EngagementPoint",
+    "BucketRollup",
     "PaginationParams",
-    "PaginatedMeetings",
+    "Paginated",
     "VisitRequest",
     "VisitResponse",
     "CityRead",

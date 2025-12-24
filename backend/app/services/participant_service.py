@@ -8,20 +8,20 @@ class ParticipantService:
     def __init__(self, participant_repo: ParticipantRepo) -> None:
         self.participant_repo = participant_repo
 
-    def _is_expired(self, participant: Participant, now: datetime) -> bool:
-        expires = (
-            participant.expires_at.replace(tzinfo=UTC)
-            if participant.expires_at.tzinfo is None
-            else participant.expires_at
+    def _is_meeting_ended(self, meeting: Meeting, now: datetime) -> bool:
+        """Check if the meeting has ended based on its end timestamp."""
+        end_ts = (
+            meeting.end_ts.replace(tzinfo=UTC)
+            if meeting.end_ts.tzinfo is None
+            else meeting.end_ts
         )
         current = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
-        return expires <= current
+        return end_ts <= current
 
     def create_anonymous(self, meeting: Meeting, device_fingerprint: str) -> Participant:
-        # Expire at meeting end to align anonymous lifetime with meeting duration
-        expires_at = meeting.end_ts
+        """Create a new anonymous participant for a meeting."""
         return self.participant_repo.create(
-            meeting_id=meeting.id, expires_at=expires_at, device_fingerprint=device_fingerprint
+            meeting_id=meeting.id, device_fingerprint=device_fingerprint
         )
 
     def get_or_create_active(
@@ -31,14 +31,18 @@ class ParticipantService:
         device_fingerprint: str,
         participant_id: str | None = None,
     ) -> Participant:
+        # If meeting has ended, don't return existing participants
+        if self._is_meeting_ended(meeting, now):
+            return self.create_anonymous(meeting=meeting, device_fingerprint=device_fingerprint)
+
         if participant_id:
             existing = self.participant_repo.get_with_engagement(participant_id)
-            if existing and not self._is_expired(existing, now):
+            if existing:
                 return existing
 
         if device_fingerprint:
             existing = self.participant_repo.get_by_fingerprint(device_fingerprint, meeting.id)
-            if existing and not self._is_expired(existing, now):
+            if existing:
                 return existing
 
         return self.create_anonymous(meeting=meeting, device_fingerprint=device_fingerprint)

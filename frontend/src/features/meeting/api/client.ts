@@ -7,6 +7,7 @@ import type {
   MeetingDurationUpdateDto,
   CityDto,
   MeetingRoomDto,
+  PaginatedDto,
 } from "../types/dto";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -88,11 +89,13 @@ export async function updateStatus(params: {
 }
 
 export async function getCities(): Promise<CityDto[]> {
-  return getJSON<CityDto[]>("/cities");
+  const response = await getJSON<PaginatedDto<CityDto>>("/cities");
+  return response.items;
 }
 
 export async function getMeetingRooms(cityId: string): Promise<MeetingRoomDto[]> {
-  return getJSON<MeetingRoomDto[]>(`/meeting-rooms?city_id=${cityId}`);
+  const response = await getJSON<PaginatedDto<MeetingRoomDto>>(`/meeting-rooms?city_id=${cityId}`);
+  return response.items;
 }
 
 export async function createCity(name: string): Promise<CityDto> {

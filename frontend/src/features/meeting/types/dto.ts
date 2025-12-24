@@ -3,7 +3,6 @@ export type StatusLiteral = "speaking" | "engaged" | "not_engaged";
 export type VisitResponseDto = {
   meeting_id: string;
   participant_id: string;
-  participant_expires_at: string;
   meeting_start: string;
   meeting_end: string;
 };
@@ -37,7 +36,7 @@ export type EngagementSummaryDto = {
 export type ParticipantDto = {
   id: string;
   meeting_id: string;
-  expires_at: string;
+  device_fingerprint: string;
   last_status?: StatusLiteral | null;
   engagement_samples: EngagementSampleDto[];
 };
@@ -72,4 +71,12 @@ export type MeetingRoomDto = {
   id: string;
   name: string;
   city_id: string;
+};
+
+/** Generic paginated response wrapper */
+export type PaginatedDto<T> = {
+  items: T[];
+  page: number;
+  page_size: number;
+  total: number;
 };

@@ -17,7 +17,6 @@ class Participant(Base):
     device_fingerprint: Mapped[str] = mapped_column(
         String(128), nullable=False, index=True, server_default=""
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     last_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False), server_default=func.now(), nullable=False

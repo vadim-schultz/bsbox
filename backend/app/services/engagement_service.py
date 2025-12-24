@@ -3,15 +3,14 @@ from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import Any
 
-from app.models import (
-    BucketRollupDTO,
-    EngagementPointDTO,
-    EngagementSummaryDTO,
-    Meeting,
-    Participant,
-    ParticipantSeriesDTO,
-)
+from app.models import Meeting, Participant
 from app.repos import EngagementRepo, ParticipantRepo
+from app.schema import (
+    BucketRollup,
+    EngagementPoint,
+    EngagementSummary,
+    ParticipantEngagementSeries,
+)
 
 
 class EngagementService:
@@ -95,16 +94,16 @@ class EngagementService:
         participant_ids: list[str],
         participant_series: dict[str, list[float]],
         fingerprint_by_participant: dict[str, str],
-    ) -> list[ParticipantSeriesDTO]:
-        participants: list[ParticipantSeriesDTO] = []
+    ) -> list[ParticipantEngagementSeries]:
+        participants: list[ParticipantEngagementSeries] = []
         for pid in participant_ids:
             smoothed = participant_series.get(pid, [0.0] * len(buckets))
             series = [
-                EngagementPointDTO(bucket=buckets[idx], value=smoothed[idx])
+                EngagementPoint(bucket=buckets[idx], value=smoothed[idx])
                 for idx in range(len(buckets))
             ]
             participants.append(
-                ParticipantSeriesDTO(
+                ParticipantEngagementSeries(
                     participant_id=pid,
                     device_fingerprint=fingerprint_by_participant.get(pid, ""),
                     series=series,
@@ -114,8 +113,8 @@ class EngagementService:
 
     def _compose_overall(
         self, buckets: list[datetime], participant_series: dict[str, list[float]]
-    ) -> list[EngagementPointDTO]:
-        overall: list[EngagementPointDTO] = []
+    ) -> list[EngagementPoint]:
+        overall: list[EngagementPoint] = []
         participant_ids = list(participant_series.keys())
         for idx, bucket in enumerate(buckets):
             if participant_ids:
@@ -124,7 +123,7 @@ class EngagementService:
                 )
             else:
                 avg = 0.0
-            overall.append(EngagementPointDTO(bucket=bucket, value=avg))
+            overall.append(EngagementPoint(bucket=bucket, value=avg))
         return overall
 
     def build_engagement_summary(
@@ -151,7 +150,7 @@ class EngagementService:
         )
         overall_points = self._compose_overall(buckets, participant_series)
 
-        summary = EngagementSummaryDTO(
+        summary = EngagementSummary(
             meeting_id=meeting.id,
             start=start,
             end=end,
@@ -183,7 +182,7 @@ class EngagementService:
             else 0.0
         )
 
-        rollup = BucketRollupDTO(
+        rollup = BucketRollup(
             bucket=bucket, participants=participant_values, overall=overall_value
         )
         return rollup.model_dump()

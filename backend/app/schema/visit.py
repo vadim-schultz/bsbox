@@ -1,9 +1,17 @@
+"""Visit-related schemas for participant session management."""
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class VisitRequest(BaseModel):
+    """Request to register a participant visit to a meeting.
+
+    Creates or joins a meeting session and returns participant credentials.
+    If no meeting exists for the given context (city/room/Teams), a new one is created.
+    """
+
     device_fingerprint: str = Field(
         ..., description="Device/browser fingerprint for identifying returning visitor"
     )
@@ -13,10 +21,14 @@ class VisitRequest(BaseModel):
 
 
 class VisitResponse(BaseModel):
+    """Response from a successful visit request.
+
+    Contains meeting and participant identifiers along with meeting time bounds.
+    """
+
     model_config = ConfigDict(from_attributes=True)
 
     meeting_id: str
     participant_id: str
-    participant_expires_at: datetime
     meeting_start: datetime
     meeting_end: datetime

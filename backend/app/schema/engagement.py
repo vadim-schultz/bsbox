@@ -1,9 +1,13 @@
+"""Engagement-related schemas for tracking participant activity."""
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
 
 class EngagementSampleRead(BaseModel):
+    """A single engagement status sample for a participant at a specific time bucket."""
+
     model_config = ConfigDict(from_attributes=True)
 
     bucket: datetime
@@ -11,17 +15,23 @@ class EngagementSampleRead(BaseModel):
 
 
 class EngagementPoint(BaseModel):
+    """A data point representing engagement score at a specific time bucket."""
+
     bucket: datetime
     value: float
 
 
 class ParticipantEngagementSeries(BaseModel):
+    """Time series of engagement scores for a single participant."""
+
     participant_id: str
     device_fingerprint: str
     series: list[EngagementPoint]
 
 
 class EngagementSummary(BaseModel):
+    """Complete engagement summary for a meeting including overall and per-participant data."""
+
     meeting_id: str
     start: datetime
     end: datetime
@@ -29,3 +39,11 @@ class EngagementSummary(BaseModel):
     window_minutes: int
     overall: list[EngagementPoint]
     participants: list[ParticipantEngagementSeries]
+
+
+class BucketRollup(BaseModel):
+    """Aggregated engagement data for a single time bucket."""
+
+    bucket: datetime
+    participants: dict[str, float]
+    overall: float

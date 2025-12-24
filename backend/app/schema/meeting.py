@@ -1,3 +1,5 @@
+"""Meeting-related schemas."""
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -6,6 +8,8 @@ from app.schema.participant import ParticipantRead
 
 
 class MeetingRead(BaseModel):
+    """Read schema for a meeting with optional location and Teams integration details."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -21,6 +25,8 @@ class MeetingRead(BaseModel):
 
 
 class MeetingDurationUpdate(BaseModel):
+    """Request to update a meeting's duration."""
+
     duration_minutes: int = Field(..., description="Allowed values: 30 or 60")
 
     @field_validator("duration_minutes")
@@ -32,4 +38,6 @@ class MeetingDurationUpdate(BaseModel):
 
 
 class MeetingWithParticipants(MeetingRead):
+    """Meeting with its list of participants and their engagement data."""
+
     participants: list[ParticipantRead] = Field(default_factory=list)

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import MeetingRoom
@@ -10,13 +10,27 @@ class MeetingRoomRepo:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list_by_city(self, city_id: str) -> Sequence[MeetingRoom]:
+    def list_by_city(
+        self, city_id: str, page: int = 1, page_size: int = 20
+    ) -> tuple[Sequence[MeetingRoom], int]:
+        # Count total for this city
+        count_stmt = (
+            select(func.count()).select_from(MeetingRoom).where(MeetingRoom.city_id == city_id)
+        )
+        total = self.session.scalar(count_stmt) or 0
+
+        # Fetch page
+        offset = (page - 1) * page_size
         stmt = (
             select(MeetingRoom)
             .where(MeetingRoom.city_id == city_id)
             .order_by(MeetingRoom.name.asc())
+            .offset(offset)
+            .limit(page_size)
         )
-        return self.session.scalars(stmt).all()
+        items = self.session.scalars(stmt).all()
+
+        return items, total
 
     def get_by_id(self, room_id: str) -> MeetingRoom | None:
         return self.session.get(MeetingRoom, room_id)
@@ -37,3 +51,4 @@ class MeetingRoomRepo:
         self.session.flush()
         self.session.refresh(meeting_room)
         return meeting_room
+

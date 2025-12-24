@@ -1,7 +1,13 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+"""Meeting room-related schemas."""
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schema.base import NameValidatorMixin
 
 
 class MeetingRoomRead(BaseModel):
+    """Read schema for a meeting room."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -9,14 +15,9 @@ class MeetingRoomRead(BaseModel):
     city_id: str
 
 
-class MeetingRoomCreate(BaseModel):
+class MeetingRoomCreate(NameValidatorMixin, BaseModel):
+    """Schema for creating a new meeting room."""
+
     name: str = Field(..., min_length=1, max_length=128)
     city_id: str
 
-    @field_validator("name")
-    @classmethod
-    def _trim_and_validate(cls, value: str) -> str:
-        cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("name cannot be empty")
-        return cleaned

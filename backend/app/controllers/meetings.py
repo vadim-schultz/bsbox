@@ -14,7 +14,7 @@ from app.schema import (
     MeetingDurationUpdate,
     MeetingRead,
     MeetingWithParticipants,
-    PaginatedMeetings,
+    Paginated,
     PaginationParams,
     ParticipantEngagementSeries,
     ParticipantRead,
@@ -51,7 +51,7 @@ def _to_meeting_with_participants(meeting: Meeting) -> MeetingWithParticipants:
             ParticipantRead(
                 id=participant.id,
                 meeting_id=participant.meeting_id,
-                expires_at=participant.expires_at,
+                device_fingerprint=participant.device_fingerprint,
                 last_status=participant.last_status,
                 engagement_samples=samples,
             )
@@ -69,12 +69,12 @@ class MeetingsController(Controller):
         self,
         meeting_service: MeetingService,
         pagination: PaginationParams | None = None,
-    ) -> PaginatedMeetings:
+    ) -> Paginated[MeetingRead]:
         pagination = pagination or PaginationParams(page=1, page_size=20)
         items, total = meeting_service.list_meetings(
             page=pagination.page, page_size=pagination.page_size
         )
-        return PaginatedMeetings(
+        return Paginated[MeetingRead](
             items=[_to_meeting_read(m) for m in items],
             page=pagination.page,
             page_size=pagination.page_size,

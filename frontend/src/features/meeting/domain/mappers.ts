@@ -18,7 +18,7 @@ const toDate = (value: string) => new Date(value);
 const mapParticipant = (participant: ParticipantDto): Participant => ({
   id: participant.id,
   meetingId: participant.meeting_id,
-  expiresAt: toDate(participant.expires_at),
+  deviceFingerprint: participant.device_fingerprint,
   lastStatus: participant.last_status ?? null,
   engagementSamples: participant.engagement_samples.map((sample) => ({
     bucket: sample.bucket,
@@ -43,7 +43,6 @@ export const mapMeeting = (detail: MeetingWithParticipantsDto): Meeting => ({
 export const mapVisitResponse = (response: VisitResponseDto): VisitSession => ({
   meetingId: response.meeting_id,
   participantId: response.participant_id,
-  expiresAt: toDate(response.participant_expires_at),
   meetingTimes: {
     start: toDate(response.meeting_start),
     end: toDate(response.meeting_end),

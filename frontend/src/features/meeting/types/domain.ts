@@ -8,7 +8,6 @@ export type MeetingTimes = {
 export type VisitSession = {
   meetingId: string;
   participantId: string;
-  expiresAt: Date;
   meetingTimes: MeetingTimes;
 };
 
@@ -41,7 +40,7 @@ export type EngagementSummary = {
 export type Participant = {
   id: string;
   meetingId: string;
-  expiresAt: Date;
+  deviceFingerprint: string;
   lastStatus?: StatusLiteral | null;
   engagementSamples: EngagementSample[];
 };

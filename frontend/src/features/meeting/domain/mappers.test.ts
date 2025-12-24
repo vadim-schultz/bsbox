@@ -13,7 +13,6 @@ import type {
 const visitDto: VisitResponseDto = {
   meeting_id: "meeting-42",
   participant_id: "abc",
-  participant_expires_at: "2023-01-01T10:00:00Z",
   meeting_start: "2023-01-01T09:00:00Z",
   meeting_end: "2023-01-01T10:00:00Z",
 };
@@ -26,7 +25,7 @@ const meetingDto: MeetingWithParticipantsDto = {
     {
       id: "abc",
       meeting_id: "meeting-42",
-      expires_at: "2023-01-01T10:00:00Z",
+      device_fingerprint: "fp-123",
       last_status: "speaking",
       engagement_samples: [{ bucket: "09:00", status: "engaged" }],
     },
@@ -48,7 +47,7 @@ describe("mapMeeting", () => {
     const result = mapMeeting(meetingDto);
     expect(result.id).toBe("meeting-42");
     expect(result.participants[0].lastStatus).toBe("speaking");
-    expect(result.participants[0].expiresAt).toBeInstanceOf(Date);
+    expect(result.participants[0].deviceFingerprint).toBe("fp-123");
   });
 });
 

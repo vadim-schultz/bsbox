@@ -1,11 +1,5 @@
 from app.models.base import Base
 from app.models.city import City
-from app.models.engagement_dto import (
-    BucketRollupDTO,
-    EngagementPointDTO,
-    EngagementSummaryDTO,
-    ParticipantSeriesDTO,
-)
 from app.models.engagement_sample import EngagementSample
 from app.models.meeting import Meeting
 from app.models.meeting_room import MeetingRoom
@@ -16,10 +10,6 @@ __all__ = [
     "Meeting",
     "Participant",
     "EngagementSample",
-    "EngagementPointDTO",
-    "ParticipantSeriesDTO",
-    "EngagementSummaryDTO",
-    "BucketRollupDTO",
     "City",
     "MeetingRoom",
 ]

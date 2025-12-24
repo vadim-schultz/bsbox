@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -26,11 +25,10 @@ class ParticipantRepo:
         )
         return self.session.scalars(stmt).first()
 
-    def create(self, meeting_id: str, expires_at: datetime, device_fingerprint: str) -> Participant:
+    def create(self, meeting_id: str, device_fingerprint: str) -> Participant:
         participant = Participant(
             id=str(uuid4()),
             meeting_id=meeting_id,
-            expires_at=expires_at,
             device_fingerprint=device_fingerprint,
         )
         self.session.add(participant)

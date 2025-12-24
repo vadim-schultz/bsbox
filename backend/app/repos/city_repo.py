@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import City
@@ -10,9 +10,17 @@ class CityRepo:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list(self) -> Sequence[City]:
-        stmt = select(City).order_by(City.name.asc())
-        return self.session.scalars(stmt).all()
+    def list(self, page: int = 1, page_size: int = 20) -> tuple[Sequence[City], int]:
+        # Count total
+        count_stmt = select(func.count()).select_from(City)
+        total = self.session.scalar(count_stmt) or 0
+
+        # Fetch page
+        offset = (page - 1) * page_size
+        stmt = select(City).order_by(City.name.asc()).offset(offset).limit(page_size)
+        items = self.session.scalars(stmt).all()
+
+        return items, total
 
     def get_by_id(self, city_id: str) -> City | None:
         return self.session.get(City, city_id)
@@ -30,3 +38,4 @@ class CityRepo:
         self.session.flush()
         self.session.refresh(city)
         return city
+

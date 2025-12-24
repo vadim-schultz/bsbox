@@ -14,7 +14,6 @@ def test_engagement_bucket_rounding(session_factory):
         meeting = meeting_repo.create(start_ts=start, end_ts=start + timedelta(hours=1))
         participant = participant_repo.create(
             meeting_id=meeting.id,
-            expires_at=start + timedelta(hours=1),
             device_fingerprint="fp-123",
         )
 

@@ -37,7 +37,6 @@ class VisitsController(Controller):
         return VisitResponse(
             meeting_id=meeting.id,
             participant_id=participant.id,
-            participant_expires_at=participant.expires_at,
             meeting_start=meeting.start_ts,
             meeting_end=meeting.end_ts,
         )

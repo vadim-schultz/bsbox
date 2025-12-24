@@ -24,15 +24,10 @@ def _participant_to_schema(participant: Participant) -> ParticipantRead:
     for s in sorted(participant.engagement_samples, key=lambda s: s.bucket):
         bucket_dt = s.bucket.replace(tzinfo=UTC) if s.bucket.tzinfo is None else s.bucket
         samples.append(EngagementSampleRead(bucket=bucket_dt, status=s.status))
-    expires_at_dt = (
-        participant.expires_at.replace(tzinfo=UTC)
-        if participant.expires_at.tzinfo is None
-        else participant.expires_at
-    )
     return ParticipantRead(
         id=participant.id,
         meeting_id=participant.meeting_id,
-        expires_at=expires_at_dt,
+        device_fingerprint=participant.device_fingerprint,
         last_status=participant.last_status,
         engagement_samples=samples,
     )
@@ -47,7 +42,7 @@ def _participant_to_response(participant: Participant) -> dict:
     return {
         "id": participant.id,
         "meeting_id": participant.meeting_id,
-        "expires_at": _iso(participant.expires_at),
+        "device_fingerprint": participant.device_fingerprint,
         "last_status": participant.last_status,
         "engagement_samples": [
             {"bucket": _iso(s.bucket), "status": s.status}
