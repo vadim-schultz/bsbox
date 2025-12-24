@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,8 +10,12 @@ class MeetingRoomRepo:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list_by_city(self, city_id: str) -> list[MeetingRoom]:
-        stmt = select(MeetingRoom).where(MeetingRoom.city_id == city_id).order_by(MeetingRoom.name.asc())
+    def list_by_city(self, city_id: str) -> Sequence[MeetingRoom]:
+        stmt = (
+            select(MeetingRoom)
+            .where(MeetingRoom.city_id == city_id)
+            .order_by(MeetingRoom.name.asc())
+        )
         return self.session.scalars(stmt).all()
 
     def get_by_id(self, room_id: str) -> MeetingRoom | None:

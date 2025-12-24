@@ -1,5 +1,5 @@
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,7 +12,12 @@ class EngagementRepo:
         self.session = session
 
     def upsert_sample(
-        self, meeting_id: str, participant_id: str, bucket: datetime, status: str, device_fingerprint: str
+        self,
+        meeting_id: str,
+        participant_id: str,
+        bucket: datetime,
+        status: str,
+        device_fingerprint: str,
     ) -> EngagementSample:
         stmt = select(EngagementSample).where(
             EngagementSample.participant_id == participant_id,

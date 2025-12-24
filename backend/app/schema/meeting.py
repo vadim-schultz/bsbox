@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -35,11 +34,8 @@ class MeetingDurationUpdate(BaseModel):
 class MeetingCreateRequest(BaseModel):
     city_id: str | None = None
     meeting_room_id: str | None = None
-    ms_teams_input: str | None = Field(
-        default=None, description="Teams invite URL or meeting ID"
-    )
+    ms_teams_input: str | None = Field(default=None, description="Teams invite URL or meeting ID")
 
 
 class MeetingWithParticipants(MeetingRead):
-    participants: List[ParticipantRead] = Field(default_factory=list)
-
+    participants: list[ParticipantRead] = Field(default_factory=list)

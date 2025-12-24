@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
+
 from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,7 +23,12 @@ class Participant(Base):
         DateTime(timezone=False), server_default=func.now(), nullable=False
     )
 
-    meeting: Mapped["Meeting"] = relationship(back_populates="participants")
-    engagement_samples: Mapped[List["EngagementSample"]] = relationship(
+    meeting: Mapped[Meeting] = relationship(back_populates="participants")
+    engagement_samples: Mapped[list[EngagementSample]] = relationship(
         back_populates="participant", cascade="all, delete-orphan"
     )
+
+
+if TYPE_CHECKING:
+    from app.models.engagement_sample import EngagementSample
+    from app.models.meeting import Meeting

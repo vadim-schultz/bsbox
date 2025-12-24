@@ -1,6 +1,7 @@
-from typing import List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
 from app.schema.meeting import MeetingRead
 
 
@@ -14,8 +15,7 @@ class PaginationParams(BaseModel):
 class PaginatedMeetings(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, from_attributes=True)
 
-    items: List[MeetingRead]
+    items: list[MeetingRead]
     page: int
     page_size: int
     total: int
-

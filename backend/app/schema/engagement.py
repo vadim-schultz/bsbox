@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel, ConfigDict
 
@@ -19,7 +18,7 @@ class EngagementPoint(BaseModel):
 class ParticipantEngagementSeries(BaseModel):
     participant_id: str
     device_fingerprint: str
-    series: List[EngagementPoint]
+    series: list[EngagementPoint]
 
 
 class EngagementSummary(BaseModel):
@@ -28,6 +27,5 @@ class EngagementSummary(BaseModel):
     end: datetime
     bucket_minutes: int
     window_minutes: int
-    overall: List[EngagementPoint]
-    participants: List[ParticipantEngagementSeries]
-
+    overall: list[EngagementPoint]
+    participants: list[ParticipantEngagementSeries]

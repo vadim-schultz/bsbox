@@ -1,4 +1,3 @@
 """
 Litestar meetings API package.
 """
-

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from litestar import Controller, post
 from litestar.exceptions import HTTPException
@@ -18,7 +18,7 @@ class VisitsController(Controller):
         meeting_service: MeetingService,
         participant_service: ParticipantService,
     ) -> VisitResponse:
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         parsed = parse_teams_meeting(data.ms_teams_input)
         meeting = meeting_service.ensure_meeting_for_visit(
             now,
@@ -41,4 +41,3 @@ class VisitsController(Controller):
             meeting_start=meeting.start_ts,
             meeting_end=meeting.end_ts,
         )
-

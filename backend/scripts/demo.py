@@ -6,7 +6,7 @@ minute buckets to demonstrate the real-time chart visualization.
 
 Usage:
     python -m scripts.demo
-    
+
 Runs continuously until interrupted, with the constants in this file controlling
 participant count, duration, delay, and fixed IDs.
 """
@@ -15,10 +15,11 @@ import os
 import random
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Callable, Literal
+from typing import Any, Literal, cast
 from uuid import uuid4
 
 import httpx
@@ -41,8 +42,9 @@ FIXED_FINGERPRINTS = [f"fp-fixed-{i:03d}" for i in range(1, 33)]
 
 class Profile(Enum):
     """Participant engagement profiles."""
-    ACTIVE = "active"       # Frequently engaged, sometimes speaks
-    PASSIVE = "passive"     # Occasionally engaged, rarely speaks
+
+    ACTIVE = "active"  # Frequently engaged, sometimes speaks
+    PASSIVE = "passive"  # Occasionally engaged, rarely speaks
     DISTRACTED = "distracted"  # Often not_engaged, sporadic engagement
 
 
@@ -57,6 +59,7 @@ PROFILE_WEIGHTS: dict[Profile, tuple[float, float, float]] = {
 @dataclass
 class Participant:
     """Participant with ID and engagement profile."""
+
     id: str
     fingerprint: str
     profile: Profile
@@ -66,7 +69,7 @@ class Participant:
 def make_fingerprint(index: int, use_fixed_ids: bool) -> str:
     """
     Build a deterministic fingerprint when requested to keep participant IDs stable.
-    
+
     Index is zero-based to allow reuse across primary and additional participants.
     """
     if use_fixed_ids and index < len(FIXED_FINGERPRINTS):
@@ -76,7 +79,7 @@ def make_fingerprint(index: int, use_fixed_ids: bool) -> str:
 
 def log(section: str, message: str) -> None:
     """Log a message with timestamp and section."""
-    ts = datetime.now().strftime("%H:%M:%S")
+    ts = datetime.now(tz=UTC).strftime("%H:%M:%S")
     print(f"[{ts}] {section:<12} | {message}")
 
 
@@ -100,8 +103,10 @@ class ApiClient:
             resp.raise_for_status()
         return resp
 
-    def create_visit(self, fingerprint: str) -> dict:
-        return self._post("/visit", {"device_fingerprint": fingerprint}).json()
+    def create_visit(self, fingerprint: str) -> dict[str, Any]:
+        return cast(
+            dict[str, Any], self._post("/visit", {"device_fingerprint": fingerprint}).json()
+        )
 
     def send_status(self, meeting_id: str, participant_id: str, status: StatusType) -> None:
         self._post(
@@ -113,40 +118,43 @@ class ApiClient:
             },
         )
 
-    def fetch_engagement(self, meeting_id: str) -> dict:
-        return self._get(f"/meetings/{meeting_id}/engagement").json()
+    def fetch_engagement(self, meeting_id: str) -> dict[str, Any]:
+        return cast(dict[str, Any], self._get(f"/meetings/{meeting_id}/engagement").json())
 
 
 def get_current_bucket() -> str:
     """Get the current minute bucket as HH:MM string."""
-    return datetime.now().strftime("%H:%M")
+    return datetime.now(tz=UTC).strftime("%H:%M")
 
 
 def choose_status(profile: Profile) -> StatusType:
     """Choose a status based on profile weights."""
     weights = PROFILE_WEIGHTS[profile]
-    return random.choices(
-        ["speaking", "engaged", "not_engaged"],
-        weights=weights,
-        k=1,
-    )[0]
+    return cast(
+        StatusType,
+        random.choices(
+            ["speaking", "engaged", "not_engaged"],
+            weights=weights,
+            k=1,
+        )[0],
+    )
 
 
 def assign_profiles(count: int) -> list[Profile]:
     """
     Assign profiles to participants to create varied engagement.
-    
+
     Distribution: ~30% active, ~40% passive, ~30% distracted
     """
     profiles = []
     active_count = max(1, int(count * 0.3))
     distracted_count = max(1, int(count * 0.3))
     passive_count = count - active_count - distracted_count
-    
+
     profiles.extend([Profile.ACTIVE] * active_count)
     profiles.extend([Profile.PASSIVE] * passive_count)
     profiles.extend([Profile.DISTRACTED] * distracted_count)
-    
+
     random.shuffle(profiles)
     return profiles
 
@@ -160,22 +168,22 @@ def create_participants(
     """Create participants with assigned profiles."""
     profiles = assign_profiles(count)
     participants: list[Participant] = []
-    
+
     for i, profile in enumerate(profiles):
         fp = fingerprint_provider(i + 1)
         visit = api.create_visit(fp)
-        
+
         p = Participant(
             id=visit["participant_id"],
             fingerprint=fp,
             profile=profile,
         )
         participants.append(p)
-        
+
         # Use short participant ID for cleaner logs
         short_id = p.id[:8]
-        log("JOIN", f"Participant {i+1}/{count}: {short_id}... ({profile.value})")
-    
+        log("JOIN", f"Participant {i + 1}/{count}: {short_id}... ({profile.value})")
+
     return participants
 
 
@@ -189,7 +197,7 @@ def update_status(
     """Update a participant's engagement status."""
     api.send_status(meeting_id, participant.id, status)
     participant.current_status = status
-    
+
     if verbose:
         short_id = participant.id[:8]
         log("STATUS", f"{short_id}... -> {status}")
@@ -198,38 +206,52 @@ def update_status(
 PhaseHandler = Callable[[ApiClient, str, list[Participant], int, bool], None]
 
 
-def _warmup_tick(api: ApiClient, meeting_id: str, participants: list[Participant], tick: int, fast: bool) -> None:
+def _warmup_tick(
+    api: ApiClient, meeting_id: str, participants: list[Participant], tick: int, fast: bool
+) -> None:
     update_count = min(2 + tick // 2, len(participants))
     for p in random.sample(participants, update_count):
         if p.profile == Profile.DISTRACTED:
-            status = random.choice(["engaged", "not_engaged"])
+            status = cast(StatusType, random.choice(["engaged", "not_engaged"]))
         else:
-            status = random.choice(["engaged", "speaking"]) if random.random() > 0.3 else "engaged"
+            status = (
+                cast(StatusType, random.choice(["engaged", "speaking"]))
+                if random.random() > 0.3
+                else "engaged"
+            )
         update_status(api, meeting_id, p, status, verbose=not fast)
 
 
-def _peak_tick(api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool) -> None:
+def _peak_tick(
+    api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool
+) -> None:
     for p in participants:
         if random.random() < 0.6:  # 60% chance to update
             status = choose_status(p.profile)
             update_status(api, meeting_id, p, status, verbose=not fast)
 
 
-def _dip_tick(api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool) -> None:
+def _dip_tick(
+    api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool
+) -> None:
     for p in participants:
         if random.random() < 0.7:
             status = "not_engaged" if random.random() < 0.6 else choose_status(p.profile)
             update_status(api, meeting_id, p, status, verbose=not fast)
 
 
-def _recovery_tick(api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool) -> None:
+def _recovery_tick(
+    api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool
+) -> None:
     for p in participants:
         if random.random() < 0.5:
             status = choose_status(p.profile)
             update_status(api, meeting_id, p, status, verbose=not fast)
 
 
-def _mixed_tick(api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool) -> None:
+def _mixed_tick(
+    api: ApiClient, meeting_id: str, participants: list[Participant], _: int, fast: bool
+) -> None:
     update_count = random.randint(1, max(2, len(participants) // 2))
     for p in random.sample(participants, update_count):
         status = choose_status(p.profile)
@@ -264,17 +286,16 @@ def run_simulation_tick(
 def determine_phase(elapsed_seconds: int, total_seconds: int) -> str:
     """Determine the current simulation phase based on elapsed time."""
     progress = elapsed_seconds / total_seconds
-    
+
     if progress < 0.15:
         return "warmup"
-    elif progress < 0.40:
+    if progress < 0.40:
         return "peak"
-    elif progress < 0.55:
+    if progress < 0.55:
         return "dip"
-    elif progress < 0.70:
+    if progress < 0.70:
         return "recovery"
-    else:
-        return "mixed"
+    return "mixed"
 
 
 def fetch_engagement_summary(client: httpx.Client, meeting_id: str) -> dict | None:
@@ -290,22 +311,22 @@ def fetch_engagement_summary(client: httpx.Client, meeting_id: str) -> dict | No
 def display_summary(summary: dict, participants: list[Participant]) -> None:
     """Display engagement summary statistics."""
     overall = summary.get("overall", [])
-    
+
     if not overall:
         log("SUMMARY", "No engagement data recorded")
         return
-    
+
     values = [p["value"] for p in overall]
     avg = sum(values) / len(values)
     min_val = min(values)
     max_val = max(values)
     if all(v == 0 for v in values):
         log("SUMMARY", "All buckets are zero — check meeting timing or status writes.")
-    
+
     log("SUMMARY", "=" * 50)
     log("SUMMARY", f"Buckets recorded: {len(overall)}")
     log("SUMMARY", f"Overall engagement: avg={avg:.1f}% min={min_val:.1f}% max={max_val:.1f}%")
-    
+
     # Per-participant summary
     participant_data = summary.get("participants", [])
     for p_data in participant_data:
@@ -363,7 +384,9 @@ def _bootstrap_meeting(
     return meeting_id, participants
 
 
-def _initialize_engagement(api: ApiClient, meeting_id: str, participants: list[Participant], fast_mode: bool) -> None:
+def _initialize_engagement(
+    api: ApiClient, meeting_id: str, participants: list[Participant], fast_mode: bool
+) -> None:
     log("SIM", "Setting initial engagement states...")
     for p in participants:
         status = choose_status(p.profile)
@@ -414,12 +437,15 @@ def _run_simulation_loop(
 def simulate() -> None:
     """
     Run the engagement simulation.
-    
+
     Uses constants defined at the top of the file to avoid CLI flags.
     """
     log("START", f"Backend: {BASE_URL}")
     log("START", f"Participants: {PARTICIPANT_COUNT}, Duration: {MEETING_DURATION_MINUTES}m")
-    log("START", f"Continuous: {CONTINUOUS}, Fixed IDs: {USE_FIXED_IDS}, Delay: {DELAY_BETWEEN_MEETINGS_SECONDS}s")
+    log(
+        "START",
+        f"Continuous: {CONTINUOUS}, Fixed IDs: {USE_FIXED_IDS}, Delay: {DELAY_BETWEEN_MEETINGS_SECONDS}s",
+    )
 
     total_seconds = MEETING_DURATION_MINUTES * 60
     tick_interval = TICK_INTERVAL_SECONDS
@@ -429,7 +455,9 @@ def simulate() -> None:
         while True:
             api = ApiClient(client)
             log("LOOP", f"Starting meeting run #{run_idx}")
-            meeting_id, participants = _bootstrap_meeting(api, PARTICIPANT_COUNT, use_fixed_ids=USE_FIXED_IDS)
+            meeting_id, participants = _bootstrap_meeting(
+                api, PARTICIPANT_COUNT, use_fixed_ids=USE_FIXED_IDS
+            )
             _initialize_engagement(api, meeting_id, participants, fast_mode=False)
 
             _run_simulation_loop(

@@ -1,19 +1,19 @@
 from pathlib import Path
 
-from litestar import Litestar, get
+from litestar import Litestar
 from litestar.di import Provide
 from litestar.static_files import create_static_files_router
 
 from app.controllers import (
+    CitiesController,
+    MeetingRoomsController,
     MeetingsController,
     UsersController,
     VisitsController,
-    CitiesController,
-    MeetingRoomsController,
 )
 from app.controllers.realtime import meeting_stream
-from app.dependencies import dependencies as app_dependencies
 from app.db import provide_session
+from app.dependencies import dependencies as app_dependencies
 from app.logging_config import configure_logging
 from app.migrations import run_migrations_on_startup
 
@@ -59,4 +59,3 @@ def create_app() -> Litestar:
 
 
 app = create_app()
-

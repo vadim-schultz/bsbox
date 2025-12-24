@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))
 
-from app.controllers import MeetingsController, UsersController, VisitsController
-from app.dependencies import dependencies as app_dependencies
-from app.migrations import run_migrations
+from app.controllers import MeetingsController, UsersController, VisitsController  # noqa: E402
+from app.dependencies import dependencies as app_dependencies  # noqa: E402
+from app.migrations import run_migrations  # noqa: E402
 
 
 @pytest.fixture()
@@ -56,4 +56,3 @@ def app(provide_test_session) -> Litestar:
         route_handlers=[MeetingsController, UsersController, VisitsController],
         dependencies={"session": Provide(provide_test_session), **app_dependencies},
     )
-

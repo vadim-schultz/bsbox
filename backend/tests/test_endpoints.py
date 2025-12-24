@@ -1,9 +1,13 @@
-from datetime import datetime
+import logging
+from datetime import UTC, datetime
 
 from litestar.testing import TestClient
 
+logging.basicConfig(level=logging.DEBUG)
+
+
 def test_meeting_creation_and_status_flow(app, monkeypatch):
-    fixed_now = datetime(2025, 1, 1, 13, 58)
+    fixed_now = datetime(2025, 1, 1, 13, 58, tzinfo=UTC)
 
     class FixedDateTime(datetime):
         @classmethod
@@ -14,7 +18,7 @@ def test_meeting_creation_and_status_flow(app, monkeypatch):
     monkeypatch.setattr("app.controllers.users.datetime", FixedDateTime)
     monkeypatch.setattr("app.controllers.visit.datetime", FixedDateTime)
 
-    with TestClient(app) as client:
+    with TestClient(app, raise_server_exceptions=True) as client:
         # Create meeting via visit (detect start and participant)
         visit_resp = client.post("/visit", json={"device_fingerprint": "test-device"})
         assert visit_resp.status_code in (200, 201)
@@ -39,7 +43,7 @@ def test_meeting_creation_and_status_flow(app, monkeypatch):
                 "status": "engaged",
             },
         )
-        assert status_resp.status_code in (200, 201)
+        assert status_resp.status_code in (200, 201), status_resp.text
         participant = status_resp.json()
         assert participant["meeting_id"] == visit["meeting_id"]
         assert participant["last_status"] == "engaged"
@@ -47,4 +51,3 @@ def test_meeting_creation_and_status_flow(app, monkeypatch):
         assert participant["engagement_samples"][0]["bucket"].startswith(
             fixed_now.replace(second=0, microsecond=0).isoformat()
         )
-

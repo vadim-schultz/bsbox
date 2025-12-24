@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from sqlalchemy import DateTime, String, func
@@ -17,7 +19,12 @@ class City(Base):
         DateTime(timezone=False), server_default=func.now(), nullable=False
     )
 
-    meeting_rooms: Mapped[List["MeetingRoom"]] = relationship(
+    meeting_rooms: Mapped[list[MeetingRoom]] = relationship(
         back_populates="city", cascade="all, delete-orphan"
     )
-    meetings: Mapped[List["Meeting"]] = relationship(back_populates="city")
+    meetings: Mapped[list[Meeting]] = relationship(back_populates="city")
+
+
+if TYPE_CHECKING:
+    from app.models.meeting import Meeting
+    from app.models.meeting_room import MeetingRoom

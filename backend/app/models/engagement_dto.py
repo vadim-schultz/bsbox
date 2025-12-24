@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Dict, List
 
 from pydantic import BaseModel
 
@@ -12,7 +11,7 @@ class EngagementPointDTO(BaseModel):
 class ParticipantSeriesDTO(BaseModel):
     participant_id: str
     device_fingerprint: str
-    series: List[EngagementPointDTO]
+    series: list[EngagementPointDTO]
 
 
 class EngagementSummaryDTO(BaseModel):
@@ -21,11 +20,11 @@ class EngagementSummaryDTO(BaseModel):
     end: datetime
     bucket_minutes: int
     window_minutes: int
-    participants: List[ParticipantSeriesDTO]
-    overall: List[EngagementPointDTO]
+    participants: list[ParticipantSeriesDTO]
+    overall: list[EngagementPointDTO]
 
 
 class BucketRollupDTO(BaseModel):
     bucket: datetime
-    participants: Dict[str, float]
+    participants: dict[str, float]
     overall: float

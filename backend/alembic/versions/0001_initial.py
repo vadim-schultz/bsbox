@@ -17,7 +17,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("start_ts", sa.DateTime(), nullable=False),
         sa.Column("end_ts", sa.DateTime(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -25,10 +27,17 @@ def upgrade() -> None:
         "participants",
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("meeting_id", sa.Integer(), sa.ForeignKey("meetings.id"), nullable=False),
-        sa.Column("device_fingerprint", sa.String(length=128), server_default=sa.text("''"), nullable=False),
+        sa.Column(
+            "device_fingerprint",
+            sa.String(length=128),
+            server_default=sa.text("''"),
+            nullable=False,
+        ),
         sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("last_status", sa.String(length=32), nullable=True),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_participants_meeting_id", "participants", ["meeting_id"])
@@ -37,14 +46,20 @@ def upgrade() -> None:
     op.create_table(
         "engagement_samples",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("participant_id", sa.String(length=36), sa.ForeignKey("participants.id"), nullable=False),
+        sa.Column(
+            "participant_id", sa.String(length=36), sa.ForeignKey("participants.id"), nullable=False
+        ),
         sa.Column("bucket", sa.DateTime(), nullable=False),
         sa.Column("status", sa.String(length=32), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("participant_id", "bucket", name="uq_sample_bucket"),
     )
-    op.create_index("ix_engagement_samples_participant_id", "engagement_samples", ["participant_id"])
+    op.create_index(
+        "ix_engagement_samples_participant_id", "engagement_samples", ["participant_id"]
+    )
 
 
 def downgrade() -> None:
@@ -56,4 +71,3 @@ def downgrade() -> None:
     op.drop_table("participants")
 
     op.drop_table("meetings")
-

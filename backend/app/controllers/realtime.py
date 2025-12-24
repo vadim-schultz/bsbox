@@ -1,13 +1,10 @@
 import logging
 
 from litestar import websocket
-from litestar.di import Provide
 from litestar.connection import WebSocket
 from litestar.exceptions import WebSocketDisconnect
 
-from app.services import EngagementService, MeetingService
 from app.ws import ws_manager
-from app.dependencies import provide_engagement_service, provide_meeting_service
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +16,10 @@ def _serialize_summary(summary: dict) -> dict:
         "end": summary["end"].isoformat(),
         "bucket_minutes": summary["bucket_minutes"],
         "window_minutes": summary["window_minutes"],
-        "overall": [{"bucket": point["bucket"].isoformat(), "value": point["value"]} for point in summary["overall"]],
+        "overall": [
+            {"bucket": point["bucket"].isoformat(), "value": point["value"]}
+            for point in summary["overall"]
+        ],
         "participants": [
             {
                 "participant_id": participant["participant_id"],
@@ -46,7 +46,8 @@ async def meeting_stream(
     # Import here to avoid circular import and test without DI
     from app.db import SessionLocal
     from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo
-    from app.services import EngagementService as EngSvc, MeetingService as MeetSvc
+    from app.services import EngagementService as EngSvc
+    from app.services import MeetingService as MeetSvc
 
     session = SessionLocal()
     try:
@@ -80,4 +81,3 @@ async def meeting_stream(
             ws_manager.unregister(meeting_id, socket)
     finally:
         session.close()
-

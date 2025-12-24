@@ -1,7 +1,7 @@
 from litestar import Controller, get, post
 from litestar.exceptions import HTTPException
 
-from app.schema import CityRead, CityCreate
+from app.schema import CityCreate, CityRead
 from app.services import CityService
 
 
@@ -18,5 +18,5 @@ class CitiesController(Controller):
         try:
             city = city_service.create_city(data.name)
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return CityRead.model_validate(city)

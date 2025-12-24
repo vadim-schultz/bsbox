@@ -1,6 +1,9 @@
-from datetime import datetime
+from collections.abc import Callable, Mapping
+from datetime import UTC, datetime
+from typing import Any
 
 from litestar import Controller, get, patch, post
+from litestar.di import Provide
 from litestar.exceptions import HTTPException
 
 from app.models import Meeting
@@ -8,13 +11,13 @@ from app.schema import (
     EngagementPoint,
     EngagementSampleRead,
     EngagementSummary,
-    MeetingRead,
     MeetingDurationUpdate,
+    MeetingRead,
     MeetingWithParticipants,
     PaginatedMeetings,
     PaginationParams,
-    ParticipantRead,
     ParticipantEngagementSeries,
+    ParticipantRead,
 )
 from app.services import MeetingService
 from app.services.engagement_service import EngagementService
@@ -28,7 +31,9 @@ def _to_meeting_read(meeting: Meeting) -> MeetingRead:
         city_id=meeting.city_id,
         city_name=getattr(meeting.city, "name", None) if meeting.city_id else None,
         meeting_room_id=meeting.meeting_room_id,
-        meeting_room_name=getattr(meeting.meeting_room, "name", None) if meeting.meeting_room_id else None,
+        meeting_room_name=getattr(meeting.meeting_room, "name", None)
+        if meeting.meeting_room_id
+        else None,
         ms_teams_thread_id=meeting.ms_teams_thread_id,
         ms_teams_meeting_id=meeting.ms_teams_meeting_id,
         ms_teams_invite_url=meeting.ms_teams_invite_url,
@@ -57,7 +62,7 @@ def _to_meeting_with_participants(meeting: Meeting) -> MeetingWithParticipants:
 
 class MeetingsController(Controller):
     path = "/meetings"
-    dependencies = {}
+    dependencies: Mapping[str, Provide | Callable[..., Any]] | None = None
 
     @get("/", sync_to_thread=False)
     def list_meetings(
@@ -65,8 +70,10 @@ class MeetingsController(Controller):
         meeting_service: MeetingService,
         pagination: PaginationParams | None = None,
     ) -> PaginatedMeetings:
-        pagination = pagination or PaginationParams()
-        items, total = meeting_service.list_meetings(page=pagination.page, page_size=pagination.page_size)
+        pagination = pagination or PaginationParams(page=1, page_size=20)
+        items, total = meeting_service.list_meetings(
+            page=pagination.page, page_size=pagination.page_size
+        )
         return PaginatedMeetings(
             items=[_to_meeting_read(m) for m in items],
             page=pagination.page,
@@ -76,7 +83,7 @@ class MeetingsController(Controller):
 
     @post("/", sync_to_thread=False)
     def create_meeting(self, meeting_service: MeetingService) -> MeetingRead:
-        meeting = meeting_service.ensure_meeting_for_visit(datetime.now())
+        meeting = meeting_service.ensure_meeting_for_visit(datetime.now(tz=UTC))
         return _to_meeting_read(meeting)
 
     @get("/{meeting_id:str}", sync_to_thread=False)
@@ -111,7 +118,10 @@ class MeetingsController(Controller):
             bucket_minutes=summary["bucket_minutes"],
             window_minutes=summary["window_minutes"],
             overall=[EngagementPoint(**point) for point in summary["overall"]],
-            participants=[ParticipantEngagementSeries(**participant) for participant in summary["participants"]],
+            participants=[
+                ParticipantEngagementSeries(**participant)
+                for participant in summary["participants"]
+            ],
         )
 
     @patch("/{meeting_id:str}/duration", sync_to_thread=False)
@@ -122,10 +132,12 @@ class MeetingsController(Controller):
         meeting_service: MeetingService,
     ) -> MeetingRead:
         try:
-            meeting = meeting_service.update_duration(meeting_id=meeting_id, duration_minutes=data.duration_minutes)
+            meeting = meeting_service.update_duration(
+                meeting_id=meeting_id, duration_minutes=data.duration_minutes
+            )
         except ValueError as exc:
             message = str(exc)
             status = 404 if "not found" in message.lower() else 400
-            raise HTTPException(status_code=status, detail=message)
+            raise HTTPException(status_code=status, detail=message) from exc
 
         return _to_meeting_read(meeting)

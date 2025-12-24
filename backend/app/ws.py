@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import DefaultDict, Set
 
 from litestar.connection import WebSocket
 
@@ -12,7 +11,7 @@ class MeetingConnectionManager:
     """Manage websocket connections per meeting and broadcast safely."""
 
     def __init__(self) -> None:
-        self.connections: DefaultDict[str, Set[WebSocket]] = defaultdict(set)
+        self.connections: defaultdict[str, set[WebSocket]] = defaultdict(set)
 
     @property
     def connection_count(self) -> int:
@@ -69,4 +68,3 @@ class MeetingConnectionManager:
 
 
 ws_manager = MeetingConnectionManager()
-

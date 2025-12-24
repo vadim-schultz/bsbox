@@ -7,7 +7,6 @@ import sys
 import venv
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 VENV_DIR = ROOT / ".venv"
 HOST = os.getenv("HOST", "127.0.0.1")
@@ -68,4 +67,3 @@ if __name__ == "__main__":
     except Exception as exc:  # pragma: no cover - convenience for script
         print(f"[error] {exc}")
         sys.exit(1)
-

@@ -1,6 +1,7 @@
 from collections.abc import Generator
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 
@@ -19,4 +20,3 @@ def provide_session() -> Generator[Session, None, None]:
         raise
     finally:
         session.close()
-

@@ -1,6 +1,9 @@
-from datetime import datetime
+from __future__ import annotations
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func, Index
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -16,7 +19,9 @@ class EngagementSample(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     meeting_id: Mapped[str] = mapped_column(ForeignKey("meetings.id"), nullable=False)
-    participant_id: Mapped[str] = mapped_column(ForeignKey("participants.id"), nullable=False, index=True)
+    participant_id: Mapped[str] = mapped_column(
+        ForeignKey("participants.id"), nullable=False, index=True
+    )
     bucket: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     device_fingerprint: Mapped[str] = mapped_column(String(128), nullable=False, server_default="")
@@ -24,4 +29,8 @@ class EngagementSample(Base):
         DateTime(timezone=False), server_default=func.now(), nullable=False
     )
 
-    participant: Mapped["Participant"] = relationship(back_populates="engagement_samples")
+    participant: Mapped[Participant] = relationship(back_populates="engagement_samples")
+
+
+if TYPE_CHECKING:
+    from app.models.participant import Participant

@@ -15,9 +15,7 @@ depends_on = None
 
 
 def _build_meeting_uuid_map(conn) -> dict[int, str]:
-    rows = conn.execute(
-        sa.text("SELECT id, start_ts, end_ts, created_at FROM meetings")
-    ).fetchall()
+    rows = conn.execute(sa.text("SELECT id, start_ts, end_ts, created_at FROM meetings")).fetchall()
     return {row.id: str(uuid4()) for row in rows}, rows
 
 
@@ -186,9 +184,7 @@ def upgrade() -> None:
         "engagement_samples",
         ["meeting_id"],
     )
-    op.create_index(
-        "ix_engagement_samples_bucket", "engagement_samples", ["bucket"]
-    )
+    op.create_index("ix_engagement_samples_bucket", "engagement_samples", ["bucket"])
     op.create_index(
         "ix_engagement_samples_participant_id",
         "engagement_samples",
@@ -365,9 +361,7 @@ def downgrade() -> None:
         "engagement_samples",
         ["meeting_id"],
     )
-    op.create_index(
-        "ix_engagement_samples_bucket", "engagement_samples", ["bucket"]
-    )
+    op.create_index("ix_engagement_samples_bucket", "engagement_samples", ["bucket"])
     op.create_index(
         "ix_engagement_samples_participant_id",
         "engagement_samples",
@@ -375,4 +369,3 @@ def downgrade() -> None:
     )
 
     conn.execute(sa.text("PRAGMA foreign_keys=ON"))
-

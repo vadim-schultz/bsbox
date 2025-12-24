@@ -9,6 +9,15 @@ class MeetingService:
         self.meeting_repo = meeting_repo
 
     @staticmethod
+    def _round_to_nearest_hour(ts: datetime) -> datetime:
+        """Round to the nearest hour (>=30 min rounds up)."""
+        minute = ts.minute
+        base = ts.replace(minute=0, second=0, microsecond=0)
+        if minute >= 30:
+            base += timedelta(hours=1)
+        return base
+
+    @staticmethod
     def _ceil_to_quarter_hour(ts: datetime) -> datetime:
         """Round up to the top of the nearest 15-minute bucket."""
         remainder = ts.minute % 15

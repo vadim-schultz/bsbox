@@ -7,8 +7,13 @@ on:
     branches: [ main ]
 
 jobs:
-  backend:
+  backend-quality:
+    name: Backend - ${{ matrix.toxenv }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toxenv: [ruff-format, ruff-lint, mypy, bandit]
     steps:
       - uses: actions/checkout@v4
 
@@ -17,24 +22,67 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Cache backend venv
-        id: cache-backend
+      - name: Cache tox environments
         uses: actions/cache@v4
         with:
-          path: backend/.venv
-          key: v1-backend-venv-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml') }}
+          path: |
+            ~/.cache/pip
+            backend/.tox
+          key: v2-tox-${{ matrix.toxenv }}-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml', 'backend/tox.ini') }}
+          restore-keys: |
+            v2-tox-${{ matrix.toxenv }}-${{ runner.os }}-
 
-      - name: Install backend dependencies
+      - name: Install tox
         run: |
-          python -m venv backend/.venv
-          source backend/.venv/bin/activate
-          pip install --upgrade pip
-          pip install -e backend
+          python -m pip install --upgrade pip
+          pip install tox
 
-      - name: Run backend tests
+      - name: Run ${{ matrix.toxenv }}
+        working-directory: backend
+        run: tox -e ${{ matrix.toxenv }}
+
+  backend-tests:
+    name: Backend Tests - Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache tox environments
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            backend/.tox
+          key: v2-tox-py${{ matrix.python-version }}-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml', 'backend/tox.ini') }}
+          restore-keys: |
+            v2-tox-py${{ matrix.python-version }}-${{ runner.os }}-
+
+      - name: Install tox
         run: |
-          source backend/.venv/bin/activate
-          pytest backend/tests
+          python -m pip install --upgrade pip
+          pip install tox
+
+      - name: Run tests with coverage
+        working-directory: backend
+        run: tox -e py$(echo ${{ matrix.python-version }} | tr -d .)
+
+      - name: Upload coverage reports
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          file: backend/coverage.xml
+          flags: backend
+          name: backend-coverage
 
   frontend:
     runs-on: ubuntu-latest
@@ -52,4 +100,3 @@ jobs:
         run: |
           npm install
           npm run build
-

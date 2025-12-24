@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app.models import Meeting, Participant
 from app.repos import ParticipantRepo
@@ -9,7 +9,13 @@ class ParticipantService:
         self.participant_repo = participant_repo
 
     def _is_expired(self, participant: Participant, now: datetime) -> bool:
-        return participant.expires_at <= now
+        expires = (
+            participant.expires_at.replace(tzinfo=UTC)
+            if participant.expires_at.tzinfo is None
+            else participant.expires_at
+        )
+        current = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
+        return expires <= current
 
     def create_anonymous(self, meeting: Meeting, device_fingerprint: str) -> Participant:
         # Expire at meeting end to align anonymous lifetime with meeting duration
@@ -19,7 +25,11 @@ class ParticipantService:
         )
 
     def get_or_create_active(
-        self, meeting: Meeting, now: datetime, device_fingerprint: str, participant_id: str | None = None
+        self,
+        meeting: Meeting,
+        now: datetime,
+        device_fingerprint: str,
+        participant_id: str | None = None,
     ) -> Participant:
         if participant_id:
             existing = self.participant_repo.get_with_engagement(participant_id)
@@ -35,4 +45,3 @@ class ParticipantService:
 
     def update_last_status(self, participant: Participant, status: str) -> Participant:
         return self.participant_repo.update_last_status(participant, status)
-

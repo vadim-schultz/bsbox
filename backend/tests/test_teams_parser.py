@@ -1,7 +1,5 @@
 """Tests for MS Teams meeting URL and ID parser."""
 
-import pytest
-
 from app.services.teams_parser import parse_teams_meeting
 
 
@@ -112,20 +110,22 @@ class TestParseTeamsMeeting:
 
         # %3a should decode to :
         # %40 should decode to @
-        assert ":" in result["thread_id"]
-        assert "@" in result["thread_id"]
-        assert "%3a" not in result["thread_id"].lower()
-        assert "%40" not in result["thread_id"].lower()
+        assert result["thread_id"] is not None
+        thread_id = result["thread_id"]
+        assert ":" in thread_id
+        assert "@" in thread_id
+        assert "%3a" not in thread_id.lower()
+        assert "%40" not in thread_id.lower()
 
     def test_numeric_id_with_leading_trailing_spaces(self):
         """Test that numeric IDs are trimmed before processing."""
         # Leading/trailing spaces should be trimmed and ID extracted
         result = parse_teams_meeting(" 123 456 789")
         assert result["meeting_id"] == "123456789"
-        
+
         result = parse_teams_meeting("123 456 789 ")
         assert result["meeting_id"] == "123456789"
-        
+
         result = parse_teams_meeting("  123 456 789  ")
         assert result["meeting_id"] == "123456789"
 

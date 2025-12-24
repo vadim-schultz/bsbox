@@ -1,15 +1,20 @@
-from app.schema.meeting import MeetingDurationUpdate, MeetingRead, MeetingWithParticipants, MeetingCreateRequest
-from app.schema.participant import ParticipantRead
+from app.schema.city import CityCreate, CityRead
 from app.schema.engagement import (
+    EngagementPoint,
     EngagementSampleRead,
     EngagementSummary,
     ParticipantEngagementSeries,
-    EngagementPoint,
 )
-from app.schema.pagination import PaginationParams, PaginatedMeetings
+from app.schema.meeting import (
+    MeetingCreateRequest,
+    MeetingDurationUpdate,
+    MeetingRead,
+    MeetingWithParticipants,
+)
+from app.schema.meeting_room import MeetingRoomCreate, MeetingRoomRead
+from app.schema.pagination import PaginatedMeetings, PaginationParams
+from app.schema.participant import ParticipantRead
 from app.schema.visit import VisitRequest, VisitResponse
-from app.schema.city import CityRead, CityCreate
-from app.schema.meeting_room import MeetingRoomRead, MeetingRoomCreate
 
 __all__ = [
     "MeetingRead",
@@ -30,4 +35,3 @@ __all__ = [
     "MeetingRoomRead",
     "MeetingRoomCreate",
 ]
-

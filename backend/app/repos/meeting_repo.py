@@ -34,7 +34,7 @@ class MeetingRepo:
             .options(
                 selectinload(Meeting.city),
                 selectinload(Meeting.meeting_room),
-                selectinload(Meeting.participants).selectinload(Participant.engagement_samples)
+                selectinload(Meeting.participants).selectinload(Participant.engagement_samples),
             )
             .where(Meeting.id == meeting_id)
         )

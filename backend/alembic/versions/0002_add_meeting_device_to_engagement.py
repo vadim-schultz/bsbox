@@ -25,7 +25,12 @@ def upgrade() -> None:
     if "device_fingerprint" not in columns:
         op.add_column(
             "engagement_samples",
-            sa.Column("device_fingerprint", sa.String(length=128), server_default=sa.text("''"), nullable=False),
+            sa.Column(
+                "device_fingerprint",
+                sa.String(length=128),
+                server_default=sa.text("''"),
+                nullable=False,
+            ),
         )
 
     # Add indexes if missing
@@ -69,4 +74,3 @@ def downgrade() -> None:
     op.drop_index("ix_engagement_samples_meeting_id", table_name="engagement_samples")
     op.drop_column("engagement_samples", "device_fingerprint")
     op.drop_column("engagement_samples", "meeting_id")
-

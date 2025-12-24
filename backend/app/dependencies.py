@@ -1,8 +1,14 @@
 from litestar.di import Provide
 from sqlalchemy.orm import Session
 
-from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo, CityRepo, MeetingRoomRepo
-from app.services import EngagementService, MeetingService, ParticipantService, CityService, MeetingRoomService
+from app.repos import CityRepo, EngagementRepo, MeetingRepo, MeetingRoomRepo, ParticipantRepo
+from app.services import (
+    CityService,
+    EngagementService,
+    MeetingRoomService,
+    MeetingService,
+    ParticipantService,
+)
 
 
 def provide_meeting_service(session: Session) -> MeetingService:
@@ -39,4 +45,3 @@ dependencies = {
     "city_service": Provide(provide_city_service, sync_to_thread=False),
     "meeting_room_service": Provide(provide_meeting_room_service, sync_to_thread=False),
 }
-

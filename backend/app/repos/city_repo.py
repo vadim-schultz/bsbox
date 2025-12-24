@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,7 +10,7 @@ class CityRepo:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list(self) -> list[City]:
+    def list(self) -> Sequence[City]:
         stmt = select(City).order_by(City.name.asc())
         return self.session.scalars(stmt).all()
 

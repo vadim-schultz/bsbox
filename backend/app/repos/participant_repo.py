@@ -21,7 +21,8 @@ class ParticipantRepo:
 
     def get_by_fingerprint(self, device_fingerprint: str, meeting_id: str) -> Participant | None:
         stmt = select(Participant).where(
-            Participant.device_fingerprint == device_fingerprint, Participant.meeting_id == meeting_id
+            Participant.device_fingerprint == device_fingerprint,
+            Participant.meeting_id == meeting_id,
         )
         return self.session.scalars(stmt).first()
 

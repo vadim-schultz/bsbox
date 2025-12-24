@@ -1,14 +1,15 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Dict, Iterable, List, Tuple
+from typing import Any
 
 from app.models import (
     BucketRollupDTO,
     EngagementPointDTO,
     EngagementSummaryDTO,
-    ParticipantSeriesDTO,
     Meeting,
     Participant,
+    ParticipantSeriesDTO,
 )
 from app.repos import EngagementRepo, ParticipantRepo
 
@@ -26,7 +27,9 @@ class EngagementService:
     def _engaged_value(status: str) -> int:
         return 1 if status in {"speaking", "engaged"} else 0
 
-    def record_status(self, participant: Participant, status: str, current_time: datetime) -> datetime:
+    def record_status(
+        self, participant: Participant, status: str, current_time: datetime
+    ) -> datetime:
         bucket = self._bucketize(current_time)
         self.engagement_repo.upsert_sample(
             meeting_id=participant.meeting_id,
@@ -40,24 +43,24 @@ class EngagementService:
 
     def _load_sample_map(
         self, meeting_id: str, start: datetime, end: datetime
-    ) -> Dict[str, Dict[datetime, str]]:
+    ) -> dict[str, dict[datetime, str]]:
         samples = self.engagement_repo.get_samples_for_meeting(meeting_id, start=start, end=end)
-        result: Dict[str, Dict[datetime, str]] = defaultdict(dict)
+        result: dict[str, dict[datetime, str]] = defaultdict(dict)
         for sample in samples:
             result[sample.participant_id][sample.bucket] = sample.status
         return result
 
     def _build_flags(
         self,
-        buckets: List[datetime],
+        buckets: list[datetime],
         participant_ids: Iterable[str],
-        sample_map: Dict[str, Dict[datetime, str]],
-    ) -> Dict[str, List[int]]:
-        flags: Dict[str, List[int]] = {}
+        sample_map: dict[str, dict[datetime, str]],
+    ) -> dict[str, list[int]]:
+        flags: dict[str, list[int]] = {}
         for pid in participant_ids:
             pid_samples = sample_map.get(pid, {})
             last_status = "not_engaged"
-            pid_flags: List[int] = []
+            pid_flags: list[int] = []
             for bucket in buckets:
                 status = pid_samples.get(bucket, last_status)
                 last_status = status
@@ -66,8 +69,8 @@ class EngagementService:
         return flags
 
     @staticmethod
-    def _smooth_flags(flags: List[int], window: int) -> List[float]:
-        smoothed: List[float] = []
+    def _smooth_flags(flags: list[int], window: int) -> list[float]:
+        smoothed: list[float] = []
         for idx in range(len(flags)):
             window_slice = flags[max(0, idx - window + 1) : idx + 1]
             if not window_slice:
@@ -77,8 +80,8 @@ class EngagementService:
         return smoothed
 
     @staticmethod
-    def _generate_buckets(start: datetime, end: datetime, step_minutes: int) -> List[datetime]:
-        buckets: List[datetime] = []
+    def _generate_buckets(start: datetime, end: datetime, step_minutes: int) -> list[datetime]:
+        buckets: list[datetime] = []
         current = start
         step = timedelta(minutes=step_minutes)
         while current <= end:
@@ -88,16 +91,17 @@ class EngagementService:
 
     def _compose_participants_payload(
         self,
-        buckets: List[datetime],
-        participant_ids: List[str],
-        participant_series: Dict[str, List[float]],
-        fingerprint_by_participant: Dict[str, str],
-    ) -> List[ParticipantSeriesDTO]:
-        participants: List[ParticipantSeriesDTO] = []
+        buckets: list[datetime],
+        participant_ids: list[str],
+        participant_series: dict[str, list[float]],
+        fingerprint_by_participant: dict[str, str],
+    ) -> list[ParticipantSeriesDTO]:
+        participants: list[ParticipantSeriesDTO] = []
         for pid in participant_ids:
             smoothed = participant_series.get(pid, [0.0] * len(buckets))
             series = [
-                EngagementPointDTO(bucket=buckets[idx], value=smoothed[idx]) for idx in range(len(buckets))
+                EngagementPointDTO(bucket=buckets[idx], value=smoothed[idx])
+                for idx in range(len(buckets))
             ]
             participants.append(
                 ParticipantSeriesDTO(
@@ -108,12 +112,16 @@ class EngagementService:
             )
         return participants
 
-    def _compose_overall(self, buckets: List[datetime], participant_series: Dict[str, List[float]]) -> List[EngagementPointDTO]:
-        overall: List[EngagementPointDTO] = []
+    def _compose_overall(
+        self, buckets: list[datetime], participant_series: dict[str, list[float]]
+    ) -> list[EngagementPointDTO]:
+        overall: list[EngagementPointDTO] = []
         participant_ids = list(participant_series.keys())
         for idx, bucket in enumerate(buckets):
             if participant_ids:
-                avg = sum(participant_series[pid][idx] for pid in participant_ids) / len(participant_ids)
+                avg = sum(participant_series[pid][idx] for pid in participant_ids) / len(
+                    participant_ids
+                )
             else:
                 avg = 0.0
             overall.append(EngagementPointDTO(bucket=bucket, value=avg))
@@ -121,7 +129,7 @@ class EngagementService:
 
     def build_engagement_summary(
         self, meeting: Meeting, bucket_minutes: int = 1, window_minutes: int = 5
-    ) -> dict:
+    ) -> dict[str, Any]:
         start = self._bucketize(meeting.start_ts)
         end = self._bucketize(meeting.end_ts)
         buckets = self._generate_buckets(start, end, bucket_minutes)
@@ -130,7 +138,7 @@ class EngagementService:
         sample_map = self._load_sample_map(meeting.id, start=start, end=end)
         flags = self._build_flags(buckets, participant_ids, sample_map)
 
-        participant_series: Dict[str, List[float]] = {}
+        participant_series: dict[str, list[float]] = {}
         for pid, pid_flags in flags.items():
             participant_series[pid] = self._smooth_flags(pid_flags, window_minutes)
 
@@ -154,7 +162,9 @@ class EngagementService:
         )
         return summary.model_dump()
 
-    def bucket_rollup(self, meeting: Meeting, bucket: datetime, window_minutes: int = 5) -> dict:
+    def bucket_rollup(
+        self, meeting: Meeting, bucket: datetime, window_minutes: int = 5
+    ) -> dict[str, Any]:
         bucket = self._bucketize(bucket)
         start = bucket - timedelta(minutes=window_minutes - 1)
         sample_map = self._load_sample_map(meeting.id, start=start, end=bucket)
@@ -162,14 +172,18 @@ class EngagementService:
         buckets = [start + timedelta(minutes=i) for i in range(window_minutes)]
         flags = self._build_flags(buckets, participant_ids, sample_map)
 
-        participant_values: Dict[str, float] = {}
+        participant_values: dict[str, float] = {}
         for pid, pid_flags in flags.items():
             smoothed = self._smooth_flags(pid_flags, window_minutes)
             participant_values[pid] = smoothed[-1] if smoothed else 0.0
 
         overall_value = (
-            sum(participant_values.values()) / len(participant_values) if participant_values else 0.0
+            sum(participant_values.values()) / len(participant_values)
+            if participant_values
+            else 0.0
         )
 
-        rollup = BucketRollupDTO(bucket=bucket, participants=participant_values, overall=overall_value)
+        rollup = BucketRollupDTO(
+            bucket=bucket, participants=participant_values, overall=overall_value
+        )
         return rollup.model_dump()
