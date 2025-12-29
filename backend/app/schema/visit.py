@@ -2,7 +2,9 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
+
+from app.schema.teams import ParsedTeamsMeeting
 
 
 class VisitRequest(BaseModel):
@@ -18,6 +20,12 @@ class VisitRequest(BaseModel):
     city_id: str | None = None
     meeting_room_id: str | None = None
     ms_teams_input: str | None = None
+
+    @computed_field
+    @property
+    def ms_teams(self) -> ParsedTeamsMeeting:
+        """Parse ms_teams_input into structured Teams meeting identifiers."""
+        return ParsedTeamsMeeting.from_string(self.ms_teams_input)
 
 
 class VisitResponse(BaseModel):

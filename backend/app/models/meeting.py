@@ -9,7 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
-
 class Meeting(Base):
     __tablename__ = "meetings"
 
@@ -35,8 +34,57 @@ class Meeting(Base):
     city: Mapped[City] = relationship(back_populates="meetings")
     meeting_room: Mapped[MeetingRoom] = relationship(back_populates="meetings")
 
+    def __init__(
+        self,
+        *,
+        start_ts: datetime,
+        end_ts: datetime,
+        city_id: str | None = None,
+        meeting_room_id: str | None = None,
+        ms_teams_meeting: ParsedTeamsMeeting | None = None,
+        **kwargs,
+    ) -> None:
+        """Initialize Meeting with optional ParsedTeamsMeeting for Teams fields."""
+        super().__init__(
+            start_ts=start_ts,
+            end_ts=end_ts,
+            city_id=city_id,
+            meeting_room_id=meeting_room_id,
+            ms_teams_thread_id=ms_teams_meeting.thread_id if ms_teams_meeting else None,
+            ms_teams_meeting_id=ms_teams_meeting.meeting_id if ms_teams_meeting else None,
+            ms_teams_invite_url=ms_teams_meeting.invite_url if ms_teams_meeting else None,
+            **kwargs,
+        )
+
+    def to_read_schema(self) -> MeetingRead:
+        """Convert ORM model to MeetingRead schema."""
+        from app.schema import MeetingRead
+
+        return MeetingRead(
+            id=self.id,
+            start_ts=self.start_ts,
+            end_ts=self.end_ts,
+            city_id=self.city_id,
+            city_name=self.city.name if self.city else None,
+            meeting_room_id=self.meeting_room_id,
+            meeting_room_name=self.meeting_room.name if self.meeting_room else None,
+            ms_teams_thread_id=self.ms_teams_thread_id,
+            ms_teams_meeting_id=self.ms_teams_meeting_id,
+            ms_teams_invite_url=self.ms_teams_invite_url,
+        )
+
+    def to_full_schema(self) -> MeetingWithParticipants:
+        """Convert ORM model to MeetingWithParticipants schema with participant data."""
+        from app.schema import MeetingWithParticipants
+
+        participants = [p.to_read_schema() for p in self.participants]
+        meeting_data = self.to_read_schema().model_dump()
+        return MeetingWithParticipants(participants=participants, **meeting_data)
+
 
 if TYPE_CHECKING:
     from app.models.city import City
     from app.models.meeting_room import MeetingRoom
     from app.models.participant import Participant
+    from app.schema import MeetingRead, MeetingWithParticipants
+    from app.schema.teams import ParsedTeamsMeeting

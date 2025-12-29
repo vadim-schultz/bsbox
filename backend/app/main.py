@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from litestar import Litestar
+from litestar.channels import ChannelsPlugin
+from litestar.channels.backends.memory import MemoryChannelsBackend
 from litestar.di import Provide
 from litestar.static_files import create_static_files_router
 
@@ -11,11 +13,16 @@ from app.controllers import (
     UsersController,
     VisitsController,
 )
-from app.controllers.realtime import meeting_stream
+from app.controllers.realtime import meeting_stream_handler
 from app.db import provide_session
 from app.dependencies import dependencies as app_dependencies
 from app.logging_config import configure_logging
 from app.migrations import run_migrations_on_startup
+
+channels_plugin = ChannelsPlugin(
+    backend=MemoryChannelsBackend(),
+    arbitrary_channels_allowed=True,
+)
 
 
 def setup_logging(app: object | None = None) -> None:
@@ -50,10 +57,11 @@ def create_app() -> Litestar:
             VisitsController,
             CitiesController,
             MeetingRoomsController,
-            meeting_stream,
+            meeting_stream_handler,
             *_static_routes(),
         ],
         dependencies={"session": Provide(provide_session), **app_dependencies},
+        plugins=[channels_plugin],
         on_startup=[run_migrations_on_startup, setup_logging],
     )
 

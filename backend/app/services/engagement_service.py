@@ -58,7 +58,7 @@ class EngagementService:
         flags: dict[str, list[int]] = {}
         for pid in participant_ids:
             pid_samples = sample_map.get(pid, {})
-            last_status = "not_engaged"
+            last_status = "disengaged"
             pid_flags: list[int] = []
             for bucket in buckets:
                 status = pid_samples.get(bucket, last_status)
@@ -128,7 +128,7 @@ class EngagementService:
 
     def build_engagement_summary(
         self, meeting: Meeting, bucket_minutes: int = 1, window_minutes: int = 5
-    ) -> dict[str, Any]:
+    ) -> EngagementSummary:
         start = self._bucketize(meeting.start_ts)
         end = self._bucketize(meeting.end_ts)
         buckets = self._generate_buckets(start, end, bucket_minutes)
@@ -150,7 +150,7 @@ class EngagementService:
         )
         overall_points = self._compose_overall(buckets, participant_series)
 
-        summary = EngagementSummary(
+        return EngagementSummary(
             meeting_id=meeting.id,
             start=start,
             end=end,
@@ -159,7 +159,6 @@ class EngagementService:
             participants=participants_payload,
             overall=overall_points,
         )
-        return summary.model_dump()
 
     def bucket_rollup(
         self, meeting: Meeting, bucket: datetime, window_minutes: int = 5

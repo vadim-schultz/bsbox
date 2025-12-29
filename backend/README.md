@@ -115,5 +115,5 @@ Hooks run ruff (format + lint), mypy (app/scripts), and basic hygiene hooks.
 - `GET /meetings` — paginated (20/page) history.
 - `POST /meetings` — detect/create meeting; rounds visitor time to nearest hour, ends after 60 minutes.
 - `GET /meetings/{id}` — meeting detail with participants and engagement samples.
-- `POST /users/status` — speaking/engaged/not_engaged; auto-creates anonymous participant (TTL 60 minutes) and records current-minute bucket.
+- `POST /users/status` — speaking/engaged/disengaged; auto-creates anonymous participant (TTL 60 minutes) and records current-minute bucket.
 - `POST /visit` — ensure meeting, create/reuse participant, return IDs and meeting window.

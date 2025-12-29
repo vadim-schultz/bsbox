@@ -10,7 +10,7 @@ type Params = {
   onStatusUpdated?: (meetingId?: string | null) => Promise<void> | void;
 };
 
-const DEFAULT_STATUS: StatusLiteral = "not_engaged";
+const DEFAULT_STATUS: StatusLiteral = "disengaged";
 
 export function useStatusActions({
   meetingId,

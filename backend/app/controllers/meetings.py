@@ -6,58 +6,16 @@ from litestar import Controller, get, patch, post
 from litestar.di import Provide
 from litestar.exceptions import HTTPException
 
-from app.models import Meeting
 from app.schema import (
-    EngagementPoint,
-    EngagementSampleRead,
     EngagementSummary,
     MeetingDurationUpdate,
     MeetingRead,
     MeetingWithParticipants,
     Paginated,
     PaginationParams,
-    ParticipantEngagementSeries,
-    ParticipantRead,
 )
 from app.services import MeetingService
 from app.services.engagement_service import EngagementService
-
-
-def _to_meeting_read(meeting: Meeting) -> MeetingRead:
-    return MeetingRead(
-        id=meeting.id,
-        start_ts=meeting.start_ts,
-        end_ts=meeting.end_ts,
-        city_id=meeting.city_id,
-        city_name=getattr(meeting.city, "name", None) if meeting.city_id else None,
-        meeting_room_id=meeting.meeting_room_id,
-        meeting_room_name=getattr(meeting.meeting_room, "name", None)
-        if meeting.meeting_room_id
-        else None,
-        ms_teams_thread_id=meeting.ms_teams_thread_id,
-        ms_teams_meeting_id=meeting.ms_teams_meeting_id,
-        ms_teams_invite_url=meeting.ms_teams_invite_url,
-    )
-
-
-def _to_meeting_with_participants(meeting: Meeting) -> MeetingWithParticipants:
-    participants = []
-    for participant in meeting.participants:
-        samples = [
-            EngagementSampleRead(bucket=s.bucket, status=s.status)
-            for s in sorted(participant.engagement_samples, key=lambda s: s.bucket)
-        ]
-        participants.append(
-            ParticipantRead(
-                id=participant.id,
-                meeting_id=participant.meeting_id,
-                device_fingerprint=participant.device_fingerprint,
-                last_status=participant.last_status,
-                engagement_samples=samples,
-            )
-        )
-    meeting_data = _to_meeting_read(meeting).model_dump()
-    return MeetingWithParticipants(participants=participants, **meeting_data)
 
 
 class MeetingsController(Controller):
@@ -71,11 +29,9 @@ class MeetingsController(Controller):
         pagination: PaginationParams | None = None,
     ) -> Paginated[MeetingRead]:
         pagination = pagination or PaginationParams(page=1, page_size=20)
-        items, total = meeting_service.list_meetings(
-            page=pagination.page, page_size=pagination.page_size
-        )
+        items, total = meeting_service.list_meetings(pagination)
         return Paginated[MeetingRead](
-            items=[_to_meeting_read(m) for m in items],
+            items=[m.to_read_schema() for m in items],
             page=pagination.page,
             page_size=pagination.page_size,
             total=total,
@@ -84,7 +40,7 @@ class MeetingsController(Controller):
     @post("/", sync_to_thread=False)
     def create_meeting(self, meeting_service: MeetingService) -> MeetingRead:
         meeting = meeting_service.ensure_meeting_for_visit(datetime.now(tz=UTC))
-        return _to_meeting_read(meeting)
+        return meeting.to_read_schema()
 
     @get("/{meeting_id:str}", sync_to_thread=False)
     def get_meeting(
@@ -94,9 +50,7 @@ class MeetingsController(Controller):
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
 
-        # Load engagement samples for participants
-        # We rely on relationships defined on models.
-        return _to_meeting_with_participants(meeting)
+        return meeting.to_full_schema()
 
     @get("/{meeting_id:str}/engagement", sync_to_thread=False)
     def get_engagement(
@@ -109,20 +63,7 @@ class MeetingsController(Controller):
         if not meeting:
             raise HTTPException(status_code=404, detail="Meeting not found")
 
-        summary = engagement_service.build_engagement_summary(meeting)
-
-        return EngagementSummary(
-            meeting_id=summary["meeting_id"],
-            start=summary["start"],
-            end=summary["end"],
-            bucket_minutes=summary["bucket_minutes"],
-            window_minutes=summary["window_minutes"],
-            overall=[EngagementPoint(**point) for point in summary["overall"]],
-            participants=[
-                ParticipantEngagementSeries(**participant)
-                for participant in summary["participants"]
-            ],
-        )
+        return engagement_service.build_engagement_summary(meeting)
 
     @patch("/{meeting_id:str}/duration", sync_to_thread=False)
     def update_duration(
@@ -140,4 +81,4 @@ class MeetingsController(Controller):
             status = 404 if "not found" in message.lower() else 400
             raise HTTPException(status_code=status, detail=message) from exc
 
-        return _to_meeting_read(meeting)
+        return meeting.to_read_schema()

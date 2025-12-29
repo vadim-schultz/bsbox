@@ -1,7 +1,7 @@
 import { Grid, GridItem } from "@chakra-ui/react";
 import { StatusCard } from "./StatusCard";
 
-type Status = "speaking" | "engaged" | "not_engaged";
+type Status = "speaking" | "engaged" | "disengaged";
 
 type Props = {
   activeStatus: Status;

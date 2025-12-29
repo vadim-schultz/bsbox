@@ -53,10 +53,10 @@ export const deriveParticipantStatus = (
   meeting: Meeting,
   participantId?: string
 ): StatusLiteral => {
-  if (!participantId) return "not_engaged";
+  if (!participantId) return "disengaged";
   const participant = meeting.participants.find((p) => p.id === participantId);
   return (
-    (participant?.lastStatus as StatusLiteral | undefined) ?? "not_engaged"
+    (participant?.lastStatus as StatusLiteral | undefined) ?? "disengaged"
   );
 };
 

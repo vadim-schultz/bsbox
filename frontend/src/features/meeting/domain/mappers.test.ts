@@ -57,8 +57,8 @@ describe("deriveParticipantStatus", () => {
     expect(deriveParticipantStatus(meeting, "abc")).toBe("speaking");
   });
 
-  it("defaults to not_engaged when participant missing", () => {
+  it("defaults to disengaged when participant missing", () => {
     const meeting = mapMeeting(meetingDto);
-    expect(deriveParticipantStatus(meeting, "unknown")).toBe("not_engaged");
+    expect(deriveParticipantStatus(meeting, "unknown")).toBe("disengaged");
   });
 });

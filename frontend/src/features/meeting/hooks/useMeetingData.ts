@@ -49,7 +49,7 @@ export function useMeetingData({ meetingId, participantId }: Params) {
     () =>
       meeting
         ? deriveParticipantStatus(meeting, participantId ?? undefined)
-        : "not_engaged",
+        : "disengaged",
     [meeting, participantId]
   );
 

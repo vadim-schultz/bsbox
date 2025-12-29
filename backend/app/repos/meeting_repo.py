@@ -5,13 +5,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Meeting
+from app.schema import PaginationParams, ParsedTeamsMeeting
 
 
 class MeetingRepo:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list(self, page: int, page_size: int) -> tuple[Sequence[Meeting], int]:
+    def list(self, pagination: PaginationParams) -> tuple[Sequence[Meeting], int]:
         stmt = (
             select(Meeting)
             .options(
@@ -19,8 +20,8 @@ class MeetingRepo:
                 selectinload(Meeting.meeting_room),
             )
             .order_by(Meeting.start_ts.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+            .offset((pagination.page - 1) * pagination.page_size)
+            .limit(pagination.page_size)
         )
         items = self.session.scalars(stmt).all()
         total = self.session.scalar(select(func.count()).select_from(Meeting)) or 0
@@ -55,18 +56,14 @@ class MeetingRepo:
         *,
         city_id: str | None = None,
         meeting_room_id: str | None = None,
-        ms_teams_thread_id: str | None = None,
-        ms_teams_meeting_id: str | None = None,
-        ms_teams_invite_url: str | None = None,
+        ms_teams: ParsedTeamsMeeting | None = None,
     ) -> Meeting:
         meeting = Meeting(
             start_ts=start_ts,
             end_ts=end_ts,
             city_id=city_id,
             meeting_room_id=meeting_room_id,
-            ms_teams_thread_id=ms_teams_thread_id,
-            ms_teams_meeting_id=ms_teams_meeting_id,
-            ms_teams_invite_url=ms_teams_invite_url,
+            ms_teams_meeting=ms_teams,
         )
         self.session.add(meeting)
         self.session.flush()
@@ -85,9 +82,7 @@ class MeetingRepo:
         *,
         city_id: str | None = None,
         meeting_room_id: str | None = None,
-        ms_teams_thread_id: str | None = None,
-        ms_teams_meeting_id: str | None = None,
-        ms_teams_invite_url: str | None = None,
+        ms_teams: ParsedTeamsMeeting | None = None,
     ) -> Meeting:
         updated = False
         if city_id and not meeting.city_id:
@@ -96,15 +91,16 @@ class MeetingRepo:
         if meeting_room_id and not meeting.meeting_room_id:
             meeting.meeting_room_id = meeting_room_id
             updated = True
-        if ms_teams_thread_id and not meeting.ms_teams_thread_id:
-            meeting.ms_teams_thread_id = ms_teams_thread_id
-            updated = True
-        if ms_teams_meeting_id and not meeting.ms_teams_meeting_id:
-            meeting.ms_teams_meeting_id = ms_teams_meeting_id
-            updated = True
-        if ms_teams_invite_url and not meeting.ms_teams_invite_url:
-            meeting.ms_teams_invite_url = ms_teams_invite_url
-            updated = True
+        if ms_teams:
+            if ms_teams.thread_id and not meeting.ms_teams_thread_id:
+                meeting.ms_teams_thread_id = ms_teams.thread_id
+                updated = True
+            if ms_teams.meeting_id and not meeting.ms_teams_meeting_id:
+                meeting.ms_teams_meeting_id = ms_teams.meeting_id
+                updated = True
+            if ms_teams.invite_url and not meeting.ms_teams_invite_url:
+                meeting.ms_teams_invite_url = ms_teams.invite_url
+                updated = True
 
         if updated:
             self.session.flush()

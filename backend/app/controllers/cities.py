@@ -15,9 +15,7 @@ class CitiesController(Controller):
         pagination: PaginationParams | None = None,
     ) -> Paginated[CityRead]:
         pagination = pagination or PaginationParams(page=1, page_size=20)
-        cities, total = city_service.list_cities(
-            page=pagination.page, page_size=pagination.page_size
-        )
+        cities, total = city_service.list_cities(pagination)
         return Paginated[CityRead](
             items=[CityRead.model_validate(city) for city in cities],
             page=pagination.page,

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from app.models import Meeting
 from app.repos import MeetingRepo
+from app.schema import PaginationParams, ParsedTeamsMeeting
 
 
 class MeetingService:
@@ -22,9 +23,7 @@ class MeetingService:
         *,
         city_id: str | None = None,
         meeting_room_id: str | None = None,
-        ms_teams_thread_id: str | None = None,
-        ms_teams_meeting_id: str | None = None,
-        ms_teams_invite_url: str | None = None,
+        ms_teams: ParsedTeamsMeeting | None = None,
     ) -> Meeting:
         start_ts = self._ceil_to_quarter_hour(now)
         existing = self.meeting_repo.get_by_start(start_ts)
@@ -33,9 +32,7 @@ class MeetingService:
                 existing,
                 city_id=city_id,
                 meeting_room_id=meeting_room_id,
-                ms_teams_thread_id=ms_teams_thread_id,
-                ms_teams_meeting_id=ms_teams_meeting_id,
-                ms_teams_invite_url=ms_teams_invite_url,
+                ms_teams=ms_teams,
             )
 
         end_ts = start_ts + timedelta(hours=1)
@@ -44,13 +41,11 @@ class MeetingService:
             end_ts=end_ts,
             city_id=city_id,
             meeting_room_id=meeting_room_id,
-            ms_teams_thread_id=ms_teams_thread_id,
-            ms_teams_meeting_id=ms_teams_meeting_id,
-            ms_teams_invite_url=ms_teams_invite_url,
+            ms_teams=ms_teams,
         )
 
-    def list_meetings(self, page: int, page_size: int) -> tuple[list[Meeting], int]:
-        items, total = self.meeting_repo.list(page=page, page_size=page_size)
+    def list_meetings(self, pagination: PaginationParams) -> tuple[list[Meeting], int]:
+        items, total = self.meeting_repo.list(pagination)
         return list(items), total
 
     def get_meeting(self, meeting_id: str) -> Meeting | None:

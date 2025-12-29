@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 from app.models import MeetingRoom
 from app.repos import CityRepo, MeetingRoomRepo
+from app.schema import PaginationParams
 
 
 class MeetingRoomService:
@@ -10,9 +11,9 @@ class MeetingRoomService:
         self.city_repo = city_repo
 
     def list_rooms_by_city(
-        self, city_id: str, page: int = 1, page_size: int = 20
+        self, city_id: str, pagination: PaginationParams
     ) -> tuple[Sequence[MeetingRoom], int]:
-        return self.meeting_room_repo.list_by_city(city_id, page=page, page_size=page_size)
+        return self.meeting_room_repo.list_by_city(city_id, pagination)
 
     def create_room(self, name: str, city_id: str) -> MeetingRoom:
         if not self.city_repo.get_by_id(city_id):

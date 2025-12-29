@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import MeetingRoom
+from app.schema import PaginationParams
 
 
 class MeetingRoomRepo:
@@ -11,7 +12,7 @@ class MeetingRoomRepo:
         self.session = session
 
     def list_by_city(
-        self, city_id: str, page: int = 1, page_size: int = 20
+        self, city_id: str, pagination: PaginationParams
     ) -> tuple[Sequence[MeetingRoom], int]:
         # Count total for this city
         count_stmt = (
@@ -20,13 +21,13 @@ class MeetingRoomRepo:
         total = self.session.scalar(count_stmt) or 0
 
         # Fetch page
-        offset = (page - 1) * page_size
+        offset = (pagination.page - 1) * pagination.page_size
         stmt = (
             select(MeetingRoom)
             .where(MeetingRoom.city_id == city_id)
             .order_by(MeetingRoom.name.asc())
             .offset(offset)
-            .limit(page_size)
+            .limit(pagination.page_size)
         )
         items = self.session.scalars(stmt).all()
 

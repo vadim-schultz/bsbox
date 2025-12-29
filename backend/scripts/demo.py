@@ -35,7 +35,7 @@ CONTINUOUS = True
 DELAY_BETWEEN_MEETINGS_SECONDS = 5
 USE_FIXED_IDS = True
 
-StatusType = Literal["speaking", "engaged", "not_engaged"]
+StatusType = Literal["speaking", "engaged", "disengaged"]
 
 FIXED_FINGERPRINTS = [f"fp-fixed-{i:03d}" for i in range(1, 33)]
 
@@ -45,10 +45,10 @@ class Profile(Enum):
 
     ACTIVE = "active"  # Frequently engaged, sometimes speaks
     PASSIVE = "passive"  # Occasionally engaged, rarely speaks
-    DISTRACTED = "distracted"  # Often not_engaged, sporadic engagement
+    DISTRACTED = "distracted"  # Often disengaged, sporadic engagement
 
 
-# Status probabilities by profile: (speaking, engaged, not_engaged)
+# Status probabilities by profile: (speaking, engaged, disengaged)
 PROFILE_WEIGHTS: dict[Profile, tuple[float, float, float]] = {
     Profile.ACTIVE: (0.15, 0.70, 0.15),
     Profile.PASSIVE: (0.05, 0.50, 0.45),
@@ -63,7 +63,7 @@ class Participant:
     id: str
     fingerprint: str
     profile: Profile
-    current_status: StatusType = "not_engaged"
+    current_status: StatusType = "disengaged"
 
 
 def make_fingerprint(index: int, use_fixed_ids: bool) -> str:
@@ -133,7 +133,7 @@ def choose_status(profile: Profile) -> StatusType:
     return cast(
         StatusType,
         random.choices(
-            ["speaking", "engaged", "not_engaged"],
+            ["speaking", "engaged", "disengaged"],
             weights=weights,
             k=1,
         )[0],
@@ -212,7 +212,7 @@ def _warmup_tick(
     update_count = min(2 + tick // 2, len(participants))
     for p in random.sample(participants, update_count):
         if p.profile == Profile.DISTRACTED:
-            status = cast(StatusType, random.choice(["engaged", "not_engaged"]))
+            status = cast(StatusType, random.choice(["engaged", "disengaged"]))
         else:
             status = (
                 cast(StatusType, random.choice(["engaged", "speaking"]))
@@ -236,7 +236,7 @@ def _dip_tick(
 ) -> None:
     for p in participants:
         if random.random() < 0.7:
-            status = "not_engaged" if random.random() < 0.6 else choose_status(p.profile)
+            status = "disengaged" if random.random() < 0.6 else choose_status(p.profile)
             update_status(api, meeting_id, p, status, verbose=not fast)
 
 

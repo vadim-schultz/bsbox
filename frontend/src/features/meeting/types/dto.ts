@@ -1,4 +1,4 @@
-export type StatusLiteral = "speaking" | "engaged" | "not_engaged";
+export type StatusLiteral = "speaking" | "engaged" | "disengaged";
 
 export type VisitResponseDto = {
   meeting_id: string;

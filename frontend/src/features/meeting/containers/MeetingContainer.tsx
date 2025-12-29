@@ -53,7 +53,7 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
 
   const handleToggle = async (status: "speaking" | "engaged") => {
     if (activeStatus === status) {
-      await sendStatus("not_engaged");
+      await sendStatus("disengaged");
       return;
     }
     await sendStatus(status);

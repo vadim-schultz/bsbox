@@ -18,9 +18,7 @@ class MeetingRoomsController(Controller):
         if not city_id:
             raise HTTPException(status_code=400, detail="city_id is required")
         pagination = pagination or PaginationParams(page=1, page_size=20)
-        rooms, total = meeting_room_service.list_rooms_by_city(
-            city_id, page=pagination.page, page_size=pagination.page_size
-        )
+        rooms, total = meeting_room_service.list_rooms_by_city(city_id, pagination)
         return Paginated[MeetingRoomRead](
             items=[MeetingRoomRead.model_validate(room) for room in rooms],
             page=pagination.page,

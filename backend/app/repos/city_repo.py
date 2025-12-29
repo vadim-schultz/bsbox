@@ -4,20 +4,21 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import City
+from app.schema import PaginationParams
 
 
 class CityRepo:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def list(self, page: int = 1, page_size: int = 20) -> tuple[Sequence[City], int]:
+    def list(self, pagination: PaginationParams) -> tuple[Sequence[City], int]:
         # Count total
         count_stmt = select(func.count()).select_from(City)
         total = self.session.scalar(count_stmt) or 0
 
         # Fetch page
-        offset = (page - 1) * page_size
-        stmt = select(City).order_by(City.name.asc()).offset(offset).limit(page_size)
+        offset = (pagination.page - 1) * pagination.page_size
+        stmt = select(City).order_by(City.name.asc()).offset(offset).limit(pagination.page_size)
         items = self.session.scalars(stmt).all()
 
         return items, total

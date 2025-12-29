@@ -1,8 +1,12 @@
 """Participant-related schemas."""
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schema.engagement import EngagementSampleRead
+
+StatusLiteral = Literal["speaking", "engaged", "disengaged"]
 
 
 class ParticipantRead(BaseModel):
@@ -22,3 +26,11 @@ class ParticipantCreate(BaseModel):
 
     meeting_id: str
     device_fingerprint: str = ""
+
+
+class StatusChangeRequest(BaseModel):
+    """Request to change a participant's engagement status."""
+
+    meeting_id: str = Field(..., description="Target meeting id")
+    participant_id: str | None = Field(None, description="Existing participant id, if any")
+    status: StatusLiteral = Field(..., description="Participant status")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, func
@@ -27,7 +27,25 @@ class Participant(Base):
         back_populates="participant", cascade="all, delete-orphan"
     )
 
+    def to_read_schema(self) -> ParticipantRead:
+        """Convert ORM model to ParticipantRead schema with engagement samples."""
+        from app.schema import EngagementSampleRead, ParticipantRead
+
+        samples = []
+        for s in sorted(self.engagement_samples, key=lambda s: s.bucket):
+            bucket_dt = s.bucket.replace(tzinfo=UTC) if s.bucket.tzinfo is None else s.bucket
+            samples.append(EngagementSampleRead(bucket=bucket_dt, status=s.status))
+
+        return ParticipantRead(
+            id=self.id,
+            meeting_id=self.meeting_id,
+            device_fingerprint=self.device_fingerprint,
+            last_status=self.last_status,
+            engagement_samples=samples,
+        )
+
 
 if TYPE_CHECKING:
     from app.models.engagement_sample import EngagementSample
     from app.models.meeting import Meeting
+    from app.schema import ParticipantRead
