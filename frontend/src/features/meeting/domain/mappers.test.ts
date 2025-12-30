@@ -10,9 +10,9 @@ import type {
   VisitResponseDto,
 } from "../types/dto";
 
+// Visit response no longer includes participant_id (participant creation via WebSocket)
 const visitDto: VisitResponseDto = {
   meeting_id: "meeting-42",
-  participant_id: "abc",
   meeting_start: "2023-01-01T09:00:00Z",
   meeting_end: "2023-01-01T10:00:00Z",
 };
@@ -36,7 +36,7 @@ describe("mapVisitResponse", () => {
   it("maps DTO into domain session", () => {
     const result = mapVisitResponse(visitDto);
     expect(result.meetingId).toBe("meeting-42");
-    expect(result.participantId).toBe("abc");
+    // participantId no longer in VisitSession - comes from WebSocket join
     expect(result.meetingTimes.start).toBeInstanceOf(Date);
     expect(result.meetingTimes.end).toBeInstanceOf(Date);
   });

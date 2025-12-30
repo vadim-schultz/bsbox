@@ -12,10 +12,7 @@ def test_engagement_bucket_rounding(session_factory):
 
         start = datetime(2025, 1, 1, 10, 30, tzinfo=UTC)
         meeting = meeting_repo.create(start_ts=start, end_ts=start + timedelta(hours=1))
-        participant = participant_repo.create(
-            meeting_id=meeting.id,
-            device_fingerprint="fp-123",
-        )
+        participant = participant_repo.create(meeting_id=meeting.id)
 
         service = EngagementService(engagement_repo, participant_repo)
         ts = datetime(2025, 1, 1, 10, 45, 59, tzinfo=UTC)

@@ -1,6 +1,7 @@
 import { Flex, Heading, Stack, Text } from "@chakra-ui/react";
 import { ParticipantBadge } from "./ParticipantBadge";
 import { MeetingRangeControl } from "./MeetingRangeControl";
+import type { MSTeamsMeeting } from "../../types/domain";
 
 type Props = {
   meetingLabel: string;
@@ -12,7 +13,7 @@ type Props = {
   durationLocked?: boolean;
   cityName?: string | null;
   meetingRoomName?: string | null;
-  msTeamsMeetingId?: string | null;
+  msTeams?: MSTeamsMeeting | null;
 };
 
 export function MeetingInfo({
@@ -25,10 +26,10 @@ export function MeetingInfo({
   durationLocked,
   cityName,
   meetingRoomName,
-  msTeamsMeetingId,
+  msTeams,
 }: Props) {
   const locationLabel = [cityName, meetingRoomName].filter(Boolean).join(" • ");
-  const teamsLabel = msTeamsMeetingId ? `Teams: ${msTeamsMeetingId}` : null;
+  const teamsLabel = msTeams?.meetingId ? `Teams: ${msTeams.meetingId}` : null;
 
   return (
     <Stack gap={4}>
@@ -64,4 +65,3 @@ export function MeetingInfo({
     </Stack>
   );
 }
-

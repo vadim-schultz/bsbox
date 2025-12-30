@@ -17,8 +17,8 @@ class EngagementRepo:
         participant_id: str,
         bucket: datetime,
         status: str,
-        device_fingerprint: str,
     ) -> EngagementSample:
+        """Upsert an engagement sample for a participant at a given time bucket."""
         stmt = select(EngagementSample).where(
             EngagementSample.participant_id == participant_id,
             EngagementSample.bucket == bucket,
@@ -26,7 +26,6 @@ class EngagementRepo:
         existing = self.session.scalars(stmt).first()
         if existing:
             existing.status = status
-            existing.device_fingerprint = device_fingerprint
             self.session.add(existing)
             self.session.flush()
             self.session.refresh(existing)
@@ -37,7 +36,6 @@ class EngagementRepo:
             meeting_id=meeting_id,
             bucket=bucket,
             status=status,
-            device_fingerprint=device_fingerprint,
         )
         self.session.add(sample)
         self.session.flush()

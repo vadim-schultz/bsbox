@@ -35,4 +35,3 @@ class MeetingRoomsController(Controller):
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return MeetingRoomRead.model_validate(room)
-

@@ -63,16 +63,12 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     <Stack gap={6}>
       {onBackToSelection && (
         <Flex justify="flex-start">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBackToSelection}
-          >
+          <Button variant="ghost" size="sm" onClick={onBackToSelection}>
             ← Change Location
           </Button>
         </Flex>
       )}
-      
+
       <MeetingInfo
         meetingLabel={formatTimespan(meetingTimes?.start, meetingTimes?.end)}
         meetingStart={meetingTimes?.start}
@@ -83,7 +79,7 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
         participantCount={displayParticipantCount}
         cityName={meeting?.cityName ?? null}
         meetingRoomName={meeting?.meetingRoomName ?? null}
-        msTeamsMeetingId={meeting?.msTeamsMeetingId ?? null}
+        msTeams={meeting?.msTeams ?? null}
       />
 
       {error ? (

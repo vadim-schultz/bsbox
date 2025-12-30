@@ -1,27 +1,27 @@
-"""Visit-related schemas for participant session management."""
+"""Visit-related schemas for meeting discovery.
+
+The visit endpoint returns meeting info. Participant creation happens via WebSocket.
+"""
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field
 
 from app.schema.teams import ParsedTeamsMeeting
 
 
 class VisitRequest(BaseModel):
-    """Request to register a participant visit to a meeting.
+    """Request to find or create a meeting for the current time slot.
 
-    Creates or joins a meeting session and returns participant credentials.
     If no meeting exists for the given context (city/room/Teams), a new one is created.
+    Participant creation happens via WebSocket join, not here.
     """
 
-    device_fingerprint: str = Field(
-        ..., description="Device/browser fingerprint for identifying returning visitor"
-    )
     city_id: str | None = None
     meeting_room_id: str | None = None
     ms_teams_input: str | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def ms_teams(self) -> ParsedTeamsMeeting:
         """Parse ms_teams_input into structured Teams meeting identifiers."""
@@ -31,12 +31,12 @@ class VisitRequest(BaseModel):
 class VisitResponse(BaseModel):
     """Response from a successful visit request.
 
-    Contains meeting and participant identifiers along with meeting time bounds.
+    Contains meeting identifiers and time bounds.
+    Participant ID is no longer included - it comes from WebSocket join.
     """
 
     model_config = ConfigDict(from_attributes=True)
 
     meeting_id: str
-    participant_id: str
     meeting_start: datetime
     meeting_end: datetime

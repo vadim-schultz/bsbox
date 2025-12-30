@@ -34,7 +34,7 @@ class ParsedTeamsMeeting(BaseModel):
         """Trimmed raw input for parsing."""
         return self._raw_input
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @cached_property
     def thread_id(self) -> str | None:
         """Extract thread ID from old-style Teams URL."""
@@ -46,7 +46,7 @@ class ParsedTeamsMeeting(BaseModel):
                 return urllib.parse.unquote(match.group("thread_enc"))
         return None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @cached_property
     def meeting_id(self) -> str | None:
         """Extract meeting ID from new-style URL or numeric input."""
@@ -65,7 +65,7 @@ class ParsedTeamsMeeting(BaseModel):
 
         return None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @cached_property
     def invite_url(self) -> str | None:
         """Return the raw URL if input was a URL, None otherwise."""

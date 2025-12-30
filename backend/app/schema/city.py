@@ -18,4 +18,3 @@ class CityCreate(NameValidatorMixin, BaseModel):
     """Schema for creating a new city."""
 
     name: str = Field(..., min_length=1, max_length=128)
-

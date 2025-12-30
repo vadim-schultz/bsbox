@@ -29,13 +29,13 @@ class EngagementService:
     def record_status(
         self, participant: Participant, status: str, current_time: datetime
     ) -> datetime:
+        """Record a status update for a participant."""
         bucket = self._bucketize(current_time)
         self.engagement_repo.upsert_sample(
             meeting_id=participant.meeting_id,
             participant_id=participant.id,
             bucket=bucket,
             status=status,
-            device_fingerprint=participant.device_fingerprint,
         )
         self.participant_repo.update_last_status(participant, status)
         return bucket
@@ -181,7 +181,5 @@ class EngagementService:
             else 0.0
         )
 
-        rollup = BucketRollup(
-            bucket=bucket, participants=participant_values, overall=overall_value
-        )
-        return rollup.model_dump()
+        rollup = BucketRollup(bucket=bucket, participants=participant_values, overall=overall_value)
+        return dict(rollup.model_dump())

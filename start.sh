@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 # Muda Meter Quick Start Script
 # Starts the backend API (8000) and frontend dev server (5173) together.
 # Usage: ./start.sh [--no-install] [--no-migrate]

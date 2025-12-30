@@ -37,13 +37,11 @@ async function getJSON<T>(path: string): Promise<T> {
 }
 
 export async function visit(params: {
-  deviceFingerprint: string;
   cityId?: string;
   meetingRoomId?: string;
   msTeamsInput?: string;
 }): Promise<VisitResponseDto> {
   return postJSON<VisitResponseDto>("/visit", {
-    device_fingerprint: params.deviceFingerprint,
     city_id: params.cityId,
     meeting_room_id: params.meetingRoomId,
     ms_teams_input: params.msTeamsInput,
@@ -76,11 +74,16 @@ export async function updateMeetingDuration(params: {
   return parse<MeetingDto>(res);
 }
 
+// Status updates are now sent via WebSocket, not HTTP
+// This function is kept for backwards compatibility but will be removed
 export async function updateStatus(params: {
   meetingId: string;
   participantId: string;
   status: StatusLiteral;
 }): Promise<void> {
+  console.warn(
+    "[DEPRECATED] updateStatus via HTTP is deprecated. Use WebSocket instead."
+  );
   await postJSON("/users/status", {
     meeting_id: params.meetingId,
     participant_id: params.participantId,
@@ -93,8 +96,12 @@ export async function getCities(): Promise<CityDto[]> {
   return response.items;
 }
 
-export async function getMeetingRooms(cityId: string): Promise<MeetingRoomDto[]> {
-  const response = await getJSON<PaginatedDto<MeetingRoomDto>>(`/meeting-rooms?city_id=${cityId}`);
+export async function getMeetingRooms(
+  cityId: string
+): Promise<MeetingRoomDto[]> {
+  const response = await getJSON<PaginatedDto<MeetingRoomDto>>(
+    `/meeting-rooms?city_id=${cityId}`
+  );
   return response.items;
 }
 
@@ -102,6 +109,12 @@ export async function createCity(name: string): Promise<CityDto> {
   return postJSON<CityDto>("/cities", { name });
 }
 
-export async function createMeetingRoom(params: { name: string; cityId: string }): Promise<MeetingRoomDto> {
-  return postJSON<MeetingRoomDto>("/meeting-rooms", { name: params.name, city_id: params.cityId });
+export async function createMeetingRoom(params: {
+  name: string;
+  cityId: string;
+}): Promise<MeetingRoomDto> {
+  return postJSON<MeetingRoomDto>("/meeting-rooms", {
+    name: params.name,
+    city_id: params.cityId,
+  });
 }

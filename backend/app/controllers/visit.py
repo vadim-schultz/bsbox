@@ -1,10 +1,15 @@
+"""Visit controller for meeting discovery/creation.
+
+The visit endpoint creates/finds a meeting for the current time slot.
+Participant creation now happens via WebSocket connection.
+"""
+
 from datetime import UTC, datetime
 
 from litestar import Controller, post
-from litestar.exceptions import HTTPException
 
 from app.schema import VisitRequest, VisitResponse
-from app.services import MeetingService, ParticipantService
+from app.services import MeetingService
 
 
 class VisitsController(Controller):
@@ -15,24 +20,21 @@ class VisitsController(Controller):
         self,
         data: VisitRequest,
         meeting_service: MeetingService,
-        participant_service: ParticipantService,
     ) -> VisitResponse:
+        """Get or create meeting for the current time slot.
+
+        Returns meeting details. Participant creation happens via WebSocket join.
+        """
         now = datetime.now(tz=UTC)
-        meeting = meeting_service.ensure_meeting_for_visit(
+        meeting = meeting_service.ensure_meeting(
             now,
             city_id=data.city_id,
             meeting_room_id=data.meeting_room_id,
             ms_teams=data.ms_teams,
         )
-        participant = participant_service.get_or_create_active(
-            meeting=meeting, now=now, device_fingerprint=data.device_fingerprint
-        )
-        if not participant:
-            raise HTTPException(status_code=500, detail="Unable to create participant")
 
         return VisitResponse(
             meeting_id=meeting.id,
-            participant_id=participant.id,
             meeting_start=meeting.start_ts,
             meeting_end=meeting.end_ts,
         )

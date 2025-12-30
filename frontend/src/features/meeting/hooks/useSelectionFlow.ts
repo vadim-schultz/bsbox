@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getCities, getMeetingRooms, visit, createCity, createMeetingRoom } from "../api/client";
+import {
+  getCities,
+  getMeetingRooms,
+  visit,
+  createCity,
+  createMeetingRoom,
+} from "../api/client";
 import { mapVisitResponse } from "../domain/mappers";
-import { loadSessionAsync } from "../services/session";
 import type { CityDto, MeetingRoomDto } from "../types/dto";
 import type { VisitSession } from "../types/domain";
 
@@ -121,7 +126,10 @@ export function useSelectionFlow() {
   const findCityByName = useCallback(
     (name: string) => {
       const trimmed = name.trim().toLowerCase();
-      return state.cities.find((c) => c.name.trim().toLowerCase() === trimmed) ?? null;
+      return (
+        state.cities.find((c) => c.name.trim().toLowerCase() === trimmed) ??
+        null
+      );
     },
     [state.cities]
   );
@@ -133,16 +141,24 @@ export function useSelectionFlow() {
       setState((prev) => ({ ...prev, selectedCityId: matchedCity.id }));
       void fetchRooms(matchedCity.id);
     } else if (!matchedCity && state.selectedCityId) {
-      setState((prev) => ({ ...prev, selectedCityId: null, rooms: [], roomInput: "" }));
+      setState((prev) => ({
+        ...prev,
+        selectedCityId: null,
+        rooms: [],
+        roomInput: "",
+      }));
     }
-  }, [state.cityInput, state.cities, state.selectedCityId, fetchRooms, findCityByName]);
+  }, [
+    state.cityInput,
+    state.cities,
+    state.selectedCityId,
+    fetchRooms,
+    findCityByName,
+  ]);
 
-  const setCityInput = useCallback(
-    (value: string) => {
-      setState((prev) => ({ ...prev, cityInput: value }));
-    },
-    []
-  );
+  const setCityInput = useCallback((value: string) => {
+    setState((prev) => ({ ...prev, cityInput: value }));
+  }, []);
 
   const setRoomInput = useCallback((value: string) => {
     setState((prev) => ({ ...prev, roomInput: value }));
@@ -155,7 +171,6 @@ export function useSelectionFlow() {
   const submit = useCallback(async (): Promise<VisitSession> => {
     setState((prev) => ({ ...prev, submitting: true, error: null }));
     try {
-      const { deviceFingerprint } = await loadSessionAsync();
       let cityIdToUse: string | undefined;
       let roomIdToUse: string | undefined;
 
@@ -181,18 +196,29 @@ export function useSelectionFlow() {
             : await getMeetingRooms(cityIdToUse);
         setState((prev) => ({ ...prev, rooms }));
         const existingRoom =
-          rooms.find((r) => r.name.trim().toLowerCase() === state.roomInput.trim().toLowerCase()) ?? null;
+          rooms.find(
+            (r) =>
+              r.name.trim().toLowerCase() ===
+              state.roomInput.trim().toLowerCase()
+          ) ?? null;
         if (existingRoom) {
           roomIdToUse = existingRoom.id;
         } else {
-          const createdRoom = await createMeetingRoom({ name: state.roomInput.trim(), cityId: cityIdToUse });
+          const createdRoom = await createMeetingRoom({
+            name: state.roomInput.trim(),
+            cityId: cityIdToUse,
+          });
           roomIdToUse = createdRoom.id;
-          setState((prev) => ({ ...prev, rooms: [...prev.rooms, createdRoom] }));
+          setState((prev) => ({
+            ...prev,
+            rooms: [...prev.rooms, createdRoom],
+          }));
         }
       }
 
+      // Visit endpoint now only returns meeting info (no participant creation)
+      // Participant creation happens via WebSocket join
       const response = await visit({
-        deviceFingerprint: deviceFingerprint ?? "",
         cityId: cityIdToUse,
         meetingRoomId: roomIdToUse,
         msTeamsInput: state.msTeamsInput || undefined,
@@ -201,13 +227,21 @@ export function useSelectionFlow() {
       setState((prev) => ({ ...prev, session }));
       return session;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to start meeting";
+      const message =
+        err instanceof Error ? err.message : "Unable to start meeting";
       setState((prev) => ({ ...prev, error: message }));
       throw err;
     } finally {
       setState((prev) => ({ ...prev, submitting: false }));
     }
-  }, [state.cityInput, state.roomInput, state.msTeamsInput, findCityByName]);
+  }, [
+    state.cityInput,
+    state.roomInput,
+    state.msTeamsInput,
+    state.rooms,
+    state.selectedCityId,
+    findCityByName,
+  ]);
 
   const combinedLoading = useMemo(
     () => state.loadingCities || state.loadingRooms || state.submitting,

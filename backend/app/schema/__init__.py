@@ -14,6 +14,7 @@ from app.schema.meeting import (
     MeetingWithParticipants,
 )
 from app.schema.meeting_room import MeetingRoomCreate, MeetingRoomRead
+from app.schema.ms_teams_meeting import MSTeamsMeetingRead
 from app.schema.pagination import Paginated, PaginationParams
 from app.schema.participant import (
     ParticipantCreate,
@@ -28,6 +29,7 @@ __all__ = [
     "MeetingRead",
     "MeetingDurationUpdate",
     "MeetingWithParticipants",
+    "MSTeamsMeetingRead",
     "ParticipantRead",
     "ParticipantCreate",
     "StatusChangeRequest",

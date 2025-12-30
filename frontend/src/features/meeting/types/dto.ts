@@ -2,7 +2,6 @@ export type StatusLiteral = "speaking" | "engaged" | "disengaged";
 
 export type VisitResponseDto = {
   meeting_id: string;
-  participant_id: string;
   meeting_start: string;
   meeting_end: string;
 };
@@ -41,6 +40,12 @@ export type ParticipantDto = {
   engagement_samples: EngagementSampleDto[];
 };
 
+export type MSTeamsMeetingDto = {
+  thread_id?: string | null;
+  meeting_id?: string | null;
+  invite_url?: string | null;
+};
+
 export type MeetingDto = {
   id: string;
   start_ts: string;
@@ -49,9 +54,7 @@ export type MeetingDto = {
   city_name?: string | null;
   meeting_room_id?: string | null;
   meeting_room_name?: string | null;
-  ms_teams_thread_id?: string | null;
-  ms_teams_meeting_id?: string | null;
-  ms_teams_invite_url?: string | null;
+  ms_teams?: MSTeamsMeetingDto | null;
 };
 
 export type MeetingDurationUpdateDto = {

@@ -1,6 +1,7 @@
 import type {
   EngagementSummaryDto,
   MeetingWithParticipantsDto,
+  MSTeamsMeetingDto,
   ParticipantDto,
   StatusLiteral,
   VisitResponseDto,
@@ -9,6 +10,7 @@ import type {
   EngagementPoint,
   EngagementSummary,
   Meeting,
+  MSTeamsMeeting,
   Participant,
   VisitSession,
 } from "../types/domain";
@@ -26,6 +28,17 @@ const mapParticipant = (participant: ParticipantDto): Participant => ({
   })),
 });
 
+const mapMSTeamsMeeting = (
+  msTeams: MSTeamsMeetingDto | null | undefined
+): MSTeamsMeeting | null => {
+  if (!msTeams) return null;
+  return {
+    threadId: msTeams.thread_id ?? null,
+    meetingId: msTeams.meeting_id ?? null,
+    inviteUrl: msTeams.invite_url ?? null,
+  };
+};
+
 export const mapMeeting = (detail: MeetingWithParticipantsDto): Meeting => ({
   id: detail.id,
   start: toDate(detail.start_ts),
@@ -34,15 +47,12 @@ export const mapMeeting = (detail: MeetingWithParticipantsDto): Meeting => ({
   cityName: detail.city_name ?? null,
   meetingRoomId: detail.meeting_room_id ?? null,
   meetingRoomName: detail.meeting_room_name ?? null,
-  msTeamsThreadId: detail.ms_teams_thread_id ?? null,
-  msTeamsMeetingId: detail.ms_teams_meeting_id ?? null,
-  msTeamsInviteUrl: detail.ms_teams_invite_url ?? null,
+  msTeams: mapMSTeamsMeeting(detail.ms_teams),
   participants: detail.participants.map(mapParticipant),
 });
 
 export const mapVisitResponse = (response: VisitResponseDto): VisitSession => ({
   meetingId: response.meeting_id,
-  participantId: response.participant_id,
   meetingTimes: {
     start: toDate(response.meeting_start),
     end: toDate(response.meeting_end),
@@ -55,9 +65,7 @@ export const deriveParticipantStatus = (
 ): StatusLiteral => {
   if (!participantId) return "disengaged";
   const participant = meeting.participants.find((p) => p.id === participantId);
-  return (
-    (participant?.lastStatus as StatusLiteral | undefined) ?? "disengaged"
-  );
+  return (participant?.lastStatus as StatusLiteral | undefined) ?? "disengaged";
 };
 
 export const mapEngagementSummary = (

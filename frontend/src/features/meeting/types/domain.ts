@@ -7,7 +7,6 @@ export type MeetingTimes = {
 
 export type VisitSession = {
   meetingId: string;
-  participantId: string;
   meetingTimes: MeetingTimes;
 };
 
@@ -45,6 +44,12 @@ export type Participant = {
   engagementSamples: EngagementSample[];
 };
 
+export type MSTeamsMeeting = {
+  threadId?: string | null;
+  meetingId?: string | null;
+  inviteUrl?: string | null;
+};
+
 export type Meeting = {
   id: string;
   start: Date;
@@ -53,8 +58,6 @@ export type Meeting = {
   cityName?: string | null;
   meetingRoomId?: string | null;
   meetingRoomName?: string | null;
-  msTeamsThreadId?: string | null;
-  msTeamsMeetingId?: string | null;
-  msTeamsInviteUrl?: string | null;
+  msTeams?: MSTeamsMeeting | null;
   participants: Participant[];
 };

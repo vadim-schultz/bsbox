@@ -39,7 +39,7 @@ class MeetingsController(Controller):
 
     @post("/", sync_to_thread=False)
     def create_meeting(self, meeting_service: MeetingService) -> MeetingRead:
-        meeting = meeting_service.ensure_meeting_for_visit(datetime.now(tz=UTC))
+        meeting = meeting_service.ensure_meeting(datetime.now(tz=UTC))
         return meeting.to_read_schema()
 
     @get("/{meeting_id:str}", sync_to_thread=False)

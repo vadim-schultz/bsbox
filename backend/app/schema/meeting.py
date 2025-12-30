@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schema.ms_teams_meeting import MSTeamsMeetingRead
 from app.schema.participant import ParticipantRead
 
 
@@ -19,9 +20,7 @@ class MeetingRead(BaseModel):
     city_name: str | None = None
     meeting_room_id: str | None = None
     meeting_room_name: str | None = None
-    ms_teams_thread_id: str | None = None
-    ms_teams_meeting_id: str | None = None
-    ms_teams_invite_url: str | None = None
+    ms_teams: MSTeamsMeetingRead | None = None
 
 
 class MeetingDurationUpdate(BaseModel):

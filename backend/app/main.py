@@ -10,7 +10,6 @@ from app.controllers import (
     CitiesController,
     MeetingRoomsController,
     MeetingsController,
-    UsersController,
     VisitsController,
 )
 from app.controllers.realtime import meeting_stream_handler
@@ -53,7 +52,6 @@ def create_app() -> Litestar:
     return Litestar(
         route_handlers=[
             MeetingsController,
-            UsersController,
             VisitsController,
             CitiesController,
             MeetingRoomsController,

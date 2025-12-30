@@ -28,9 +28,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Re-add the expires_at column
     with op.batch_alter_table("participants") as batch_op:
-        batch_op.add_column(
-            sa.Column("expires_at", sa.DateTime(), nullable=True)
-        )
+        batch_op.add_column(sa.Column("expires_at", sa.DateTime(), nullable=True))
 
     # Populate expires_at from meeting end_ts
     op.execute(
@@ -47,4 +45,3 @@ def downgrade() -> None:
     # Make the column non-nullable
     with op.batch_alter_table("participants") as batch_op:
         batch_op.alter_column("expires_at", nullable=False)
-

@@ -10,14 +10,24 @@ class MeetingService:
         self.meeting_repo = meeting_repo
 
     @staticmethod
-    def _ceil_to_quarter_hour(ts: datetime) -> datetime:
-        """Round up to the top of the nearest 15-minute bucket."""
-        remainder = ts.minute % 15
-        minutes_to_add = (15 - remainder) % 15
-        adjusted = ts + timedelta(minutes=minutes_to_add)
-        return adjusted.replace(second=0, microsecond=0)
+    def _snap_to_half_hour(ts: datetime) -> datetime:
+        """Round to nearest 30-minute boundary.
 
-    def ensure_meeting_for_visit(
+        Decision boundaries at :15 and :45:
+        - Minutes 0-15  -> :00 of current hour
+        - Minutes 16-44 -> :30 of current hour
+        - Minutes 45-59 -> :00 of next hour
+        """
+        minute = ts.minute
+        base = ts.replace(second=0, microsecond=0)
+
+        if minute <= 15:
+            return base.replace(minute=0)
+        if minute <= 44:
+            return base.replace(minute=30)
+        return base.replace(minute=0) + timedelta(hours=1)
+
+    def ensure_meeting(
         self,
         now: datetime,
         *,
@@ -25,18 +35,11 @@ class MeetingService:
         meeting_room_id: str | None = None,
         ms_teams: ParsedTeamsMeeting | None = None,
     ) -> Meeting:
-        start_ts = self._ceil_to_quarter_hour(now)
-        existing = self.meeting_repo.get_by_start(start_ts)
-        if existing:
-            return self.meeting_repo.upsert_metadata(
-                existing,
-                city_id=city_id,
-                meeting_room_id=meeting_room_id,
-                ms_teams=ms_teams,
-            )
-
+        """Get or create meeting for the current time slot using atomic UPSERT."""
+        start_ts = self._snap_to_half_hour(now)
         end_ts = start_ts + timedelta(hours=1)
-        return self.meeting_repo.create(
+
+        return self.meeting_repo.upsert_by_start(
             start_ts=start_ts,
             end_ts=end_ts,
             city_id=city_id,

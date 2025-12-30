@@ -18,6 +18,9 @@ class Participant(Base):
         String(128), nullable=False, index=True, server_default=""
     )
     last_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=False), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False), server_default=func.now(), nullable=False
     )
