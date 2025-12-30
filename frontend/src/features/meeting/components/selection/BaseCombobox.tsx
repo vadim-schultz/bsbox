@@ -1,5 +1,5 @@
 import { Combobox, Stack, Text, createListCollection } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { useMemo, useRef, type FormEvent, type KeyboardEvent } from "react";
 
 type BaseComboboxProps<T extends { id: string; name: string }> = {
   label: string;
@@ -20,8 +20,10 @@ export function BaseCombobox<T extends { id: string; name: string }>({
   placeholder,
   loading,
   disabled,
-  emptyMessage = "No results found",
+  emptyMessage = "Type to create a new entry",
 }: BaseComboboxProps<T>) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const collection = useMemo(
     () =>
       createListCollection({
@@ -34,9 +36,35 @@ export function BaseCombobox<T extends { id: string; name: string }>({
   );
 
   const handleValueChange = (details: { value: string[] }) => {
-    // Combobox returns an array, but we want single selection
+    // User selected from the list
     const selectedValue = details.value[0] || null;
-    onChange(selectedValue);
+    if (selectedValue) {
+      onChange(selectedValue);
+    }
+  };
+
+  // Handle native input events for free-text entry (using onInput for real-time updates)
+  const handleInput = (e: FormEvent<HTMLInputElement>) => {
+    const newValue = (e.target as HTMLInputElement).value;
+    onChange(newValue || null);
+  };
+
+  // Handle Enter key to confirm custom value
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const currentValue = inputRef.current?.value?.trim();
+      if (currentValue) {
+        onChange(currentValue);
+      }
+    }
+  };
+
+  // Handle blur to capture final value
+  const handleBlur = () => {
+    const currentValue = inputRef.current?.value?.trim();
+    if (currentValue) {
+      onChange(currentValue);
+    }
   };
 
   return (
@@ -50,10 +78,18 @@ export function BaseCombobox<T extends { id: string; name: string }>({
         onValueChange={handleValueChange}
         disabled={disabled || loading}
         openOnClick
+        allowCustomValue
         size="md"
       >
         <Combobox.Control>
-          <Combobox.Input placeholder={placeholder} />
+          <Combobox.Input 
+            ref={inputRef}
+            placeholder={placeholder}
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            defaultValue={value ?? ""}
+          />
           <Combobox.Trigger />
         </Combobox.Control>
         <Combobox.Positioner>
@@ -67,7 +103,9 @@ export function BaseCombobox<T extends { id: string; name: string }>({
               ))}
             </Combobox.ItemGroup>
             {collection.items.length === 0 && (
-              <Combobox.Empty>{emptyMessage}</Combobox.Empty>
+              <Combobox.Empty>
+                {emptyMessage}
+              </Combobox.Empty>
             )}
           </Combobox.Content>
         </Combobox.Positioner>

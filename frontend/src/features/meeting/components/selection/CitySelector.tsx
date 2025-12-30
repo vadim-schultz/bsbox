@@ -3,18 +3,22 @@ import { BaseCombobox } from "./BaseCombobox";
 
 type Props = {
   cities: CityDto[];
-  value: string | null;
-  onChange: (value: string | null) => void;
+  value: string;
+  onChange: (value: string) => void;
   loading?: boolean;
 };
 
 export function CitySelector({ cities, value, onChange, loading }: Props) {
+  const handleChange = (val: string | null) => {
+    onChange(val ?? "");
+  };
+
   return (
     <BaseCombobox
       label="City"
       items={cities}
-      value={value}
-      onChange={onChange}
+      value={value || null}
+      onChange={handleChange}
       placeholder="Select or type a city"
       loading={loading}
     />

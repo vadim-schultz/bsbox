@@ -37,7 +37,7 @@ export function SelectionContainer({ onSessionReady }: Props) {
 
   const isContinueDisabled =
     loading ||
-    (!cityInput && !msTeamsInput);
+    (!cityInput.trim() && !msTeamsInput?.trim());
 
   return (
     <Stack gap={4}>
@@ -68,7 +68,7 @@ export function SelectionContainer({ onSessionReady }: Props) {
         value={roomInput}
         onChange={setRoomInput}
         loading={loadingRooms}
-        disabled={!cityInput}
+        disabled={!cityInput.trim()}
       />
 
       <MSTeamsInput value={msTeamsInput} onChange={setMsTeamsInput} />
