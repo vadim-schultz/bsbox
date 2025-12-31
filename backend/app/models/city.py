@@ -16,7 +16,7 @@ class City(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     meeting_rooms: Mapped[list[MeetingRoom]] = relationship(
@@ -28,4 +28,3 @@ class City(Base):
 if TYPE_CHECKING:
     from app.models.meeting import Meeting
     from app.models.meeting_room import MeetingRoom
-

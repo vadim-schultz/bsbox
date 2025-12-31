@@ -4,7 +4,7 @@ The visit endpoint creates/finds a meeting for the current time slot.
 Participant creation now happens via WebSocket connection.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from litestar import Controller, post
 

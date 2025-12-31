@@ -2,10 +2,11 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from app.schema.ms_teams_meeting import MSTeamsMeetingRead
 from app.schema.participant import ParticipantRead
+from app.utils.datetime import isoformat_utc
 
 
 class MeetingRead(BaseModel):
@@ -21,6 +22,10 @@ class MeetingRead(BaseModel):
     meeting_room_id: str | None = None
     meeting_room_name: str | None = None
     ms_teams: MSTeamsMeetingRead | None = None
+
+    @field_serializer("start_ts", "end_ts")
+    def serialize_datetime(self, dt: datetime) -> str:
+        return isoformat_utc(dt)
 
 
 class MeetingDurationUpdate(BaseModel):

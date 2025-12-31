@@ -34,5 +34,5 @@ class MeetingRoomsController(Controller):
             room = meeting_room_service.create_room(name=data.name, city_id=data.city_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return MeetingRoomRead.model_validate(room)
-
+        result: MeetingRoomRead = MeetingRoomRead.model_validate(room)
+        return result

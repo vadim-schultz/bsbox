@@ -1,6 +1,8 @@
 import { Box, HStack, Slider, Stack, Text } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
+import { formatTimeLocal } from "../../utils/time";
+
 type Props = {
   start?: Date;
   end?: Date;
@@ -12,9 +14,7 @@ type Props = {
 const clampDuration = (value: number): 30 | 60 => (value >= 45 ? 60 : 30);
 
 const formatTime = (value?: Date) =>
-  value
-    ? value.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : "--:--";
+  value ? formatTimeLocal(value, undefined, "HH:mm") : "--:--";
 
 export function MeetingRangeControl({
   start,

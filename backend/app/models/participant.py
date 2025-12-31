@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from app.utils.datetime import ensure_utc
 
 
 class Participant(Base):
@@ -22,10 +23,10 @@ class Participant(Base):
     )
     last_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=False), nullable=True, index=True
+        DateTime(timezone=True), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     meeting: Mapped[Meeting] = relationship(back_populates="participants")
@@ -39,7 +40,7 @@ class Participant(Base):
 
         samples = []
         for s in sorted(self.engagement_samples, key=lambda s: s.bucket):
-            bucket_dt = s.bucket.replace(tzinfo=UTC) if s.bucket.tzinfo is None else s.bucket
+            bucket_dt = ensure_utc(s.bucket)
             samples.append(EngagementSampleRead(bucket=bucket_dt, status=s.status))
 
         return ParticipantRead(

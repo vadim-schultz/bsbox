@@ -29,5 +29,5 @@ class CitiesController(Controller):
             city = city_service.create_city(data.name)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return CityRead.model_validate(city)
-
+        result: CityRead = CityRead.model_validate(city)
+        return result

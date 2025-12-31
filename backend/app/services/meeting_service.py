@@ -1,8 +1,9 @@
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from app.models import Meeting
 from app.repos import MeetingRepo
 from app.schema import PaginationParams, ParsedTeamsMeeting
+from app.utils.datetime import ensure_tz, ensure_utc
 
 
 class MeetingService:
@@ -26,11 +27,9 @@ class MeetingService:
         return snapped
 
     @staticmethod
-    def _to_utc_naive(ts: datetime) -> datetime:
-        """Convert aware/naive datetime to UTC naive for storage."""
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=UTC)
-        return ts.astimezone(timezone.utc).replace(tzinfo=None)
+    def _to_utc(ts: datetime) -> datetime:
+        """Convert aware/naive datetime to UTC aware for storage."""
+        return ensure_utc(ts)
 
     def ensure_meeting(
         self,
@@ -42,12 +41,12 @@ class MeetingService:
     ) -> Meeting:
         """Get or create meeting for the current time slot using atomic UPSERT."""
         # Use provided timezone (local) for snapping; caller supplies local-aware now
-        local_now = now if now.tzinfo else now.replace(tzinfo=UTC)
+        local_now = ensure_tz(now, now.tzinfo or UTC)
         start_local = self._snap_to_half_hour_local(local_now)
         end_local = start_local + timedelta(hours=1)
 
-        start_ts = self._to_utc_naive(start_local)
-        end_ts = self._to_utc_naive(end_local)
+        start_ts = self._to_utc(start_local)
+        end_ts = self._to_utc(end_local)
 
         return self.meeting_repo.upsert_by_start(
             start_ts=start_ts,

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import Meeting
 from app.repos.ms_teams_meeting_repo import MSTeamsMeetingRepo
 from app.schema import PaginationParams, ParsedTeamsMeeting
+from app.utils.datetime import ensure_utc, isoformat_utc
 
 
 class MeetingRepo:
@@ -19,7 +20,7 @@ class MeetingRepo:
     @staticmethod
     def _generate_meeting_id(start_ts: datetime) -> str:
         """Generate deterministic meeting ID from time slot."""
-        key = start_ts.isoformat()
+        key = isoformat_utc(start_ts)
         return hashlib.sha256(key.encode()).hexdigest()[:36]
 
     def list(self, pagination: PaginationParams) -> tuple[Sequence[Meeting], int]:
@@ -82,6 +83,8 @@ class MeetingRepo:
         ms_teams_meeting = self._ms_teams_repo.get_or_create(ms_teams) if ms_teams else None
         ms_teams_meeting_id = ms_teams_meeting.id if ms_teams_meeting else None
 
+        start_ts = ensure_utc(start_ts)
+        end_ts = ensure_utc(end_ts)
         meeting_id = self._generate_meeting_id(start_ts)
 
         # Build the upsert statement
@@ -126,6 +129,9 @@ class MeetingRepo:
         """Create a new meeting. Prefer upsert_by_start for race-condition safety."""
         ms_teams_meeting = self._ms_teams_repo.get_or_create(ms_teams) if ms_teams else None
 
+        start_ts = ensure_utc(start_ts)
+        end_ts = ensure_utc(end_ts)
+
         meeting = Meeting(
             id=self._generate_meeting_id(start_ts),
             start_ts=start_ts,
@@ -140,7 +146,7 @@ class MeetingRepo:
         return meeting
 
     def update_end(self, meeting: Meeting, end_ts: datetime) -> Meeting:
-        meeting.end_ts = end_ts
+        meeting.end_ts = ensure_utc(end_ts)
         self.session.flush()
         self.session.refresh(meeting)
         return meeting

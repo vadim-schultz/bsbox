@@ -1,3 +1,4 @@
+import { toLocalDate } from "../utils/time";
 import type {
   EngagementPoint,
   EngagementSummary,
@@ -43,7 +44,7 @@ export const applyDelta = (
   summary: EngagementSummary,
   delta: DeltaMessageData
 ): EngagementSummary => {
-  const bucket = new Date(delta.bucket);
+  const bucket = toLocalDate(delta.bucket);
   const existingIds = new Set(summary.participants.map((p) => p.participantId));
   const participants = summary.participants.map((p) => {
     const value = delta.participants[p.participantId];
@@ -86,7 +87,7 @@ const toChartPoint = (
   const notEngagedCount = Math.max(totalParticipants - engagedCount, 0);
 
   return {
-    bucket,
+    bucket: bucket.getTime(), // Use timestamp for x-axis
     label: formatBucketLabel(bucket),
     overall: clampedEngagedPercent,
     engagedCount,
@@ -98,18 +99,86 @@ const toChartPoint = (
 };
 
 /**
- * Build chart data from engagement summary.
- * The first parameter is kept for backwards compatibility but is no longer used.
+ * Build chart data from engagement summary, ensuring full meeting duration is covered.
+ * 
+ * @param meetingStart - Meeting start time (for fixed x-axis bounds)
+ * @param meetingEnd - Meeting end time (for fixed x-axis bounds)
+ * @param engagementSummary - Engagement data from server
+ * @returns Chart points covering the entire meeting duration
  */
 export const buildChartData = (
-  _meeting: unknown,
+  meetingStart: Date | null | undefined,
+  meetingEnd: Date | null | undefined,
   engagementSummary: EngagementSummary | null
 ): ChartPoint[] => {
-  if (!engagementSummary) return [];
+  // Use summary times or fallback to provided times
+  const start = meetingStart || engagementSummary?.start;
+  const end = meetingEnd || engagementSummary?.end;
+  
+  if (!start || !end) return [];
 
-  const totalParticipants = engagementSummary.participants.length;
+  const totalParticipants = engagementSummary?.participants.length ?? 0;
+  const bucketMinutes = engagementSummary?.bucketMinutes ?? 1;
 
-  return engagementSummary.overall
-    .map((point) => toChartPoint(point.bucket, point.value, totalParticipants))
-    .sort((a, b) => a.bucket.getTime() - b.bucket.getTime());
+  // Create a map of existing data points, normalizing to minute boundaries
+  const dataMap = new Map<number, number>();
+  if (engagementSummary) {
+    engagementSummary.overall.forEach((point) => {
+      // Normalize to minute boundary (remove seconds/ms)
+      const normalized = new Date(point.bucket);
+      normalized.setSeconds(0, 0);
+      dataMap.set(normalized.getTime(), point.value);
+    });
+  }
+
+  // Generate full range of buckets from start to end with forward-fill
+  const points: ChartPoint[] = [];
+  const stepMs = bucketMinutes * 60_000;
+  
+  // Normalize start to minute boundary
+  const startNormalized = new Date(start);
+  startNormalized.setSeconds(0, 0);
+  const endNormalized = new Date(end);
+  endNormalized.setSeconds(0, 0);
+  
+  // Forward-fill: carry last known value to future buckets until a new value is found
+  let lastValue = 0;
+  for (let ts = startNormalized.getTime(); ts <= endNormalized.getTime(); ts += stepMs) {
+    const bucket = new Date(ts);
+    // If we have a value for this bucket, use it and update lastValue
+    // Otherwise, use the last known value (forward-fill)
+    const value = dataMap.get(ts);
+    if (value !== undefined) {
+      lastValue = value;
+    }
+    points.push(toChartPoint(bucket, lastValue, totalParticipants));
+  }
+
+  return points;
+};
+
+/**
+ * Build a zeroed chart for a given time range when no summary is available yet.
+ */
+export const buildBaselineChart = (
+  start: Date,
+  end: Date,
+  bucketMinutes = 1
+): ChartPoint[] => {
+  const points: ChartPoint[] = [];
+  const stepMs = bucketMinutes * 60_000;
+  for (let ts = start.getTime(); ts <= end.getTime(); ts += stepMs) {
+    const bucket = new Date(ts);
+    points.push({
+      bucket: ts, // Use timestamp for x-axis
+      label: formatBucketLabel(bucket),
+      overall: 0,
+      engagedCount: 0,
+      notEngagedCount: 0,
+      engagedPercent: 0,
+      notEngagedPercent: 100,
+      totalParticipants: 0,
+    });
+  }
+  return points;
 };

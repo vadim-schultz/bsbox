@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import { useMeetingExperience } from "../hooks/useMeetingExperience";
 import { useMeetingDuration } from "../hooks/useMeetingDuration";
-import { buildChartData } from "../domain/engagement";
+import { buildBaselineChart, buildChartData } from "../domain/engagement";
 import { formatTimespan } from "../utils/time";
 import { ErrorNotice, LoadingState } from "../components/feedback";
 import { MeetingInfo } from "../components/meeting-info";
@@ -26,6 +26,8 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     participantCount,
     engagementSummary,
     activeStatus,
+    meetingEnded,
+    meetingNotStarted,
     loading,
     error,
     sendStatus,
@@ -37,10 +39,20 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
   });
 
   // Prepare chart data from engagement summary
-  const chartData = useMemo(
-    () => buildChartData(null, engagementSummary),
-    [engagementSummary]
-  );
+  const chartData = useMemo(() => {
+    const start = meetingTimes?.start;
+    const end = meetingTimes?.end;
+    
+    if (start && end) {
+      // Use buildChartData which now ensures full meeting range is covered
+      return buildChartData(start, end, engagementSummary);
+    }
+    
+    // Fallback if meeting times not available yet
+    const fallbackStart = new Date(Date.now() - 30 * 60 * 1000);
+    const fallbackEnd = new Date(Date.now() + 30 * 60 * 1000);
+    return buildBaselineChart(fallbackStart, fallbackEnd);
+  }, [engagementSummary, meetingTimes]);
 
   const handleToggle = async (status: "speaking" | "engaged") => {
     if (activeStatus === status) {
@@ -79,21 +91,39 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
       />
 
       {error ? (
-        <ErrorNotice message={error} />
+        <ErrorNotice
+          message={error}
+          title={
+            meetingEnded
+              ? "Meeting Ended"
+              : meetingNotStarted
+                ? "Meeting Not Started"
+                : "Connection Error"
+          }
+        />
       ) : loading ? (
         <LoadingState label="Connecting to meeting..." />
+      ) : meetingEnded || meetingNotStarted ? (
+        <ErrorNotice
+          message={
+            meetingEnded
+              ? "This meeting has ended. Status updates are no longer possible."
+              : "This meeting has not started yet. Status updates are not yet possible."
+          }
+          title={meetingEnded ? "Meeting Ended" : "Meeting Not Started"}
+        />
       ) : (
-        <StatusSelector activeStatus={activeStatus} onToggle={handleToggle} />
-      )}
-
-      {!loading && !error && (
-        <Text color="muted" fontSize="sm">
-          Click a card to activate it. Clicking an active card deactivates it.
-        </Text>
+        <>
+          <StatusSelector activeStatus={activeStatus} onToggle={handleToggle} />
+          <Text color="muted" fontSize="sm">
+            Click a card to activate it. Clicking an active card deactivates it.
+          </Text>
+        </>
       )}
 
       <EngagementChart
         data={chartData}
+        meetingTimes={meetingTimes}
         windowMinutes={engagementSummary?.windowMinutes}
         bucketMinutes={engagementSummary?.bucketMinutes}
         loading={loading}

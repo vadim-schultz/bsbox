@@ -8,14 +8,15 @@ from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from app.utils.datetime import ensure_utc
 
 
 class Meeting(Base):
     __tablename__ = "meetings"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    start_ts: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
-    end_ts: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    start_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     city_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("cities.id"), nullable=True, index=True
     )
@@ -26,7 +27,7 @@ class Meeting(Base):
         String(36), ForeignKey("ms_teams_meetings.id"), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     participants: Mapped[list[Participant]] = relationship(
@@ -51,8 +52,8 @@ class Meeting(Base):
 
         return MeetingRead(
             id=self.id,
-            start_ts=self.start_ts,
-            end_ts=self.end_ts,
+            start_ts=ensure_utc(self.start_ts),
+            end_ts=ensure_utc(self.end_ts),
             city_id=self.city_id,
             city_name=self.city.name if self.city else None,
             meeting_room_id=self.meeting_room_id,

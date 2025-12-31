@@ -90,6 +90,29 @@ class MeetingEndedResponse(WSResponse):
     """Notification that the meeting has ended."""
 
     type: str = field(default="meeting_ended", init=False)
+    message: str = "The meeting has ended."
+    end_time: str = ""
+
+    def _extra_fields(self) -> dict[str, Any]:
+        result = {"message": self.message}
+        if self.end_time:
+            result["end_time"] = self.end_time
+        return result
+
+
+@dataclass
+class MeetingNotStartedResponse(WSResponse):
+    """Notification that the meeting has not started yet."""
+
+    type: str = field(default="meeting_not_started", init=False)
+    message: str = "The meeting has not started yet."
+    start_time: str = ""
+
+    def _extra_fields(self) -> dict[str, Any]:
+        result = {"message": self.message}
+        if self.start_time:
+            result["start_time"] = self.start_time
+        return result
 
 
 class WSMessageHandler(Protocol):

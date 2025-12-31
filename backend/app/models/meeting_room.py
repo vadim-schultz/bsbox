@@ -23,7 +23,7 @@ class MeetingRoom(Base):
         index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     city: Mapped[City] = relationship(back_populates="meeting_rooms")
@@ -33,4 +33,3 @@ class MeetingRoom(Base):
 if TYPE_CHECKING:
     from app.models.city import City
     from app.models.meeting import Meeting
-

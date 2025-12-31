@@ -22,11 +22,11 @@ class EngagementSample(Base):
     participant_id: Mapped[str] = mapped_column(
         ForeignKey("participants.id"), nullable=False, index=True
     )
-    bucket: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    bucket: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     device_fingerprint: Mapped[str] = mapped_column(String(128), nullable=False, server_default="")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     participant: Mapped[Participant] = relationship(back_populates="engagement_samples")

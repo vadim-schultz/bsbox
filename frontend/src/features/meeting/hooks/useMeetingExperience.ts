@@ -53,6 +53,7 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
     currentStatus: activeStatus,
     connectionState,
     meetingEnded,
+    meetingNotStarted,
     error: socketError,
     loading: socketLoading,
     sendStatus: wsSendStatus,
@@ -100,6 +101,7 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
     // Connection state
     connectionState,
     meetingEnded,
+    meetingNotStarted,
     loading,
     error,
     // Actions

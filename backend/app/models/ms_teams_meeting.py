@@ -21,5 +21,5 @@ class MSTeamsMeeting(Base):
     meeting_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     invite_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=False), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )

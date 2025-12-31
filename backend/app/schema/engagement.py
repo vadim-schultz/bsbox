@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_serializer
 
+from app.utils.datetime import isoformat_utc
+
 
 class EngagementSampleRead(BaseModel):
     """A single engagement status sample for a participant at a specific time bucket."""
@@ -16,7 +18,7 @@ class EngagementSampleRead(BaseModel):
 
     @field_serializer("bucket")
     def serialize_bucket(self, bucket: datetime) -> str:
-        return bucket.isoformat()
+        return isoformat_utc(bucket)
 
 
 class EngagementPoint(BaseModel):
@@ -27,7 +29,7 @@ class EngagementPoint(BaseModel):
 
     @field_serializer("bucket")
     def serialize_bucket(self, bucket: datetime) -> str:
-        return bucket.isoformat()
+        return isoformat_utc(bucket)
 
 
 class ParticipantEngagementSeries(BaseModel):
@@ -51,7 +53,7 @@ class EngagementSummary(BaseModel):
 
     @field_serializer("start", "end")
     def serialize_datetime(self, dt: datetime) -> str:
-        return dt.isoformat()
+        return isoformat_utc(dt)
 
 
 class BucketRollup(BaseModel):
@@ -63,7 +65,7 @@ class BucketRollup(BaseModel):
 
     @field_serializer("bucket")
     def serialize_bucket(self, bucket: datetime) -> str:
-        return bucket.isoformat()
+        return isoformat_utc(bucket)
 
 
 class DeltaMessageData(BaseModel):
@@ -78,7 +80,7 @@ class DeltaMessageData(BaseModel):
 
     @field_serializer("bucket")
     def serialize_bucket(self, bucket: datetime) -> str:
-        return bucket.isoformat()
+        return isoformat_utc(bucket)
 
 
 class DeltaMessage(BaseModel):

@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo
 from app.services import EngagementService, ParticipantService
+from app.utils.datetime import ensure_utc
 
 
 def test_engagement_bucket_rounding(session_factory):
@@ -22,7 +23,11 @@ def test_engagement_bucket_rounding(session_factory):
         assert reloaded is not None
         assert len(reloaded.engagement_samples) == 1
         bucket = reloaded.engagement_samples[0].bucket
-        assert bucket.minute == 45 and bucket.second == 0 and bucket.microsecond == 0
+        # SQLite may return naive datetime; ensure it's UTC-aware
+        bucket_utc = ensure_utc(bucket)
+        assert bucket_utc.minute == 45 and bucket_utc.second == 0 and bucket_utc.microsecond == 0
+        assert bucket_utc.tzinfo == UTC
+        assert ensure_utc(meeting.start_ts).tzinfo == UTC
 
 
 def test_participant_reuse_by_fingerprint(session_factory):

@@ -11,6 +11,7 @@ from app.schema import (
     EngagementSummary,
     ParticipantEngagementSeries,
 )
+from app.utils.datetime import ensure_utc
 
 
 class EngagementService:
@@ -20,6 +21,7 @@ class EngagementService:
 
     @staticmethod
     def _bucketize(ts: datetime) -> datetime:
+        ts = ensure_utc(ts)
         return ts.replace(second=0, microsecond=0)
 
     @staticmethod
@@ -29,8 +31,38 @@ class EngagementService:
     def record_status(
         self, participant: Participant, status: str, current_time: datetime
     ) -> datetime:
-        """Record a status update for a participant."""
+        """Record a status update for a participant.
+
+        Args:
+            participant: The participant recording the status
+            status: The engagement status to record
+            current_time: The current timestamp
+
+        Returns:
+            The bucketed timestamp
+
+        Raises:
+            ValueError: If the bucketed time is outside meeting bounds
+        """
         bucket = self._bucketize(current_time)
+
+        # Validate bucket is within meeting time bounds
+        meeting = participant.meeting
+        meeting_start = self._bucketize(meeting.start_ts)
+        meeting_end = self._bucketize(meeting.end_ts)
+
+        if bucket < meeting_start:
+            raise ValueError(
+                f"Cannot record status before meeting start. "
+                f"Bucket {bucket.isoformat()} is before start {meeting_start.isoformat()}"
+            )
+
+        if bucket > meeting_end:
+            raise ValueError(
+                f"Cannot record status after meeting end. "
+                f"Bucket {bucket.isoformat()} is after end {meeting_end.isoformat()}"
+            )
+
         self.engagement_repo.upsert_sample(
             meeting_id=participant.meeting_id,
             participant_id=participant.id,
@@ -46,7 +78,9 @@ class EngagementService:
         samples = self.engagement_repo.get_samples_for_meeting(meeting_id, start=start, end=end)
         result: dict[str, dict[datetime, str]] = defaultdict(dict)
         for sample in samples:
-            result[sample.participant_id][sample.bucket] = sample.status
+            # Normalize bucket to ensure consistent timestamp matching
+            bucket_normalized = self._bucketize(sample.bucket)
+            result[sample.participant_id][bucket_normalized] = sample.status
         return result
 
     def _build_flags(
@@ -68,15 +102,13 @@ class EngagementService:
         return flags
 
     @staticmethod
-    def _smooth_flags(flags: list[int], window: int) -> list[float]:
-        smoothed: list[float] = []
-        for idx in range(len(flags)):
-            window_slice = flags[max(0, idx - window + 1) : idx + 1]
-            if not window_slice:
-                smoothed.append(0.0)
-            else:
-                smoothed.append(sum(window_slice) / len(window_slice) * 100.0)
-        return smoothed
+    def _smooth_flags(flags: list[int], _window: int) -> list[float]:
+        """Convert binary flags to percentages without smoothing.
+
+        Returns current engagement status (0% or 100%) for real-time tracking.
+        The window parameter is kept for API compatibility but not used.
+        """
+        return [flag * 100.0 for flag in flags]
 
     @staticmethod
     def _generate_buckets(start: datetime, end: datetime, step_minutes: int) -> list[datetime]:

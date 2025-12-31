@@ -1,25 +1,50 @@
 """WebSocket message handlers: Join, Status, Ping."""
 
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
 from app.models import Meeting
 from app.services import EngagementService, ParticipantService
+from app.utils.datetime import ensure_utc, isoformat_utc
 from app.ws.types import (
     ErrorResponse,
     JoinedResponse,
+    MeetingEndedResponse,
+    MeetingNotStartedResponse,
     PongResponse,
     WSContext,
     WSResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _is_meeting_active(meeting: Meeting) -> bool:
     """Check if meeting is currently active (not ended)."""
     now = datetime.now(tz=UTC)
-    end_ts = meeting.end_ts.replace(tzinfo=UTC) if meeting.end_ts.tzinfo is None else meeting.end_ts
+    end_ts = ensure_utc(meeting.end_ts)
     return now < end_ts
+
+
+def _is_meeting_started(meeting: Meeting) -> bool:
+    """Check if meeting has started."""
+    now = datetime.now(tz=UTC)
+    start_ts = ensure_utc(meeting.start_ts)
+    return now >= start_ts
+
+
+def _meeting_time_status(meeting: Meeting) -> tuple[bool, bool]:
+    """Check meeting timing status.
+
+    Returns:
+        (has_started, has_ended) tuple
+    """
+    now = datetime.now(tz=UTC)
+    start_ts = ensure_utc(meeting.start_ts)
+    end_ts = ensure_utc(meeting.end_ts)
+    return (now >= start_ts, now >= end_ts)
 
 
 def _build_delta_message(
@@ -35,7 +60,7 @@ def _build_delta_message(
         "data": {
             "meeting_id": meeting.id,
             "participant_id": participant_id,
-            "bucket": bucket.isoformat(),
+            "bucket": isoformat_utc(bucket),
             "status": status,
             "overall": rollup["overall"],
             "participants": rollup["participants"],
@@ -54,14 +79,25 @@ class JoinHandler:
 
     async def handle(self, context: WSContext, message: dict[str, Any]) -> WSResponse:
         """Handle join request."""
-        import logging
-        logger = logging.getLogger(__name__)
-
         if context.participant:
             return ErrorResponse(message="Already joined")
 
-        if not _is_meeting_active(context.meeting):
-            return ErrorResponse(message="Meeting has ended")
+        # Check meeting timing
+        has_started, has_ended = _meeting_time_status(context.meeting)
+
+        if not has_started:
+            start_time = isoformat_utc(ensure_utc(context.meeting.start_ts))
+            return MeetingNotStartedResponse(
+                message=f"The meeting has not started yet. It begins at {start_time}.",
+                start_time=start_time,
+            )
+
+        if has_ended:
+            end_time = isoformat_utc(ensure_utc(context.meeting.end_ts))
+            return MeetingEndedResponse(
+                message=f"The meeting has already ended at {end_time}.",
+                end_time=end_time,
+            )
 
         fingerprint = (message.get("fingerprint") or "").strip()
         if not fingerprint:
@@ -110,19 +146,46 @@ class StatusHandler:
         if not context.participant:
             return ErrorResponse(message="Not joined")
 
-        if not _is_meeting_active(context.meeting):
-            return ErrorResponse(message="Meeting has ended")
+        # Check meeting timing
+        has_started, has_ended = _meeting_time_status(context.meeting)
+
+        if not has_started:
+            start_time = isoformat_utc(ensure_utc(context.meeting.start_ts))
+            return MeetingNotStartedResponse(
+                message=f"The meeting has not started yet. It begins at {start_time}.",
+                start_time=start_time,
+            )
+
+        if has_ended:
+            end_time = isoformat_utc(ensure_utc(context.meeting.end_ts))
+            return MeetingEndedResponse(
+                message=f"The meeting has already ended at {end_time}.",
+                end_time=end_time,
+            )
 
         status = message.get("status")
         if status not in ("speaking", "engaged", "disengaged"):
             return ErrorResponse(message="Invalid status")
 
-        now = datetime.now(tz=UTC)
-        bucket = self.engagement_service.record_status(
-            participant=context.participant,
-            status=status,
-            current_time=now,
+        logger.info(
+            "WS status update meeting_id=%s participant_id=%s status=%s",
+            context.meeting.id,
+            context.participant.id,
+            status,
         )
+
+        now = datetime.now(tz=UTC)
+        try:
+            bucket = self.engagement_service.record_status(
+                participant=context.participant,
+                status=status,
+                current_time=now,
+            )
+        except ValueError as e:
+            # Bucket validation failed (outside meeting bounds)
+            logger.warning("Status record failed for meeting %s: %s", context.meeting.id, e)
+            return ErrorResponse(message=str(e))
+
         # Commit immediately to release database lock
         context.session.commit()
 
@@ -161,4 +224,4 @@ class PingHandler:
         if context.participant:
             context.participant.last_seen_at = now
 
-        return PongResponse(server_time=now.isoformat())
+        return PongResponse(server_time=isoformat_utc(now))

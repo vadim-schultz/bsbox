@@ -5,9 +5,10 @@ The visit endpoint returns meeting info. Participant creation happens via WebSoc
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, computed_field, field_serializer
 
 from app.schema.teams import ParsedTeamsMeeting
+from app.utils.datetime import isoformat_utc
 
 
 class VisitRequest(BaseModel):
@@ -40,3 +41,7 @@ class VisitResponse(BaseModel):
     meeting_id: str
     meeting_start: datetime
     meeting_end: datetime
+
+    @field_serializer("meeting_start", "meeting_end")
+    def serialize_meeting_bounds(self, dt: datetime) -> str:
+        return isoformat_utc(dt)

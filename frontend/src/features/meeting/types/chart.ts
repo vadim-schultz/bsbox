@@ -3,7 +3,7 @@
  * Contains a bucket timestamp, display label, overall value, and engagement breakdown.
  */
 export type ChartPoint = {
-  bucket: Date;
+  bucket: number; // Timestamp in milliseconds for x-axis
   label: string;
   overall?: number | null;
   engagedCount: number;

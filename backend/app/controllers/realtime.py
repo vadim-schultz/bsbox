@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from app.models import Meeting
 from app.repos import MeetingRepo
 from app.services import MeetingService
+from app.utils.datetime import ensure_utc, isoformat_utc
 from app.ws import ErrorResponse, MeetingEndedResponse, WSContext, WSMessageHandlerFactory
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 def _seconds_until_meeting_end(meeting: Meeting) -> float:
     """Calculate seconds until meeting ends."""
     now = datetime.now(tz=UTC)
-    end_ts = meeting.end_ts.replace(tzinfo=UTC) if meeting.end_ts.tzinfo is None else meeting.end_ts
+    end_ts = ensure_utc(meeting.end_ts)
     return max(0, (end_ts - now).total_seconds())
 
 
@@ -56,7 +57,13 @@ async def meeting_stream_lifespan(
     seconds_remaining = _seconds_until_meeting_end(meeting)
     if seconds_remaining <= 0:
         logger.info("WS meeting already ended meeting_id=%s", meeting_id)
-        await socket.send_json(MeetingEndedResponse().to_dict())
+        end_time = isoformat_utc(ensure_utc(meeting.end_ts))
+        await socket.send_json(
+            MeetingEndedResponse(
+                message=f"The meeting has already ended at {end_time}.",
+                end_time=end_time,
+            ).to_dict()
+        )
         await socket.close(code=1000, reason="Meeting ended")
         return
 
@@ -93,7 +100,13 @@ async def meeting_stream_lifespan(
         if not is_closed.is_set():
             logger.info("WS meeting ended, closing connection meeting_id=%s", meeting_id)
             with contextlib.suppress(Exception):
-                await socket.send_json(MeetingEndedResponse().to_dict())
+                end_time = isoformat_utc(ensure_utc(meeting.end_ts))
+                await socket.send_json(
+                    MeetingEndedResponse(
+                        message=f"The meeting has ended at {end_time}.",
+                        end_time=end_time,
+                    ).to_dict()
+                )
             is_closed.set()
 
     try:
@@ -121,36 +134,40 @@ async def meeting_stream_lifespan(
     "/ws/meetings/{meeting_id:str}",
     connection_lifespan=meeting_stream_lifespan,
 )
-async def meeting_stream_handler(data: str, socket: WebSocket) -> str | None:
+async def meeting_stream_handler(data: str, socket: WebSocket) -> str:
     """Handle incoming WebSocket messages using handler factory pattern.
 
     Delegates to appropriate handler based on message type.
     Channel events are streamed to the client via the lifespan's send_websocket_stream.
     """
-    # Parse message
     try:
         message = json.loads(data)
     except json.JSONDecodeError:
         return json.dumps(ErrorResponse(message="Invalid JSON").to_dict())
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("WS decode error: %s", exc)
+        return json.dumps(ErrorResponse(message="Invalid payload").to_dict())
 
     message_type = message.get("type")
     if not message_type:
         return json.dumps(ErrorResponse(message="Missing message type").to_dict())
 
-    # Get context and factory from socket state
-    context: WSContext = socket.state.ws_context
-    factory: WSMessageHandlerFactory = socket.state.handler_factory
+    try:
+        context: WSContext = socket.state.ws_context
+        factory: WSMessageHandlerFactory = socket.state.handler_factory
 
-    # Get handler for message type
-    handler = factory.get_handler(message_type)
-    if not handler:
-        return json.dumps(ErrorResponse(message=f"Unknown message type: {message_type}").to_dict())
+        handler = factory.get_handler(message_type)
+        if not handler:
+            return json.dumps(
+                ErrorResponse(message=f"Unknown message type: {message_type}").to_dict()
+            )
 
-    # Execute handler
-    response = await handler.handle(context, message)
-
-    if response:
-        return json.dumps(response.to_dict())
+        response = await handler.handle(context, message)
+        if response:
+            return json.dumps(response.to_dict())
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.exception("WS handler error for message_type=%s: %s", message_type, exc)
+        return json.dumps(ErrorResponse(message="Internal error").to_dict())
 
     # Litestar expects a string/bytes payload; returning an empty string avoids None decode errors
     # when handlers deliberately produce no direct response (e.g., status updates broadcast via channel).

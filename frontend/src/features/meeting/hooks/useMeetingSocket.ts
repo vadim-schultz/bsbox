@@ -10,11 +10,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MeetingSocket } from "../services/meetingSocket";
 import { applyDelta } from "../domain/engagement";
 import { mapEngagementSummary } from "../domain/mappers";
+import { toLocalDate } from "../utils/time";
 import type { EngagementSummary } from "../types/domain";
 import type { EngagementSummaryDto, StatusLiteral } from "../types/dto";
 import type { DeltaMessageData } from "../types/ws";
 
-type ConnectionState = "disconnected" | "connecting" | "connected" | "ended";
+type ConnectionState =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "ended"
+  | "not_started";
 
 type UseMeetingSocketResult = {
   /** Current participant ID (null until joined) */
@@ -27,6 +33,8 @@ type UseMeetingSocketResult = {
   connectionState: ConnectionState;
   /** Whether meeting has ended */
   meetingEnded: boolean;
+  /** Whether meeting has not started yet */
+  meetingNotStarted: boolean;
   /** Error message if any */
   error: string | null;
   /** Loading state (connecting or joining) */
@@ -55,6 +63,7 @@ export function useMeetingSocket(
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("disconnected");
   const [meetingEnded, setMeetingEnded] = useState(false);
+  const [meetingNotStarted, setMeetingNotStarted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -68,6 +77,7 @@ export function useMeetingSocket(
       setCurrentStatus("disengaged");
       setConnectionState("disconnected");
       setMeetingEnded(false);
+      setMeetingNotStarted(false);
       setError(null);
       setLoading(false);
       return;
@@ -90,7 +100,26 @@ export function useMeetingSocket(
     const unsubDelta = socket.onDelta((data) => {
       const delta = data as DeltaMessageData;
       setSummary((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          // Seed minimal summary if snapshot didn't arrive yet
+          const bucket = toLocalDate(delta.bucket);
+          const participants = Object.entries(delta.participants).map(
+            ([participantId, value]) => ({
+              participantId,
+              deviceFingerprint: "",
+              series: [{ bucket, value }],
+            })
+          );
+          return {
+            meetingId: delta.meeting_id,
+            start: bucket,
+            end: bucket,
+            bucketMinutes: 1,
+            windowMinutes: 5,
+            overall: [{ bucket, value: delta.overall }],
+            participants,
+          };
+        }
         try {
           return applyDelta(prev, delta);
         } catch (err) {
@@ -104,9 +133,20 @@ export function useMeetingSocket(
       }
     });
 
-    const unsubEnded = socket.onMeetingEnded(() => {
+    const unsubEnded = socket.onMeetingEnded((message) => {
       setMeetingEnded(true);
       setConnectionState("ended");
+      if (message) {
+        setError(message);
+      }
+    });
+
+    const unsubNotStarted = socket.onMeetingNotStarted((message) => {
+      setMeetingNotStarted(true);
+      setConnectionState("not_started");
+      if (message) {
+        setError(message);
+      }
     });
 
     const unsubError = socket.onError((message) => {
@@ -144,6 +184,7 @@ export function useMeetingSocket(
       unsubSnapshot();
       unsubDelta();
       unsubEnded();
+      unsubNotStarted();
       unsubError();
       unsubState();
       socket.disconnect();
@@ -170,6 +211,7 @@ export function useMeetingSocket(
       currentStatus,
       connectionState,
       meetingEnded,
+      meetingNotStarted,
       error,
       loading,
       sendStatus,
@@ -181,6 +223,7 @@ export function useMeetingSocket(
       currentStatus,
       connectionState,
       meetingEnded,
+      meetingNotStarted,
       error,
       loading,
       sendStatus,

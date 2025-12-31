@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from app.models import Meeting, Participant
 from app.repos import ParticipantRepo
+from app.utils.datetime import ensure_utc
 
 
 class ParticipantService:
@@ -14,13 +15,13 @@ class ParticipantService:
 
     def _is_meeting_ended(self, meeting: Meeting, now: datetime) -> bool:
         """Check if the meeting has ended based on its end timestamp."""
-        end_ts = (
-            meeting.end_ts.replace(tzinfo=UTC) if meeting.end_ts.tzinfo is None else meeting.end_ts
-        )
-        current = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
+        end_ts = ensure_utc(meeting.end_ts)
+        current = ensure_utc(now)
         return end_ts <= current
 
-    def create_or_reuse_for_connection(self, meeting: Meeting, device_fingerprint: str) -> Participant:
+    def create_or_reuse_for_connection(
+        self, meeting: Meeting, device_fingerprint: str
+    ) -> Participant:
         """Create or reuse a participant for a WebSocket connection based on fingerprint."""
         now = datetime.now(tz=UTC)
 

@@ -37,6 +37,8 @@ def test_meeting_creation_via_visit(app, monkeypatch):
         assert visit["meeting_start"].startswith("2025-01-01T14:00")
         assert visit["meeting_end"].startswith("2025-01-01T15:00")
         assert "meeting_id" in visit
+        assert visit["meeting_start"].endswith("Z")
+        assert visit["meeting_end"].endswith("Z")
 
         # Visit response no longer includes participant_id
         # Participant creation happens via WebSocket join
@@ -124,6 +126,7 @@ def test_visit_uses_local_timezone_for_snapping(app, monkeypatch):
         visit = visit_resp.json()
         # 09:00 local UTC+2 -> 07:00 UTC stored/returned
         assert visit["meeting_start"].startswith("2025-01-01T07:00")
+        assert visit["meeting_start"].endswith("Z")
 
 
 def test_deterministic_meeting_id(app, monkeypatch):

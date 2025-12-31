@@ -16,4 +16,3 @@ class CityService:
         if self.city_repo.exists(name):
             raise ValueError("City already exists")
         return self.city_repo.create(name)
-

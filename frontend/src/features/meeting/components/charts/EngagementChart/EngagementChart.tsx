@@ -2,12 +2,14 @@ import { Text } from "@chakra-ui/react";
 
 import { LoadingState, ErrorNotice } from "../../feedback";
 import type { ChartPoint } from "../../../types/chart";
+import type { MeetingTimes } from "../../../types/domain";
 import { ChartCard } from "./ChartCard";
 import { ChartEmptyState } from "./ChartEmptyState";
 import { EngagementComposedChart } from "./EngagementComposedChart";
 
 type Props = {
   data: ChartPoint[];
+  meetingTimes?: MeetingTimes;
   windowMinutes?: number;
   bucketMinutes?: number;
   loading: boolean;
@@ -16,6 +18,7 @@ type Props = {
 
 export function EngagementChart({
   data,
+  meetingTimes,
   windowMinutes,
   bucketMinutes,
   loading,
@@ -37,23 +40,12 @@ export function EngagementChart({
     );
   }
 
-  if (data.length === 0) {
-    return (
-      <ChartCard title="Engagement">
-        <ChartEmptyState />
-      </ChartCard>
-    );
-  }
-
   return (
     <ChartCard title="Engagement (realtime)">
-      <EngagementComposedChart data={data} />
-      {windowMinutes !== undefined && bucketMinutes !== undefined && (
-        <Text color="muted" fontSize="xs" mt={3}>
-          Values are smoothed using the sliding window from the server (window:{" "}
-          {windowMinutes}m, bucket: {bucketMinutes}m).
-        </Text>
-      )}
+      <EngagementComposedChart data={data} meetingTimes={meetingTimes} />
+      <Text color="muted" fontSize="xs" mt={3}>
+        Real-time engagement tracking. Values update instantly when status changes.
+      </Text>
     </ChartCard>
   );
 }

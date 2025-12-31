@@ -1,3 +1,4 @@
+import { toLocalDate } from "../utils/time";
 import type {
   EngagementSummaryDto,
   VisitResponseDto,
@@ -8,13 +9,11 @@ import type {
   VisitSession,
 } from "../types/domain";
 
-const toDate = (value: string) => new Date(value);
-
 export const mapVisitResponse = (response: VisitResponseDto): VisitSession => ({
   meetingId: response.meeting_id,
   meetingTimes: {
-    start: toDate(response.meeting_start),
-    end: toDate(response.meeting_end),
+    start: toLocalDate(response.meeting_start),
+    end: toLocalDate(response.meeting_end),
   },
 });
 
@@ -22,7 +21,7 @@ export const mapEngagementSummary = (
   summary: EngagementSummaryDto
 ): EngagementSummary => {
   const toPoint = (bucket: string, value: number): EngagementPoint => ({
-    bucket: toDate(bucket),
+    bucket: toLocalDate(bucket),
     value,
   });
 

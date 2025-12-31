@@ -20,9 +20,15 @@ type WSResponse =
   | { type: "joined"; participant_id: string; meeting_id: string }
   | { type: "pong"; server_time: string }
   | { type: "error"; message: string }
-  | { type: "meeting_ended" };
+  | { type: "meeting_ended"; message?: string; end_time?: string }
+  | { type: "meeting_not_started"; message?: string; start_time?: string };
 
-type ConnectionState = "disconnected" | "connecting" | "connected" | "ended";
+type ConnectionState =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "ended"
+  | "not_started";
 
 export class MeetingSocket {
   private ws: WebSocket | null = null;
@@ -38,7 +44,8 @@ export class MeetingSocket {
     snapshot: [] as ((data: unknown) => void)[],
     delta: [] as ((data: unknown) => void)[],
     joined: [] as ((participantId: string, meetingId: string) => void)[],
-    meetingEnded: [] as (() => void)[],
+    meetingEnded: [] as ((message?: string) => void)[],
+    meetingNotStarted: [] as ((message?: string) => void)[],
     error: [] as ((message: string) => void)[],
     stateChange: [] as ((state: ConnectionState) => void)[],
   };
@@ -179,11 +186,20 @@ export class MeetingSocket {
   }
 
   /** Register meeting ended handler */
-  onMeetingEnded(handler: () => void): () => void {
+  onMeetingEnded(handler: (message?: string) => void): () => void {
     this.handlers.meetingEnded.push(handler);
     return () => {
       const idx = this.handlers.meetingEnded.indexOf(handler);
       if (idx !== -1) this.handlers.meetingEnded.splice(idx, 1);
+    };
+  }
+
+  /** Register meeting not started handler */
+  onMeetingNotStarted(handler: (message?: string) => void): () => void {
+    this.handlers.meetingNotStarted.push(handler);
+    return () => {
+      const idx = this.handlers.meetingNotStarted.indexOf(handler);
+      if (idx !== -1) this.handlers.meetingNotStarted.splice(idx, 1);
     };
   }
 
@@ -251,7 +267,11 @@ export class MeetingSocket {
         break;
       case "meeting_ended":
         this.setConnectionState("ended");
-        this.handlers.meetingEnded.forEach((h) => h());
+        this.handlers.meetingEnded.forEach((h) => h(response.message));
+        break;
+      case "meeting_not_started":
+        this.setConnectionState("not_started");
+        this.handlers.meetingNotStarted.forEach((h) => h(response.message));
         break;
     }
   }

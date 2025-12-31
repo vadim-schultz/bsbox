@@ -155,4 +155,3 @@ class TestParsedTeamsMeeting:
         assert result.thread_id is None
         assert result.meeting_id is None
         assert result.invite_url is None
-
