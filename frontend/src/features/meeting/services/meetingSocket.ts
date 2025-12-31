@@ -21,7 +21,15 @@ type WSResponse =
   | { type: "pong"; server_time: string }
   | { type: "error"; message: string }
   | { type: "meeting_ended"; message?: string; end_time?: string }
-  | { type: "meeting_not_started"; message?: string; start_time?: string };
+  | { type: "meeting_not_started"; message?: string; start_time?: string }
+  | {
+      type: "meeting_countdown";
+      meeting_id: string;
+      start_time: string;
+      server_time: string;
+      city_name?: string | null;
+      meeting_room_name?: string | null;
+    };
 
 type ConnectionState =
   | "disconnected"
@@ -46,6 +54,13 @@ export class MeetingSocket {
     joined: [] as ((participantId: string, meetingId: string) => void)[],
     meetingEnded: [] as ((message?: string) => void)[],
     meetingNotStarted: [] as ((message?: string) => void)[],
+    countdown: [] as ((data: {
+      meeting_id: string;
+      start_time: string;
+      server_time: string;
+      city_name?: string | null;
+      meeting_room_name?: string | null;
+    }) => void)[],
     error: [] as ((message: string) => void)[],
     stateChange: [] as ((state: ConnectionState) => void)[],
   };
@@ -100,7 +115,12 @@ export class MeetingSocket {
       };
 
       this.ws.onmessage = (event) => {
-        this.handleMessage(JSON.parse(event.data as string) as WSResponse);
+        try {
+          const response = JSON.parse(event.data as string) as WSResponse;
+          this.handleMessage(response);
+        } catch (err) {
+          console.error("[WS] Failed to parse message:", err, event.data);
+        }
       };
 
       this.ws.onclose = (event) => {
@@ -203,6 +223,21 @@ export class MeetingSocket {
     };
   }
 
+  /** Register countdown handler */
+  onCountdown(handler: (data: {
+    meeting_id: string;
+    start_time: string;
+    server_time: string;
+    city_name?: string | null;
+    meeting_room_name?: string | null;
+  }) => void): () => void {
+    this.handlers.countdown.push(handler);
+    return () => {
+      const idx = this.handlers.countdown.indexOf(handler);
+      if (idx !== -1) this.handlers.countdown.splice(idx, 1);
+    };
+  }
+
   /** Register error handler */
   onError(handler: (message: string) => void): () => void {
     this.handlers.error.push(handler);
@@ -272,6 +307,15 @@ export class MeetingSocket {
       case "meeting_not_started":
         this.setConnectionState("not_started");
         this.handlers.meetingNotStarted.forEach((h) => h(response.message));
+        break;
+      case "meeting_countdown":
+        this.handlers.countdown.forEach((h) => h({
+          meeting_id: response.meeting_id,
+          start_time: response.start_time,
+          server_time: response.server_time,
+          city_name: response.city_name,
+          meeting_room_name: response.meeting_room_name,
+        }));
         break;
     }
   }

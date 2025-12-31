@@ -99,12 +99,12 @@ const toChartPoint = (
 };
 
 /**
- * Build chart data from engagement summary, ensuring full meeting duration is covered.
+ * Build chart data from engagement summary, only plotting data up to the current moment.
  * 
  * @param meetingStart - Meeting start time (for fixed x-axis bounds)
  * @param meetingEnd - Meeting end time (for fixed x-axis bounds)
  * @param engagementSummary - Engagement data from server
- * @returns Chart points covering the entire meeting duration
+ * @returns Chart points up to current time (future time remains unpopulated)
  */
 export const buildChartData = (
   meetingStart: Date | null | undefined,
@@ -131,7 +131,14 @@ export const buildChartData = (
     });
   }
 
-  // Generate full range of buckets from start to end with forward-fill
+  // Calculate cutoff time: max of (latest data point, current time)
+  // This ensures we only plot up to "now" and don't project into the future
+  const now = Date.now();
+  const latestDataTime = engagementSummary?.overall.length
+    ? Math.max(...engagementSummary.overall.map(p => p.bucket.getTime()))
+    : now;
+  const cutoffTime = Math.max(latestDataTime, now);
+  
   const points: ChartPoint[] = [];
   const stepMs = bucketMinutes * 60_000;
   
@@ -141,9 +148,9 @@ export const buildChartData = (
   const endNormalized = new Date(end);
   endNormalized.setSeconds(0, 0);
   
-  // Forward-fill: carry last known value to future buckets until a new value is found
+  // Forward-fill: carry last known value to future buckets, but only up to cutoff
   let lastValue = 0;
-  for (let ts = startNormalized.getTime(); ts <= endNormalized.getTime(); ts += stepMs) {
+  for (let ts = startNormalized.getTime(); ts <= Math.min(cutoffTime, endNormalized.getTime()); ts += stepMs) {
     const bucket = new Date(ts);
     // If we have a value for this bucket, use it and update lastValue
     // Otherwise, use the last known value (forward-fill)

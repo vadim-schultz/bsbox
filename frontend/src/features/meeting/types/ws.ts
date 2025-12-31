@@ -23,5 +23,14 @@ export type PongMessage = {
   type: "pong";
 };
 
-export type EngagementMessage = SnapshotMessage | DeltaMessage | PongMessage;
+export type MeetingCountdownMessage = {
+  type: "meeting_countdown";
+  meeting_id: string;
+  start_time: string;
+  server_time: string;
+  city_name?: string | null;
+  meeting_room_name?: string | null;
+};
+
+export type EngagementMessage = SnapshotMessage | DeltaMessage | PongMessage | MeetingCountdownMessage;
 

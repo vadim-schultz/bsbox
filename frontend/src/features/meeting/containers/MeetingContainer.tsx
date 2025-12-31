@@ -9,6 +9,7 @@ import { ErrorNotice, LoadingState } from "../components/feedback";
 import { MeetingInfo } from "../components/meeting-info";
 import { StatusSelector } from "../components/cards";
 import { EngagementChart } from "../components/charts/EngagementChart";
+import { MeetingCountdown } from "../components/countdown";
 import type { VisitSession } from "../types/domain";
 
 type Props = {
@@ -28,6 +29,8 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     activeStatus,
     meetingEnded,
     meetingNotStarted,
+    isCountdownMode,
+    countdownData,
     loading,
     error,
     sendStatus,
@@ -66,6 +69,28 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
   const msTeamsDisplay = msTeamsInput
     ? { inviteUrl: msTeamsInput, threadId: null, meetingId: null }
     : null;
+
+  // Show countdown view if in countdown mode
+  if (isCountdownMode && countdownData) {
+    return (
+      <Stack gap={6}>
+        {onBackToSelection && (
+          <Flex justify="flex-start">
+            <Button variant="ghost" size="sm" onClick={onBackToSelection}>
+              ← Change Location
+            </Button>
+          </Flex>
+        )}
+
+        <MeetingCountdown
+          startTime={countdownData.startTime}
+          serverTime={countdownData.serverTime}
+          cityName={countdownData.cityName || cityName}
+          meetingRoomName={countdownData.meetingRoomName || meetingRoomName}
+        />
+      </Stack>
+    );
+  }
 
   return (
     <Stack gap={6}>

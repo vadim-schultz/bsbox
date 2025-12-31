@@ -4,6 +4,7 @@ from app.ws.factory import WSMessageHandlerFactory
 from app.ws.types import (
     ErrorResponse,
     JoinedResponse,
+    MeetingCountdownResponse,
     MeetingEndedResponse,
     PongResponse,
     WSContext,
@@ -14,6 +15,7 @@ from app.ws.types import (
 __all__ = [
     "ErrorResponse",
     "JoinedResponse",
+    "MeetingCountdownResponse",
     "MeetingEndedResponse",
     "PongResponse",
     "WSContext",

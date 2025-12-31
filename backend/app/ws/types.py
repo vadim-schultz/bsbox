@@ -115,6 +115,30 @@ class MeetingNotStartedResponse(WSResponse):
         return result
 
 
+@dataclass
+class MeetingCountdownResponse(WSResponse):
+    """Countdown data when user connects before meeting starts."""
+
+    type: str = field(default="meeting_countdown", init=False)
+    meeting_id: str = ""
+    start_time: str = ""  # UTC ISO format via isoformat_utc()
+    server_time: str = ""  # UTC ISO format via isoformat_utc()
+    city_name: str | None = None
+    meeting_room_name: str | None = None
+
+    def _extra_fields(self) -> dict[str, Any]:
+        result = {
+            "meeting_id": self.meeting_id,
+            "start_time": self.start_time,
+            "server_time": self.server_time,
+        }
+        if self.city_name:
+            result["city_name"] = self.city_name
+        if self.meeting_room_name:
+            result["meeting_room_name"] = self.meeting_room_name
+        return result
+
+
 class WSMessageHandler(Protocol):
     """Protocol for WebSocket message handlers."""
 

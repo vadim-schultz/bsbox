@@ -27,8 +27,8 @@ export const mapEngagementSummary = (
 
   return {
     meetingId: summary.meeting_id,
-    start: toDate(summary.start),
-    end: toDate(summary.end),
+    start: toLocalDate(summary.start),
+    end: toLocalDate(summary.end),
     bucketMinutes: summary.bucket_minutes,
     windowMinutes: summary.window_minutes,
     overall: summary.overall.map((p) => toPoint(p.bucket, p.value)),

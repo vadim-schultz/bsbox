@@ -19,7 +19,13 @@ from app.models import Meeting
 from app.repos import MeetingRepo
 from app.services import MeetingService
 from app.utils.datetime import ensure_utc, isoformat_utc
-from app.ws import ErrorResponse, MeetingEndedResponse, WSContext, WSMessageHandlerFactory
+from app.ws import (
+    ErrorResponse,
+    MeetingCountdownResponse,
+    MeetingEndedResponse,
+    WSContext,
+    WSMessageHandlerFactory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +35,13 @@ def _seconds_until_meeting_end(meeting: Meeting) -> float:
     now = datetime.now(tz=UTC)
     end_ts = ensure_utc(meeting.end_ts)
     return max(0, (end_ts - now).total_seconds())
+
+
+def _seconds_until_meeting_start(meeting: Meeting) -> float:
+    """Calculate seconds until meeting starts."""
+    now = datetime.now(tz=UTC)
+    start_ts = ensure_utc(meeting.start_ts)
+    return max(0, (start_ts - now).total_seconds())
 
 
 @asynccontextmanager
@@ -66,6 +79,41 @@ async def meeting_stream_lifespan(
         )
         await socket.close(code=1000, reason="Meeting ended")
         return
+
+    # Check if meeting hasn't started yet
+    seconds_until_start = _seconds_until_meeting_start(meeting)
+    if seconds_until_start > 0:
+        # If within 15 minutes (900 seconds), send countdown message
+        if seconds_until_start <= 900:
+            logger.info(
+                "WS meeting not started yet, sending countdown meeting_id=%s seconds=%s",
+                meeting_id,
+                seconds_until_start,
+            )
+            now = datetime.now(tz=UTC)
+            start_time = isoformat_utc(ensure_utc(meeting.start_ts))
+            await socket.send_json(
+                MeetingCountdownResponse(
+                    meeting_id=meeting.id,
+                    start_time=start_time,
+                    server_time=isoformat_utc(now),
+                    city_name=meeting.city.name if meeting.city else None,
+                    meeting_room_name=meeting.meeting_room.name if meeting.meeting_room else None,
+                ).to_dict()
+            )
+        else:
+            # More than 15 minutes away, don't allow connection yet
+            logger.info(
+                "WS meeting too far in future meeting_id=%s seconds=%s", meeting_id, seconds_until_start
+            )
+            start_time = isoformat_utc(ensure_utc(meeting.start_ts))
+            await socket.send_json(
+                ErrorResponse(
+                    message=f"Meeting starts in {int(seconds_until_start / 60)} minutes. Please connect closer to start time.",
+                ).to_dict()
+            )
+            await socket.close(code=1000, reason="Meeting not ready")
+            return
 
     # Initialize context for handlers
     context = WSContext(

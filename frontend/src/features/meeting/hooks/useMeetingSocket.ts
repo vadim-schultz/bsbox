@@ -11,6 +11,7 @@ import { MeetingSocket } from "../services/meetingSocket";
 import { applyDelta } from "../domain/engagement";
 import { mapEngagementSummary } from "../domain/mappers";
 import { toLocalDate } from "../utils/time";
+import { useCountdownTimer } from "./useCountdownTimer";
 import type { EngagementSummary } from "../types/domain";
 import type { EngagementSummaryDto, StatusLiteral } from "../types/dto";
 import type { DeltaMessageData } from "../types/ws";
@@ -35,6 +36,13 @@ type UseMeetingSocketResult = {
   meetingEnded: boolean;
   /** Whether meeting has not started yet */
   meetingNotStarted: boolean;
+  /** Countdown data (if meeting hasn't started) */
+  countdownData: {
+    startTime: string;
+    serverTime: string;
+    cityName?: string | null;
+    meetingRoomName?: string | null;
+  } | null;
   /** Error message if any */
   error: string | null;
   /** Loading state (connecting or joining) */
@@ -64,6 +72,12 @@ export function useMeetingSocket(
     useState<ConnectionState>("disconnected");
   const [meetingEnded, setMeetingEnded] = useState(false);
   const [meetingNotStarted, setMeetingNotStarted] = useState(false);
+  const [countdownData, setCountdownData] = useState<{
+    startTime: string;
+    serverTime: string;
+    cityName?: string | null;
+    meetingRoomName?: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -78,6 +92,7 @@ export function useMeetingSocket(
       setConnectionState("disconnected");
       setMeetingEnded(false);
       setMeetingNotStarted(false);
+      setCountdownData(null);
       setError(null);
       setLoading(false);
       return;
@@ -85,6 +100,7 @@ export function useMeetingSocket(
 
     const socket = new MeetingSocket();
     socketRef.current = socket;
+    let hasReceivedCountdown = false;
 
     // Register handlers
     const unsubSnapshot = socket.onSnapshot((data) => {
@@ -149,6 +165,19 @@ export function useMeetingSocket(
       }
     });
 
+    const unsubCountdown = socket.onCountdown((data) => {
+      console.log("[useMeetingSocket] Countdown received:", data);
+      hasReceivedCountdown = true;
+      setCountdownData({
+        startTime: data.start_time,
+        serverTime: data.server_time,
+        cityName: data.city_name,
+        meetingRoomName: data.meeting_room_name,
+      });
+      setError(null);
+      setLoading(false); // Stop loading since we're in countdown mode
+    });
+
     const unsubError = socket.onError((message) => {
       setError(message);
     });
@@ -157,23 +186,41 @@ export function useMeetingSocket(
       setConnectionState(state);
     });
 
-    // Connect and join
+    // Connect and conditionally join
     const init = async () => {
       setLoading(true);
       setError(null);
 
       try {
         await socket.connect(meetingId);
-        const pid = await socket.join(deviceFingerprint);
-        participantIdRef.current = pid;
-        setParticipantId(pid);
+        
+        // Wait briefly to see if we receive a countdown message
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        
+        // Only try to join if we didn't receive countdown message
+        if (!hasReceivedCountdown) {
+          try {
+            const pid = await socket.join(deviceFingerprint);
+            participantIdRef.current = pid;
+            setParticipantId(pid);
+            setCountdownData(null);
+          } catch (joinErr) {
+            const message = joinErr instanceof Error ? joinErr.message : "Join failed";
+            console.error("[useMeetingSocket] Join failed:", message);
+            setError(message);
+          }
+        } else {
+          console.log("[useMeetingSocket] Countdown mode - deferring join");
+        }
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Connection failed";
         setError(message);
         console.error("[useMeetingSocket] Init failed:", err);
       } finally {
-        setLoading(false);
+        if (!hasReceivedCountdown) {
+          setLoading(false);
+        }
       }
     };
 
@@ -185,6 +232,7 @@ export function useMeetingSocket(
       unsubDelta();
       unsubEnded();
       unsubNotStarted();
+      unsubCountdown();
       unsubError();
       unsubState();
       socket.disconnect();
@@ -204,6 +252,68 @@ export function useMeetingSocket(
     setConnectionState("disconnected");
   }, []);
 
+  // Auto-join when countdown completes
+  const { isComplete: countdownComplete } = useCountdownTimer(
+    countdownData?.startTime ?? null,
+    countdownData?.serverTime ?? null
+  );
+
+  useEffect(() => {
+    if (countdownComplete && countdownData && deviceFingerprint && !participantId) {
+      console.log("[useMeetingSocket] Countdown complete, attempting auto-join");
+      const socket = socketRef.current;
+      if (!socket) {
+        console.error("[useMeetingSocket] Socket not available for auto-join");
+        return;
+      }
+
+      // Check if socket is still connected
+      if (socket.getConnectionState() !== "connected") {
+        console.log("[useMeetingSocket] Socket not connected, reconnecting...");
+        setLoading(true);
+        socket
+          .connect(meetingId!)
+          .then(() => {
+            console.log("[useMeetingSocket] Reconnected, attempting join");
+            return socket.join(deviceFingerprint);
+          })
+          .then((pid) => {
+            participantIdRef.current = pid;
+            setParticipantId(pid);
+            setCountdownData(null);
+            console.log("[useMeetingSocket] Auto-join successful:", pid);
+          })
+          .catch((err) => {
+            const message = err instanceof Error ? err.message : "Auto-join failed";
+            setError(message);
+            console.error("[useMeetingSocket] Auto-join failed:", err);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      } else {
+        // Socket is connected, just join
+        setLoading(true);
+        socket
+          .join(deviceFingerprint)
+          .then((pid) => {
+            participantIdRef.current = pid;
+            setParticipantId(pid);
+            setCountdownData(null);
+            console.log("[useMeetingSocket] Auto-join successful:", pid);
+          })
+          .catch((err) => {
+            const message = err instanceof Error ? err.message : "Auto-join failed";
+            setError(message);
+            console.error("[useMeetingSocket] Auto-join failed:", err);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
+    }
+  }, [countdownComplete, countdownData, deviceFingerprint, participantId, meetingId]);
+
   return useMemo(
     () => ({
       participantId,
@@ -212,6 +322,7 @@ export function useMeetingSocket(
       connectionState,
       meetingEnded,
       meetingNotStarted,
+      countdownData,
       error,
       loading,
       sendStatus,
@@ -224,6 +335,7 @@ export function useMeetingSocket(
       connectionState,
       meetingEnded,
       meetingNotStarted,
+      countdownData,
       error,
       loading,
       sendStatus,

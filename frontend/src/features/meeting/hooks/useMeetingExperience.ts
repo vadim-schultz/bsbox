@@ -54,6 +54,7 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
     connectionState,
     meetingEnded,
     meetingNotStarted,
+    countdownData,
     error: socketError,
     loading: socketLoading,
     sendStatus: wsSendStatus,
@@ -85,6 +86,7 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
   const loading = sessionLoading || socketLoading || fingerprintLoading;
   const error = fingerprintError ?? sessionError ?? socketError ?? null;
   const participantCount = engagementSummary?.participants.length ?? 0;
+  const isCountdownMode = !!countdownData && !participantId;
 
   return {
     // Meeting metadata (from session)
@@ -98,6 +100,9 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
     participantCount,
     engagementSummary,
     activeStatus,
+    // Countdown mode
+    isCountdownMode,
+    countdownData,
     // Connection state
     connectionState,
     meetingEnded,
