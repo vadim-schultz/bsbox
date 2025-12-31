@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo
-from app.services import EngagementService
+from app.services import EngagementService, ParticipantService
 
 
 def test_engagement_bucket_rounding(session_factory):
@@ -12,7 +12,7 @@ def test_engagement_bucket_rounding(session_factory):
 
         start = datetime(2025, 1, 1, 10, 30, tzinfo=UTC)
         meeting = meeting_repo.create(start_ts=start, end_ts=start + timedelta(hours=1))
-        participant = participant_repo.create(meeting_id=meeting.id)
+        participant = participant_repo.create(meeting_id=meeting.id, device_fingerprint="fp-test")
 
         service = EngagementService(engagement_repo, participant_repo)
         ts = datetime(2025, 1, 1, 10, 45, 59, tzinfo=UTC)
@@ -23,3 +23,36 @@ def test_engagement_bucket_rounding(session_factory):
         assert len(reloaded.engagement_samples) == 1
         bucket = reloaded.engagement_samples[0].bucket
         assert bucket.minute == 45 and bucket.second == 0 and bucket.microsecond == 0
+
+
+def test_participant_reuse_by_fingerprint(session_factory):
+    with session_factory() as session:
+        meeting_repo = MeetingRepo(session)
+        participant_repo = ParticipantRepo(session)
+        participant_service = ParticipantService(participant_repo)
+
+        start = datetime(2025, 1, 1, 12, 0, tzinfo=UTC)
+        meeting = meeting_repo.create(start_ts=start, end_ts=start + timedelta(hours=1))
+
+        first = participant_service.create_or_reuse_for_connection(meeting, "fp-reuse")
+        session.commit()
+
+        second = participant_service.create_or_reuse_for_connection(meeting, "fp-reuse")
+        assert first.id == second.id
+        assert second.device_fingerprint == "fp-reuse"
+
+
+def test_participant_new_for_different_fingerprint(session_factory):
+    with session_factory() as session:
+        meeting_repo = MeetingRepo(session)
+        participant_repo = ParticipantRepo(session)
+        participant_service = ParticipantService(participant_repo)
+
+        start = datetime(2025, 1, 1, 13, 0, tzinfo=UTC)
+        meeting = meeting_repo.create(start_ts=start, end_ts=start + timedelta(hours=1))
+
+        first = participant_service.create_or_reuse_for_connection(meeting, "fp-one")
+        session.commit()
+
+        second = participant_service.create_or_reuse_for_connection(meeting, "fp-two")
+        assert first.id != second.id

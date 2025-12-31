@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 
 from app.models import Meeting
 from app.repos import MeetingRepo
@@ -10,22 +10,27 @@ class MeetingService:
         self.meeting_repo = meeting_repo
 
     @staticmethod
-    def _snap_to_half_hour(ts: datetime) -> datetime:
-        """Round to nearest 30-minute boundary.
-
-        Decision boundaries at :15 and :45:
-        - Minutes 0-15  -> :00 of current hour
-        - Minutes 16-44 -> :30 of current hour
-        - Minutes 45-59 -> :00 of next hour
-        """
+    def _snap_to_half_hour_local(ts: datetime) -> datetime:
+        """Round a local datetime to the nearest 30-minute boundary, preserving tzinfo."""
+        # Normalize to top of the minute
+        ts = ts.replace(second=0, microsecond=0)
         minute = ts.minute
-        base = ts.replace(second=0, microsecond=0)
 
         if minute <= 15:
-            return base.replace(minute=0)
-        if minute <= 44:
-            return base.replace(minute=30)
-        return base.replace(minute=0) + timedelta(hours=1)
+            snapped = ts.replace(minute=0)
+        elif minute <= 44:
+            snapped = ts.replace(minute=30)
+        else:
+            snapped = ts.replace(minute=0) + timedelta(hours=1)
+
+        return snapped
+
+    @staticmethod
+    def _to_utc_naive(ts: datetime) -> datetime:
+        """Convert aware/naive datetime to UTC naive for storage."""
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        return ts.astimezone(timezone.utc).replace(tzinfo=None)
 
     def ensure_meeting(
         self,
@@ -36,8 +41,13 @@ class MeetingService:
         ms_teams: ParsedTeamsMeeting | None = None,
     ) -> Meeting:
         """Get or create meeting for the current time slot using atomic UPSERT."""
-        start_ts = self._snap_to_half_hour(now)
-        end_ts = start_ts + timedelta(hours=1)
+        # Use provided timezone (local) for snapping; caller supplies local-aware now
+        local_now = now if now.tzinfo else now.replace(tzinfo=UTC)
+        start_local = self._snap_to_half_hour_local(local_now)
+        end_local = start_local + timedelta(hours=1)
+
+        start_ts = self._to_utc_naive(start_local)
+        end_ts = self._to_utc_naive(end_local)
 
         return self.meeting_repo.upsert_by_start(
             start_ts=start_ts,

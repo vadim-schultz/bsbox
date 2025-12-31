@@ -1,11 +1,9 @@
 import type {
   EngagementPoint,
   EngagementSummary,
-  Meeting,
 } from "../types/domain";
 import type { ChartPoint } from "../types/chart";
 import type { DeltaMessageData } from "../types/ws";
-import type { StatusLiteral } from "../types/dto";
 
 /**
  * Format a Date to HH:MM label for chart display.
@@ -73,86 +71,24 @@ export const applyDelta = (
   };
 };
 
-/**
- * Helper to check if a status is considered "engaged".
- */
-const isEngagedStatus = (status: StatusLiteral): boolean =>
-  status === "speaking" || status === "engaged";
-
-/**
- * Helper type for building chart data from status samples.
- */
-type StatusBucketData = {
-  bucket: Date;
-  label: string;
-  overall?: number | null;
-  statuses: StatusLiteral[];
-};
-
 const clampPercent = (value: number) => Math.min(Math.max(value, 0), 100);
 
-const collectBucketsFromSummary = (
-  engagementSummary: EngagementSummary | null,
-  bucketMap: Map<string, StatusBucketData>
-) => {
-  if (!engagementSummary) return;
-  engagementSummary.overall.forEach((point) => {
-    const label = formatBucketLabel(point.bucket);
-    bucketMap.set(label, {
-      bucket: point.bucket,
-      label,
-      overall: point.value,
-      statuses: [],
-    });
-  });
-};
-
-const collectBucketsFromMeeting = (
-  meeting: Meeting | null,
-  bucketMap: Map<string, StatusBucketData>
-) => {
-  if (!meeting) return;
-  meeting.participants.forEach((participant) => {
-    participant.engagementSamples.forEach((sample) => {
-      const bucketDate = new Date(sample.bucket);
-      const bucketKey = formatBucketLabel(bucketDate);
-      const existing = bucketMap.get(bucketKey);
-      if (existing) {
-        existing.statuses.push(sample.status);
-      } else {
-        bucketMap.set(bucketKey, {
-          bucket: bucketDate,
-          label: bucketKey,
-          statuses: [sample.status],
-        });
-      }
-    });
-  });
-};
-
 const toChartPoint = (
-  data: StatusBucketData,
+  bucket: Date,
+  overall: number,
   totalParticipants: number
 ): ChartPoint => {
-  const engagedCountFromSamples = data.statuses.filter(isEngagedStatus).length;
-  const engagedPercentFromSamples =
-    totalParticipants > 0
-      ? (engagedCountFromSamples / totalParticipants) * 100
-      : 0;
-
-  const engagedPercent = data.overall ?? engagedPercentFromSamples;
-  const clampedEngagedPercent = clampPercent(engagedPercent);
+  const clampedEngagedPercent = clampPercent(overall);
   const notEngagedPercent = Math.max(0, 100 - clampedEngagedPercent);
   const engagedCount = Math.round(
     (clampedEngagedPercent / 100) * totalParticipants
   );
   const notEngagedCount = Math.max(totalParticipants - engagedCount, 0);
-  const overall = data.overall ?? clampedEngagedPercent;
 
   return {
-    bucket: data.bucket,
-    label: data.label,
-    overall,
+    bucket,
+    label: formatBucketLabel(bucket),
+    overall: clampedEngagedPercent,
     engagedCount,
     notEngagedCount,
     engagedPercent: clampedEngagedPercent,
@@ -161,29 +97,19 @@ const toChartPoint = (
   };
 };
 
-const buildBucketMap = (
-  meeting: Meeting | null,
-  engagementSummary: EngagementSummary | null
-) => {
-  const bucketMap = new Map<string, StatusBucketData>();
-  collectBucketsFromSummary(engagementSummary, bucketMap);
-  collectBucketsFromMeeting(meeting, bucketMap);
-  return bucketMap;
-};
-
+/**
+ * Build chart data from engagement summary.
+ * The first parameter is kept for backwards compatibility but is no longer used.
+ */
 export const buildChartData = (
-  meeting: Meeting | null,
+  _meeting: unknown,
   engagementSummary: EngagementSummary | null
 ): ChartPoint[] => {
-  const totalParticipants =
-    engagementSummary?.participants.length ??
-    meeting?.participants.length ??
-    0;
+  if (!engagementSummary) return [];
 
-  const bucketMap = buildBucketMap(meeting, engagementSummary);
-  if (bucketMap.size === 0) return [];
+  const totalParticipants = engagementSummary.participants.length;
 
-  return Array.from(bucketMap.values())
-    .map((data) => toChartPoint(data, totalParticipants))
+  return engagementSummary.overall
+    .map((point) => toChartPoint(point.bucket, point.value, totalParticipants))
     .sort((a, b) => a.bucket.getTime() - b.bucket.getTime());
 };

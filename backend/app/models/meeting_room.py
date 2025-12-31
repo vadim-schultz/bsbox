@@ -33,3 +33,4 @@ class MeetingRoom(Base):
 if TYPE_CHECKING:
     from app.models.city import City
     from app.models.meeting import Meeting
+

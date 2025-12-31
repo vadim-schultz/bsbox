@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -11,6 +11,9 @@ from app.models.base import Base
 
 class Participant(Base):
     __tablename__ = "participants"
+    __table_args__ = (
+        UniqueConstraint("meeting_id", "device_fingerprint", name="uq_meeting_fingerprint"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     meeting_id: Mapped[str] = mapped_column(ForeignKey("meetings.id"), nullable=False, index=True)

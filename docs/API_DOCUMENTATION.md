@@ -413,3 +413,4 @@ The frontend automatically:
 5. Allows navigation back to change location
 
 See `frontend/src/features/meeting/` for implementation details.
+

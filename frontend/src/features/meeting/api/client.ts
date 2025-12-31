@@ -1,8 +1,5 @@
 import type {
-  EngagementSummaryDto,
-  MeetingWithParticipantsDto,
   MeetingDto,
-  StatusLiteral,
   VisitResponseDto,
   MeetingDurationUpdateDto,
   CityDto,
@@ -48,18 +45,6 @@ export async function visit(params: {
   });
 }
 
-export async function getMeeting(
-  meetingId: string
-): Promise<MeetingWithParticipantsDto> {
-  return getJSON<MeetingWithParticipantsDto>(`/meetings/${meetingId}`);
-}
-
-export async function getEngagementSummary(
-  meetingId: string
-): Promise<EngagementSummaryDto> {
-  return getJSON<EngagementSummaryDto>(`/meetings/${meetingId}/engagement`);
-}
-
 export async function updateMeetingDuration(params: {
   meetingId: string;
   data: MeetingDurationUpdateDto;
@@ -72,23 +57,6 @@ export async function updateMeetingDuration(params: {
     body: JSON.stringify(params.data),
   });
   return parse<MeetingDto>(res);
-}
-
-// Status updates are now sent via WebSocket, not HTTP
-// This function is kept for backwards compatibility but will be removed
-export async function updateStatus(params: {
-  meetingId: string;
-  participantId: string;
-  status: StatusLiteral;
-}): Promise<void> {
-  console.warn(
-    "[DEPRECATED] updateStatus via HTTP is deprecated. Use WebSocket instead."
-  );
-  await postJSON("/users/status", {
-    meeting_id: params.meetingId,
-    participant_id: params.participantId,
-    status: params.status,
-  });
 }
 
 export async function getCities(): Promise<CityDto[]> {

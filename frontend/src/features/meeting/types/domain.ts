@@ -1,5 +1,3 @@
-import type { StatusLiteral } from "./dto";
-
 export type MeetingTimes = {
   start: Date;
   end: Date;
@@ -8,11 +6,12 @@ export type MeetingTimes = {
 export type VisitSession = {
   meetingId: string;
   meetingTimes: MeetingTimes;
-};
-
-export type EngagementSample = {
-  bucket: string;
-  status: StatusLiteral;
+  /** City name from selection (display only) */
+  cityName?: string | null;
+  /** Meeting room name from selection (display only) */
+  meetingRoomName?: string | null;
+  /** MS Teams input from selection (display only) */
+  msTeamsInput?: string | null;
 };
 
 export type EngagementPoint = {
@@ -36,28 +35,8 @@ export type EngagementSummary = {
   participants: ParticipantEngagementSeries[];
 };
 
-export type Participant = {
-  id: string;
-  meetingId: string;
-  deviceFingerprint: string;
-  lastStatus?: StatusLiteral | null;
-  engagementSamples: EngagementSample[];
-};
-
 export type MSTeamsMeeting = {
   threadId?: string | null;
   meetingId?: string | null;
   inviteUrl?: string | null;
-};
-
-export type Meeting = {
-  id: string;
-  start: Date;
-  end: Date;
-  cityId?: string | null;
-  cityName?: string | null;
-  meetingRoomId?: string | null;
-  meetingRoomName?: string | null;
-  msTeams?: MSTeamsMeeting | null;
-  participants: Participant[];
 };

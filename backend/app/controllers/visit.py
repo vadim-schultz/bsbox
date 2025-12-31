@@ -25,7 +25,8 @@ class VisitsController(Controller):
 
         Returns meeting details. Participant creation happens via WebSocket join.
         """
-        now = datetime.now(tz=UTC)
+        # Use local time (with zone) for snapping; it will be normalized to UTC in the service
+        now = datetime.now().astimezone()
         meeting = meeting_service.ensure_meeting(
             now,
             city_id=data.city_id,

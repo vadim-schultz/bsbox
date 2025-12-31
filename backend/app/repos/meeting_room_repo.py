@@ -52,3 +52,4 @@ class MeetingRoomRepo:
         self.session.flush()
         self.session.refresh(meeting_room)
         return meeting_room
+

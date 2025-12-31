@@ -21,6 +21,8 @@ type UseMeetingSocketResult = {
   participantId: string | null;
   /** Engagement summary data */
   summary: EngagementSummary | null;
+  /** Current user's engagement status */
+  currentStatus: StatusLiteral;
   /** Current connection state */
   connectionState: ConnectionState;
   /** Whether meeting has ended */
@@ -42,11 +44,14 @@ type UseMeetingSocketResult = {
  * @returns Meeting socket state and actions
  */
 export function useMeetingSocket(
-  meetingId: string | null | undefined
+  meetingId: string | null | undefined,
+  deviceFingerprint: string | null | undefined
 ): UseMeetingSocketResult {
   const socketRef = useRef<MeetingSocket | null>(null);
+  const participantIdRef = useRef<string | null>(null);
   const [participantId, setParticipantId] = useState<string | null>(null);
   const [summary, setSummary] = useState<EngagementSummary | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<StatusLiteral>("disengaged");
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("disconnected");
   const [meetingEnded, setMeetingEnded] = useState(false);
@@ -55,10 +60,12 @@ export function useMeetingSocket(
 
   // Initialize socket and handlers
   useEffect(() => {
-    if (!meetingId) {
+    if (!meetingId || !deviceFingerprint) {
       // Reset state when meetingId is cleared
+      participantIdRef.current = null;
       setParticipantId(null);
       setSummary(null);
+      setCurrentStatus("disengaged");
       setConnectionState("disconnected");
       setMeetingEnded(false);
       setError(null);
@@ -81,15 +88,20 @@ export function useMeetingSocket(
     });
 
     const unsubDelta = socket.onDelta((data) => {
+      const delta = data as DeltaMessageData;
       setSummary((prev) => {
         if (!prev) return prev;
         try {
-          return applyDelta(prev, data as DeltaMessageData);
+          return applyDelta(prev, delta);
         } catch (err) {
           console.error("[useMeetingSocket] Failed to apply delta:", err);
           return prev;
         }
       });
+      // Update currentStatus if this delta is for our participant
+      if (delta.participant_id === participantIdRef.current) {
+        setCurrentStatus(delta.status);
+      }
     });
 
     const unsubEnded = socket.onMeetingEnded(() => {
@@ -112,7 +124,8 @@ export function useMeetingSocket(
 
       try {
         await socket.connect(meetingId);
-        const pid = await socket.join();
+        const pid = await socket.join(deviceFingerprint);
+        participantIdRef.current = pid;
         setParticipantId(pid);
       } catch (err) {
         const message =
@@ -135,11 +148,14 @@ export function useMeetingSocket(
       unsubState();
       socket.disconnect();
       socketRef.current = null;
+      participantIdRef.current = null;
     };
-  }, [meetingId]);
+  }, [meetingId, deviceFingerprint]);
 
   const sendStatus = useCallback((status: StatusLiteral) => {
     socketRef.current?.sendStatus(status);
+    // Optimistically update status immediately for responsive UI
+    setCurrentStatus(status);
   }, []);
 
   const disconnect = useCallback(() => {
@@ -151,6 +167,7 @@ export function useMeetingSocket(
     () => ({
       participantId,
       summary,
+      currentStatus,
       connectionState,
       meetingEnded,
       error,
@@ -161,6 +178,7 @@ export function useMeetingSocket(
     [
       participantId,
       summary,
+      currentStatus,
       connectionState,
       meetingEnded,
       error,

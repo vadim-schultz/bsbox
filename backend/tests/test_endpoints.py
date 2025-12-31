@@ -7,7 +7,7 @@ Tests cover the simplified architecture:
 """
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 from litestar.testing import TestClient
 
@@ -100,6 +100,30 @@ def test_time_slot_snapping(app, monkeypatch):
                 f"Time {fixed_now.isoformat()} should snap to {expected_start}, "
                 f"got {visit['meeting_start']}"
             )
+
+
+def test_visit_uses_local_timezone_for_snapping(app, monkeypatch):
+    """Visit should snap based on local timezone, then convert to UTC for storage."""
+    local_tz = timezone(timedelta(hours=2))  # UTC+2
+    fixed_now = datetime(2025, 1, 1, 9, 5, tzinfo=local_tz)  # local 09:05 -> snap to 09:00 local
+
+    class FixedDateTime(datetime):
+        _fixed = fixed_now
+
+        @classmethod
+        def now(cls, tz=None):
+            # Ignore tz arg to mimic datetime.now(tz) behavior with fixed tzinfo
+            return cls._fixed
+
+    monkeypatch.setattr("app.controllers.visit.datetime", FixedDateTime)
+    monkeypatch.setattr("app.services.meeting_service.datetime", FixedDateTime)
+
+    with TestClient(app, raise_server_exceptions=True) as client:
+        visit_resp = client.post("/visit", json={})
+        assert visit_resp.status_code in (200, 201)
+        visit = visit_resp.json()
+        # 09:00 local UTC+2 -> 07:00 UTC stored/returned
+        assert visit["meeting_start"].startswith("2025-01-01T07:00")
 
 
 def test_deterministic_meeting_id(app, monkeypatch):

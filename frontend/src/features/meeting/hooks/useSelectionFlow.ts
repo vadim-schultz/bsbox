@@ -223,7 +223,12 @@ export function useSelectionFlow() {
         meetingRoomId: roomIdToUse,
         msTeamsInput: state.msTeamsInput || undefined,
       });
-      const session = mapVisitResponse(response);
+      const session: VisitSession = {
+        ...mapVisitResponse(response),
+        cityName: state.cityInput.trim() || null,
+        meetingRoomName: state.roomInput.trim() || null,
+        msTeamsInput: state.msTeamsInput || null,
+      };
       setState((prev) => ({ ...prev, session }));
       return session;
     } catch (err) {

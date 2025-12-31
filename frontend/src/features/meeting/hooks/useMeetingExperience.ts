@@ -1,59 +1,108 @@
-import { useMemo } from "react";
+/**
+ * Hook for the complete meeting experience.
+ *
+ * Combines session management with WebSocket-based real-time communication.
+ * All meeting data (participant, engagement, status) flows through WebSocket.
+ */
 
-import { useMeetingData } from "./useMeetingData";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { useMeetingSession } from "./useMeetingSession";
-import { useStatusActions } from "./useStatusActions";
-import type { VisitSession } from "../types/domain";
+import { useMeetingSocket } from "./useMeetingSocket";
+import { getDeviceFingerprint } from "../services/deviceFingerprint";
+import type { VisitSession, MeetingTimes } from "../types/domain";
+import type { StatusLiteral } from "../types/dto";
 
 export function useMeetingExperience(initialSession?: VisitSession | null) {
+  const [fingerprint, setFingerprint] = useState<string | null>(null);
+  const [fingerprintError, setFingerprintError] = useState<string | null>(null);
+
+  // Session from initial visit (provides meetingId and display metadata)
   const {
     session,
     loading: sessionLoading,
     error: sessionError,
-  } = useMeetingSession({ initialSession });
+  } = useMeetingSession({ initialSession, autoVisit: false });
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const fp = await getDeviceFingerprint();
+        if (!cancelled) {
+          setFingerprint(fp);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message =
+            err instanceof Error ? err.message : "Unable to obtain device fingerprint";
+          setFingerprintError(message);
+        }
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // WebSocket connection for real-time data
   const {
-    meeting,
-    participantCount,
-    activeStatus: derivedStatus,
-    loading: meetingLoading,
-    error: meetingError,
-    refreshMeeting,
-  } = useMeetingData({
-    meetingId: session?.meetingId,
-    participantId: session?.participantId,
-  });
+    participantId,
+    summary: engagementSummary,
+    currentStatus: activeStatus,
+    connectionState,
+    meetingEnded,
+    error: socketError,
+    loading: socketLoading,
+    sendStatus: wsSendStatus,
+  } = useMeetingSocket(session?.meetingId, fingerprint);
 
-  const {
-    activeStatus,
-    sendStatus,
-    loading: statusUpdating,
-    error: statusError,
-  } = useStatusActions({
-    meetingId: session?.meetingId,
-    participantId: session?.participantId,
-    initialStatus: derivedStatus,
-    onStatusUpdated: refreshMeeting,
-  });
+  // Wrap sendStatus to be async-compatible for the UI
+  const sendStatus = useCallback(
+    async (status: StatusLiteral): Promise<void> => {
+      wsSendStatus(status);
+    },
+    [wsSendStatus]
+  );
 
-  const loading = sessionLoading || meetingLoading || statusUpdating;
-  const error = sessionError ?? meetingError ?? statusError ?? null;
+  // Derive meeting times from session or engagement summary
+  const meetingTimes: MeetingTimes | undefined = useMemo(() => {
+    if (session?.meetingTimes) {
+      return session.meetingTimes;
+    }
+    if (engagementSummary) {
+      return {
+        start: engagementSummary.start,
+        end: engagementSummary.end,
+      };
+    }
+    return undefined;
+  }, [session, engagementSummary]);
+
+  const fingerprintLoading = fingerprint === null && !fingerprintError;
+  const loading = sessionLoading || socketLoading || fingerprintLoading;
+  const error = fingerprintError ?? sessionError ?? socketError ?? null;
+  const participantCount = engagementSummary?.participants.length ?? 0;
 
   return {
-    meeting,
-    meetingTimes: useMemo(
-      () =>
-        meeting
-          ? { start: meeting.start, end: meeting.end }
-          : session?.meetingTimes,
-      [meeting, session]
-    ),
+    // Meeting metadata (from session)
     meetingId: session?.meetingId ?? null,
+    meetingTimes,
+    cityName: session?.cityName ?? null,
+    meetingRoomName: session?.meetingRoomName ?? null,
+    msTeamsInput: session?.msTeamsInput ?? null,
+    // Real-time data (from WebSocket)
+    participantId,
     participantCount,
+    engagementSummary,
     activeStatus,
+    // Connection state
+    connectionState,
+    meetingEnded,
     loading,
     error,
+    // Actions
     sendStatus,
-    refreshMeeting,
   };
 }

@@ -25,6 +25,16 @@ class WSContext:
         """Set the participant for this connection."""
         self.participant = participant
 
+    def refresh_meeting(self) -> None:
+        """Refresh meeting to get latest participants from database.
+
+        Expires the cached meeting object and reloads it with fresh data.
+        This is useful after creating new participants to ensure
+        meeting.participants includes them.
+        """
+        self.session.expire(self.meeting)
+        self.session.refresh(self.meeting)
+
 
 @dataclass
 class WSResponse:

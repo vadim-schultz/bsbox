@@ -59,6 +59,23 @@ ensure_venv() {
   fi
 }
 
+kill_port() {
+  local port="$1"
+  local pids
+  # lsof works on macOS, Linux (Ubuntu, WSL)
+  pids=$(lsof -ti:"$port" 2>/dev/null || true)
+  if [[ -n "$pids" ]]; then
+    echo "⚠️  Port $port is in use. Killing process(es): $pids"
+    echo "$pids" | xargs kill -9 2>/dev/null || true
+    sleep 1
+  fi
+}
+
+ensure_ports_free() {
+  kill_port "$PORT"
+  kill_port "$FRONTEND_PORT"
+}
+
 activate_venv() {
   source "$VENV_PATH/bin/activate"
 }
@@ -145,6 +162,8 @@ main() {
   PORT="${PORT:-8000}"
   FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
   FRONTEND_PORT="${FRONTEND_PORT:-5173}"
+
+  ensure_ports_free
 
   echo ""
   echo "✅ Setup complete!"

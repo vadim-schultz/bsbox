@@ -21,3 +21,4 @@ class MeetingRoomService:
         if self.meeting_room_repo.exists(name=name, city_id=city_id):
             raise ValueError("Meeting room already exists in this city")
         return self.meeting_room_repo.create(name=name, city_id=city_id)
+

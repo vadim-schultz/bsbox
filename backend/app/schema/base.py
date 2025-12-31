@@ -17,3 +17,4 @@ class NameValidatorMixin:
         if not cleaned:
             raise ValueError("name cannot be empty")
         return cleaned
+

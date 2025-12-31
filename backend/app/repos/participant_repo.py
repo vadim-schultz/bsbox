@@ -23,7 +23,7 @@ class ParticipantRepo:
         )
         return self.session.scalars(stmt).first()
 
-    def create(self, meeting_id: str) -> Participant:
+    def create(self, meeting_id: str, device_fingerprint: str) -> Participant:
         """Create a new participant for a meeting.
 
         No fingerprint needed - each connection creates a fresh participant.
@@ -31,11 +31,25 @@ class ParticipantRepo:
         participant = Participant(
             id=str(uuid4()),
             meeting_id=meeting_id,
+            device_fingerprint=device_fingerprint,
         )
         self.session.add(participant)
         self.session.flush()
         self.session.refresh(participant)
         return participant
+
+    def find_by_fingerprint(self, meeting_id: str, device_fingerprint: str) -> Participant | None:
+        """Find participant by meeting and device fingerprint."""
+        stmt = select(Participant).where(
+            Participant.meeting_id == meeting_id,
+            Participant.device_fingerprint == device_fingerprint,
+        )
+        return self.session.scalars(stmt).first()
+
+    def get_for_meeting(self, meeting_id: str) -> list[Participant]:
+        """Get all participants for a meeting (fresh query)."""
+        stmt = select(Participant).where(Participant.meeting_id == meeting_id)
+        return list(self.session.scalars(stmt).all())
 
     def update_last_status(self, participant: Participant, status: str) -> Participant:
         """Update participant's last status."""

@@ -46,26 +46,57 @@ def _build_delta_message(
 class JoinHandler:
     """Handle participant join - creates new participant per connection."""
 
-    def __init__(self, participant_service: ParticipantService) -> None:
+    def __init__(
+        self, participant_service: ParticipantService, engagement_service: EngagementService
+    ) -> None:
         self.participant_service = participant_service
+        self.engagement_service = engagement_service
 
     async def handle(self, context: WSContext, message: dict[str, Any]) -> WSResponse:
         """Handle join request."""
+        import logging
+        logger = logging.getLogger(__name__)
+
         if context.participant:
             return ErrorResponse(message="Already joined")
 
         if not _is_meeting_active(context.meeting):
             return ErrorResponse(message="Meeting has ended")
 
-        # Create new participant for this connection (no fingerprint needed)
-        participant = self.participant_service.create_for_connection(context.meeting)
-        participant.last_seen_at = datetime.now(tz=UTC)
-        context.set_participant(participant)
+        fingerprint = (message.get("fingerprint") or "").strip()
+        if not fingerprint:
+            return ErrorResponse(message="Missing device fingerprint")
 
-        return JoinedResponse(
-            participant_id=participant.id,
-            meeting_id=context.meeting.id,
-        )
+        try:
+            participant = self.participant_service.create_or_reuse_for_connection(
+                context.meeting, fingerprint
+            )
+            # Commit immediately to release the database lock for other connections
+            context.session.commit()
+            context.set_participant(participant)
+            logger.info(
+                "Joined participant %s for meeting %s (fingerprint=%s)",
+                participant.id,
+                context.meeting.id,
+                fingerprint,
+            )
+
+            # Build and broadcast snapshot via channel so all clients receive it
+            summary = self.engagement_service.build_engagement_summary(context.meeting)
+            snapshot_msg = {"type": "snapshot", "data": summary.model_dump(mode="json")}
+            context.channels.publish(
+                data=json.dumps(snapshot_msg),
+                channels=[f"meeting:{context.meeting.id}"],
+            )
+            logger.info("Published snapshot for meeting %s", context.meeting.id)
+
+            return JoinedResponse(
+                participant_id=participant.id,
+                meeting_id=context.meeting.id,
+            )
+        except Exception as e:
+            logger.exception("Error in JoinHandler: %s", e)
+            return ErrorResponse(message=f"Join failed: {str(e)}")
 
 
 class StatusHandler:
@@ -92,6 +123,8 @@ class StatusHandler:
             status=status,
             current_time=now,
         )
+        # Commit immediately to release database lock
+        context.session.commit()
 
         # Build and publish delta to all subscribers
         rollup = self.engagement_service.bucket_rollup(

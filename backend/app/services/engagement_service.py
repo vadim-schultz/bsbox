@@ -133,7 +133,9 @@ class EngagementService:
         end = self._bucketize(meeting.end_ts)
         buckets = self._generate_buckets(start, end, bucket_minutes)
 
-        participant_ids = [p.id for p in meeting.participants]
+        # Query participants fresh to include newly joined participants
+        participants = self.participant_repo.get_for_meeting(meeting.id)
+        participant_ids = [p.id for p in participants]
         sample_map = self._load_sample_map(meeting.id, start=start, end=end)
         flags = self._build_flags(buckets, participant_ids, sample_map)
 
@@ -141,7 +143,7 @@ class EngagementService:
         for pid, pid_flags in flags.items():
             participant_series[pid] = self._smooth_flags(pid_flags, window_minutes)
 
-        fingerprint_by_participant = {p.id: p.device_fingerprint for p in meeting.participants}
+        fingerprint_by_participant = {p.id: p.device_fingerprint for p in participants}
         participants_payload = self._compose_participants_payload(
             buckets=buckets,
             participant_ids=participant_ids,
@@ -166,7 +168,9 @@ class EngagementService:
         bucket = self._bucketize(bucket)
         start = bucket - timedelta(minutes=window_minutes - 1)
         sample_map = self._load_sample_map(meeting.id, start=start, end=bucket)
-        participant_ids = [p.id for p in meeting.participants]
+        # Query participants fresh to include newly joined participants
+        participants = self.participant_repo.get_for_meeting(meeting.id)
+        participant_ids = [p.id for p in participants]
         buckets = [start + timedelta(minutes=i) for i in range(window_minutes)]
         flags = self._build_flags(buckets, participant_ids, sample_map)
 

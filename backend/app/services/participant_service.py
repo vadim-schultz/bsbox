@@ -20,13 +20,21 @@ class ParticipantService:
         current = now if now.tzinfo is not None else now.replace(tzinfo=UTC)
         return end_ts <= current
 
-    def create_for_connection(self, meeting: Meeting) -> Participant:
-        """Create a new participant for a WebSocket connection.
+    def create_or_reuse_for_connection(self, meeting: Meeting, device_fingerprint: str) -> Participant:
+        """Create or reuse a participant for a WebSocket connection based on fingerprint."""
+        now = datetime.now(tz=UTC)
 
-        Each connection creates a new participant - no fingerprint matching.
-        This provides accurate presence tracking (each tab = separate participant).
-        """
-        return self.participant_repo.create(meeting_id=meeting.id)
+        if device_fingerprint:
+            existing = self.participant_repo.find_by_fingerprint(meeting.id, device_fingerprint)
+            if existing:
+                existing.last_seen_at = now
+                return existing
+
+        participant = self.participant_repo.create(
+            meeting_id=meeting.id, device_fingerprint=device_fingerprint
+        )
+        participant.last_seen_at = now
+        return participant
 
     def get_by_id(self, participant_id: str) -> Participant | None:
         """Get participant by ID with engagement samples loaded."""

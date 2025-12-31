@@ -39,3 +39,4 @@ class CityRepo:
         self.session.flush()
         self.session.refresh(city)
         return city
+

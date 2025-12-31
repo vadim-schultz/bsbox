@@ -9,7 +9,7 @@ import type { StatusLiteral } from "../types/dto";
 
 /** Messages sent from client to server */
 type WSMessage =
-  | { type: "join" }
+  | { type: "join"; fingerprint: string }
   | { type: "status"; status: StatusLiteral }
   | { type: "ping" };
 
@@ -28,6 +28,7 @@ export class MeetingSocket {
   private ws: WebSocket | null = null;
   private participantId: string | null = null;
   private meetingId: string | null = null;
+  private deviceFingerprint: string | null = null;
   private pingInterval: number | null = null;
   private reconnectTimeout: number | null = null;
   private reconnectAttempts = 0;
@@ -112,12 +113,17 @@ export class MeetingSocket {
   }
 
   /** Join the meeting as a participant (creates new participant per connection) */
-  async join(): Promise<string> {
+  async join(fingerprint: string): Promise<string> {
     if (!this.ws || this.connectionState !== "connected") {
       throw new Error("Not connected");
     }
 
-    this.send({ type: "join" });
+    if (!fingerprint) {
+      throw new Error("Missing device fingerprint");
+    }
+
+    this.deviceFingerprint = fingerprint;
+    this.send({ type: "join", fingerprint });
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -298,7 +304,12 @@ export class MeetingSocket {
         void this.connect(this.meetingId).then(() => {
           // Re-join after reconnect
           if (this.connectionState === "connected") {
-            void this.join().catch((err) => {
+              const fp = this.deviceFingerprint;
+              if (!fp) {
+                console.error("[WS] Missing fingerprint for reconnect");
+                return;
+              }
+              void this.join(fp).catch((err) => {
               console.error("[WS] Re-join failed:", err);
             });
           }

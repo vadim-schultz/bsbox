@@ -3,7 +3,6 @@ import { useMemo } from "react";
 
 import { useMeetingExperience } from "../hooks/useMeetingExperience";
 import { useMeetingDuration } from "../hooks/useMeetingDuration";
-import { useEngagementStream } from "../hooks/useEngagementStream";
 import { buildChartData } from "../domain/engagement";
 import { formatTimespan } from "../utils/time";
 import { ErrorNotice, LoadingState } from "../components/feedback";
@@ -19,36 +18,28 @@ type Props = {
 
 export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
   const {
-    meeting,
-    meetingTimes,
     meetingId,
+    meetingTimes,
+    cityName,
+    meetingRoomName,
+    msTeamsInput,
     participantCount,
+    engagementSummary,
     activeStatus,
     loading,
     error,
     sendStatus,
-    refreshMeeting,
   } = useMeetingExperience(initialSession);
 
   const { isLocked, durationMinutes, updateDuration } = useMeetingDuration({
     meetingId,
     meetingTimes,
-    onDurationUpdated: () => refreshMeeting(meetingId),
   });
 
-  const {
-    summary: engagementSummary,
-    loading: engagementLoading,
-    error: engagementError,
-  } = useEngagementStream(meetingId);
-
-  const displayParticipantCount =
-    engagementSummary?.participants.length ?? participantCount;
-
-  // Prepare chart data in the container (business logic)
+  // Prepare chart data from engagement summary
   const chartData = useMemo(
-    () => buildChartData(meeting, engagementSummary),
-    [meeting, engagementSummary]
+    () => buildChartData(null, engagementSummary),
+    [engagementSummary]
   );
 
   const handleToggle = async (status: "speaking" | "engaged") => {
@@ -58,6 +49,11 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     }
     await sendStatus(status);
   };
+
+  // Build msTeams display object from input string
+  const msTeamsDisplay = msTeamsInput
+    ? { inviteUrl: msTeamsInput, threadId: null, meetingId: null }
+    : null;
 
   return (
     <Stack gap={6}>
@@ -76,16 +72,16 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
         currentDurationMinutes={durationMinutes ?? 60}
         onDurationChange={updateDuration}
         durationLocked={isLocked}
-        participantCount={displayParticipantCount}
-        cityName={meeting?.cityName ?? null}
-        meetingRoomName={meeting?.meetingRoomName ?? null}
-        msTeams={meeting?.msTeams ?? null}
+        participantCount={participantCount}
+        cityName={cityName}
+        meetingRoomName={meetingRoomName}
+        msTeams={msTeamsDisplay}
       />
 
       {error ? (
         <ErrorNotice message={error} />
       ) : loading ? (
-        <LoadingState label="Loading meeting..." />
+        <LoadingState label="Connecting to meeting..." />
       ) : (
         <StatusSelector activeStatus={activeStatus} onToggle={handleToggle} />
       )}
@@ -100,8 +96,8 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
         data={chartData}
         windowMinutes={engagementSummary?.windowMinutes}
         bucketMinutes={engagementSummary?.bucketMinutes}
-        loading={engagementLoading}
-        error={engagementError}
+        loading={loading}
+        error={error}
       />
     </Stack>
   );

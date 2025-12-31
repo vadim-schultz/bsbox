@@ -16,8 +16,8 @@ from litestar.handlers import send_websocket_stream
 from sqlalchemy.orm import Session
 
 from app.models import Meeting
-from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo
-from app.services import EngagementService, MeetingService
+from app.repos import MeetingRepo
+from app.services import MeetingService
 from app.ws import ErrorResponse, MeetingEndedResponse, WSContext, WSMessageHandlerFactory
 
 logger = logging.getLogger(__name__)
@@ -46,8 +46,6 @@ async def meeting_stream_lifespan(
 
     # Validate meeting exists
     meeting_service = MeetingService(MeetingRepo(session))
-    engagement_service = EngagementService(EngagementRepo(session), ParticipantRepo(session))
-
     meeting = meeting_service.get_meeting(meeting_id)
     if not meeting:
         logger.warning("WS meeting not found meeting_id=%s", meeting_id)
@@ -74,9 +72,8 @@ async def meeting_stream_lifespan(
     socket.state.ws_context = context
     socket.state.handler_factory = WSMessageHandlerFactory(session)
 
-    # Send initial snapshot
-    summary = engagement_service.build_engagement_summary(meeting)
-    await socket.send_json({"type": "snapshot", "data": summary.model_dump(mode="json")})
+    # Note: Initial snapshot is sent after join (in JoinHandler) to include
+    # the newly created participant
 
     # Subscribe to channel and stream events
     channel_name = f"meeting:{meeting_id}"
@@ -99,21 +96,25 @@ async def meeting_stream_lifespan(
                 await socket.send_json(MeetingEndedResponse().to_dict())
             is_closed.set()
 
-    async with anyio.create_task_group() as tg:
-        tg.start_soon(send_websocket_stream, socket, channel_event_stream())
-        tg.start_soon(meeting_end_watcher)
+    try:
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(send_websocket_stream, socket, channel_event_stream())
+            tg.start_soon(meeting_end_watcher)
 
-        try:
-            yield  # Hand control to the listener for receiving messages
-        except WebSocketDisconnect:
-            logger.info("WS disconnect meeting_id=%s", meeting_id)
-        finally:
-            is_closed.set()
-            # Commit any pending changes (e.g., last_seen_at updates)
             try:
-                session.commit()
-            except Exception:
-                session.rollback()
+                yield  # Hand control to the listener for receiving messages
+            except WebSocketDisconnect:
+                logger.info("WS disconnect meeting_id=%s", meeting_id)
+            finally:
+                is_closed.set()
+                # Commit any pending changes (e.g., last_seen_at updates)
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+    except Exception as e:
+        logger.exception("WS task group error meeting_id=%s: %s", meeting_id, e)
+        raise
 
 
 @websocket_listener(
@@ -151,4 +152,6 @@ async def meeting_stream_handler(data: str, socket: WebSocket) -> str | None:
     if response:
         return json.dumps(response.to_dict())
 
-    return None
+    # Litestar expects a string/bytes payload; returning an empty string avoids None decode errors
+    # when handlers deliberately produce no direct response (e.g., status updates broadcast via channel).
+    return ""

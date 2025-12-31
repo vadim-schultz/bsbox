@@ -22,7 +22,7 @@ class WSMessageHandlerFactory:
 
         # Register handlers
         self._handlers: dict[str, WSMessageHandler] = {
-            "join": JoinHandler(participant_service),
+            "join": JoinHandler(participant_service, engagement_service),
             "status": StatusHandler(engagement_service),
             "ping": PingHandler(),
         }
