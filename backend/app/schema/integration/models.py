@@ -1,4 +1,4 @@
-"""MS Teams meeting schema for API responses."""
+"""MS Teams integration model schemas for API responses."""
 
 from pydantic import BaseModel, ConfigDict
 

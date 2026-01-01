@@ -1,7 +1,9 @@
 from litestar import Controller, get, post
 from litestar.exceptions import HTTPException
 
-from app.schema import MeetingRoomCreate, MeetingRoomRead, Paginated, PaginationParams
+from app.schema.common.pagination import Paginated, PaginationParams
+from app.schema.location.models import MeetingRoomRead
+from app.schema.location.requests import MeetingRoomCreate
 from app.services import MeetingRoomService
 
 

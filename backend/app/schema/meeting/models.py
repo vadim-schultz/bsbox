@@ -1,11 +1,11 @@
-"""Meeting-related schemas."""
+"""Meeting model schemas for API responses."""
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
-from app.schema.ms_teams_meeting import MSTeamsMeetingRead
-from app.schema.participant import ParticipantRead
+from app.schema.integration.models import MSTeamsMeetingRead
+from app.schema.participant.models import ParticipantRead
 from app.utils.datetime import isoformat_utc
 
 
@@ -26,19 +26,6 @@ class MeetingRead(BaseModel):
     @field_serializer("start_ts", "end_ts")
     def serialize_datetime(self, dt: datetime) -> str:
         return isoformat_utc(dt)
-
-
-class MeetingDurationUpdate(BaseModel):
-    """Request to update a meeting's duration."""
-
-    duration_minutes: int = Field(..., description="Allowed values: 30 or 60")
-
-    @field_validator("duration_minutes")
-    @classmethod
-    def _validate_duration(cls, value: int) -> int:
-        if value not in {30, 60}:
-            raise ValueError("duration_minutes must be 30 or 60")
-        return value
 
 
 class MeetingWithParticipants(MeetingRead):

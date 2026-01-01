@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from app.models import MeetingRoom
 from app.repos import CityRepo, MeetingRoomRepo
-from app.schema import PaginationParams
+from app.schema.common.pagination import PaginationParams
 
 
 class MeetingRoomService:

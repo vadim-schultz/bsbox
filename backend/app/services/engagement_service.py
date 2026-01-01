@@ -5,7 +5,7 @@ from typing import Any
 
 from app.models import Meeting, Participant
 from app.repos import EngagementRepo, ParticipantRepo
-from app.schema import (
+from app.schema.engagement.models import (
     BucketRollup,
     EngagementPoint,
     EngagementSummary,

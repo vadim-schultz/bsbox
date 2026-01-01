@@ -36,7 +36,8 @@ class Participant(Base):
 
     def to_read_schema(self) -> ParticipantRead:
         """Convert ORM model to ParticipantRead schema with engagement samples."""
-        from app.schema import EngagementSampleRead, ParticipantRead
+        from app.schema.engagement.models import EngagementSampleRead
+        from app.schema.participant.models import ParticipantRead
 
         samples = []
         for s in sorted(self.engagement_samples, key=lambda s: s.bucket):
@@ -55,4 +56,4 @@ class Participant(Base):
 if TYPE_CHECKING:
     from app.models.engagement_sample import EngagementSample
     from app.models.meeting import Meeting
-    from app.schema import ParticipantRead
+    from app.schema.participant.models import ParticipantRead

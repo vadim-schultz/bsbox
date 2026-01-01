@@ -6,14 +6,10 @@ from litestar import Controller, get, patch, post
 from litestar.di import Provide
 from litestar.exceptions import HTTPException
 
-from app.schema import (
-    EngagementSummary,
-    MeetingDurationUpdate,
-    MeetingRead,
-    MeetingWithParticipants,
-    Paginated,
-    PaginationParams,
-)
+from app.schema.common.pagination import Paginated, PaginationParams
+from app.schema.engagement.models import EngagementSummary
+from app.schema.meeting.models import MeetingRead, MeetingWithParticipants
+from app.schema.meeting.requests import MeetingDurationUpdate
 from app.services import MeetingService
 from app.services.engagement_service import EngagementService
 

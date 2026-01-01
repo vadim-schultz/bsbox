@@ -1,4 +1,4 @@
-"""Pydantic models for MS Teams meeting data."""
+"""MS Teams meeting input parsers."""
 
 import re
 import urllib.parse

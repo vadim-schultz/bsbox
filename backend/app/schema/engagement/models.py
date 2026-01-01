@@ -1,7 +1,6 @@
-"""Engagement-related schemas for tracking participant activity."""
+"""Engagement model schemas for tracking participant activity."""
 
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_serializer
 
@@ -66,25 +65,3 @@ class BucketRollup(BaseModel):
     @field_serializer("bucket")
     def serialize_bucket(self, bucket: datetime) -> str:
         return isoformat_utc(bucket)
-
-
-class DeltaMessageData(BaseModel):
-    """Payload for a real-time engagement delta update."""
-
-    meeting_id: str
-    participant_id: str
-    bucket: datetime
-    status: str
-    overall: float
-    participants: dict[str, float]
-
-    @field_serializer("bucket")
-    def serialize_bucket(self, bucket: datetime) -> str:
-        return isoformat_utc(bucket)
-
-
-class DeltaMessage(BaseModel):
-    """WebSocket message for broadcasting engagement status changes."""
-
-    type: Literal["delta"] = "delta"
-    data: DeltaMessageData

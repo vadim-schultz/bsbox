@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 from app.models import City
 from app.repos import CityRepo
-from app.schema import PaginationParams
+from app.schema.common.pagination import PaginationParams
 
 
 class CityService:

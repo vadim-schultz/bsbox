@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 from app.models import Meeting
 from app.repos import MeetingRepo
-from app.schema import PaginationParams, ParsedTeamsMeeting
+from app.schema.common.pagination import PaginationParams
+from app.schema.integration.parsers import ParsedTeamsMeeting
 from app.utils.datetime import ensure_tz, ensure_utc
 
 

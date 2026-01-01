@@ -39,8 +39,8 @@ class Meeting(Base):
 
     def to_read_schema(self) -> MeetingRead:
         """Convert ORM model to MeetingRead schema."""
-        from app.schema import MeetingRead
-        from app.schema.ms_teams_meeting import MSTeamsMeetingRead
+        from app.schema.integration.models import MSTeamsMeetingRead
+        from app.schema.meeting.models import MeetingRead
 
         ms_teams = None
         if self.ms_teams_meeting:
@@ -63,7 +63,7 @@ class Meeting(Base):
 
     def to_full_schema(self) -> MeetingWithParticipants:
         """Convert ORM model to MeetingWithParticipants schema with participant data."""
-        from app.schema import MeetingWithParticipants
+        from app.schema.meeting.models import MeetingWithParticipants
 
         participants = [p.to_read_schema() for p in self.participants]
         meeting_data = self.to_read_schema().model_dump()
@@ -104,4 +104,4 @@ if TYPE_CHECKING:
     from app.models.meeting_room import MeetingRoom
     from app.models.ms_teams_meeting import MSTeamsMeeting
     from app.models.participant import Participant
-    from app.schema import MeetingRead, MeetingWithParticipants
+    from app.schema.meeting.models import MeetingRead, MeetingWithParticipants

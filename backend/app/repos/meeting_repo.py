@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import Meeting
 from app.repos.ms_teams_meeting_repo import MSTeamsMeetingRepo
-from app.schema import PaginationParams, ParsedTeamsMeeting
+from app.schema.common.pagination import PaginationParams
+from app.schema.integration.parsers import ParsedTeamsMeeting
 from app.utils.datetime import ensure_utc, isoformat_utc
 
 

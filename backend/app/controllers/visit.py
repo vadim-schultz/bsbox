@@ -8,7 +8,8 @@ from datetime import datetime
 
 from litestar import Controller, post
 
-from app.schema import VisitRequest, VisitResponse
+from app.schema.visit.requests import VisitRequest
+from app.schema.visit.responses import VisitResponse
 from app.services import MeetingService
 
 

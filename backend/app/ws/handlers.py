@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
-from app.schema.engagement import DeltaMessage, DeltaMessageData
+from app.schema.engagement.messages import DeltaMessage, DeltaMessageData
 from app.schema.websocket import (
     ErrorResponse,
     JoinedResponse,

@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import MSTeamsMeeting
-from app.schema import ParsedTeamsMeeting
+from app.schema.integration.parsers import ParsedTeamsMeeting
 
 
 class MSTeamsMeetingRepo:

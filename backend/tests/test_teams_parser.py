@@ -1,6 +1,6 @@
 """Tests for MS Teams meeting parsing via Pydantic model."""
 
-from app.schema.teams import ParsedTeamsMeeting
+from app.schema.integration.parsers import ParsedTeamsMeeting
 
 
 def parse(value: str | None) -> ParsedTeamsMeeting:

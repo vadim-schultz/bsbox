@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import City
-from app.schema import PaginationParams
+from app.schema.common.pagination import PaginationParams
 
 
 class CityRepo:
