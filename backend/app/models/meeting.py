@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -68,6 +68,35 @@ class Meeting(Base):
         participants = [p.to_read_schema() for p in self.participants]
         meeting_data = self.to_read_schema().model_dump()
         return MeetingWithParticipants(participants=participants, **meeting_data)
+
+    def is_active(self) -> bool:
+        """Check if meeting is currently active (not ended)."""
+        now = datetime.now(tz=UTC)
+        end_ts = ensure_utc(self.end_ts)
+        return now < end_ts
+
+    def has_started(self) -> bool:
+        """Check if meeting has started."""
+        now = datetime.now(tz=UTC)
+        start_ts = ensure_utc(self.start_ts)
+        return now >= start_ts
+
+    def has_ended(self) -> bool:
+        """Check if meeting has ended."""
+        now = datetime.now(tz=UTC)
+        end_ts = ensure_utc(self.end_ts)
+        return now >= end_ts
+
+    def time_status(self) -> tuple[bool, bool]:
+        """Check meeting timing status.
+
+        Returns:
+            (has_started, has_ended) tuple
+        """
+        now = datetime.now(tz=UTC)
+        start_ts = ensure_utc(self.start_ts)
+        end_ts = ensure_utc(self.end_ts)
+        return (now >= start_ts, now >= end_ts)
 
 
 if TYPE_CHECKING:

@@ -24,16 +24,31 @@ from app.schema.participant import (
 )
 from app.schema.teams import ParsedTeamsMeeting
 from app.schema.visit import VisitRequest, VisitResponse
+from app.schema.websocket import (
+    ErrorResponse,
+    JoinedResponse,
+    JoinRequest,
+    MeetingCountdownResponse,
+    MeetingEndedResponse,
+    MeetingNotStartedResponse,
+    PingRequest,
+    PongResponse,
+    SnapshotMessage,
+    StatusUpdateRequest,
+)
 
 __all__ = [
+    # Meeting schemas
     "MeetingRead",
     "MeetingDurationUpdate",
     "MeetingWithParticipants",
     "MSTeamsMeetingRead",
+    # Participant schemas
     "ParticipantRead",
     "ParticipantCreate",
     "StatusChangeRequest",
     "StatusLiteral",
+    # Engagement schemas
     "EngagementSampleRead",
     "EngagementSummary",
     "ParticipantEngagementSeries",
@@ -41,13 +56,30 @@ __all__ = [
     "BucketRollup",
     "DeltaMessage",
     "DeltaMessageData",
+    # Pagination
     "PaginationParams",
     "Paginated",
+    # Teams
     "ParsedTeamsMeeting",
+    # Visit
     "VisitRequest",
     "VisitResponse",
+    # City & Room
     "CityRead",
     "CityCreate",
     "MeetingRoomRead",
     "MeetingRoomCreate",
+    # WebSocket Request Models
+    "JoinRequest",
+    "StatusUpdateRequest",
+    "PingRequest",
+    # WebSocket Response Models
+    "JoinedResponse",
+    "PongResponse",
+    "ErrorResponse",
+    "MeetingEndedResponse",
+    "MeetingNotStartedResponse",
+    "MeetingCountdownResponse",
+    # WebSocket Broadcast Models
+    "SnapshotMessage",
 ]

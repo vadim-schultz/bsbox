@@ -6,9 +6,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.models import Meeting, Participant
+from app.schema.websocket import MeetingEndedResponse, MeetingNotStartedResponse
 from app.services import EngagementService
-from app.ws.handlers import StatusHandler, _meeting_time_status
-from app.ws.types import MeetingEndedResponse, MeetingNotStartedResponse, WSContext
+from app.ws.context import WSContext
+from app.ws.handlers import StatusHandler
 
 
 def test_meeting_time_status_before_start():
@@ -24,7 +25,7 @@ def test_meeting_time_status_before_start():
         end_ts=future_end,
     )
 
-    has_started, has_ended = _meeting_time_status(meeting)
+    has_started, has_ended = meeting.time_status()
     assert not has_started
     assert not has_ended
 
@@ -42,7 +43,7 @@ def test_meeting_time_status_during_meeting():
         end_ts=future_end,
     )
 
-    has_started, has_ended = _meeting_time_status(meeting)
+    has_started, has_ended = meeting.time_status()
     assert has_started
     assert not has_ended
 
@@ -60,7 +61,7 @@ def test_meeting_time_status_after_end():
         end_ts=past_end,
     )
 
-    has_started, has_ended = _meeting_time_status(meeting)
+    has_started, has_ended = meeting.time_status()
     assert has_started
     assert has_ended
 
@@ -68,6 +69,8 @@ def test_meeting_time_status_after_end():
 @pytest.mark.asyncio
 async def test_status_handler_rejects_before_start():
     """Test that StatusHandler rejects status updates before meeting starts."""
+    from app.schema.websocket import StatusUpdateRequest
+
     # Create a meeting that starts in the future
     now = datetime.now(tz=UTC)
     future_start = now + timedelta(hours=1)
@@ -90,25 +93,20 @@ async def test_status_handler_rejects_before_start():
     context.participant = participant
     context.meeting = meeting
 
-    # Mock engagement service
-    engagement_service = MagicMock(spec=EngagementService)
+    # Create validated request
+    request = StatusUpdateRequest(status="engaged")
 
-    handler = StatusHandler(engagement_service)
-    message = {"status": "engaged"}
-
-    response = await handler.handle(context, message)
-
-    # Should return MeetingNotStartedResponse
-    assert isinstance(response, MeetingNotStartedResponse)
-    assert "not started" in response.message.lower()
-
-    # Should not have called record_status
-    engagement_service.record_status.assert_not_called()
+    # Validation should fail at request level
+    error = request.validate_meeting(context)
+    assert isinstance(error, MeetingNotStartedResponse)
+    assert "not started" in error.message.lower()
 
 
 @pytest.mark.asyncio
 async def test_status_handler_rejects_after_end():
     """Test that StatusHandler rejects status updates after meeting ends."""
+    from app.schema.websocket import StatusUpdateRequest
+
     # Create a meeting that has ended
     now = datetime.now(tz=UTC)
     past_start = now - timedelta(hours=2)
@@ -132,25 +130,20 @@ async def test_status_handler_rejects_after_end():
     context.participant = participant
     context.meeting = meeting
 
-    # Mock engagement service
-    engagement_service = MagicMock(spec=EngagementService)
+    # Create validated request
+    request = StatusUpdateRequest(status="engaged")
 
-    handler = StatusHandler(engagement_service)
-    message = {"status": "engaged"}
-
-    response = await handler.handle(context, message)
-
-    # Should return MeetingEndedResponse
-    assert isinstance(response, MeetingEndedResponse)
-    assert "ended" in response.message.lower()
-
-    # Should not have called record_status
-    engagement_service.record_status.assert_not_called()
+    # Validation should fail at request level
+    error = request.validate_meeting(context)
+    assert isinstance(error, MeetingEndedResponse)
+    assert "ended" in error.message.lower()
 
 
 @pytest.mark.asyncio
 async def test_status_handler_accepts_during_meeting():
     """Test that StatusHandler accepts status updates during active meeting."""
+    from app.schema.websocket import StatusUpdateRequest
+
     # Create a meeting that is currently active
     now = datetime.now(tz=UTC)
     past_start = now - timedelta(minutes=30)
@@ -186,10 +179,15 @@ async def test_status_handler_accepts_during_meeting():
         "participants": {"test-participant": 50.0},
     }
 
-    handler = StatusHandler(engagement_service)
-    message = {"status": "engaged"}
+    # Create validated request
+    request = StatusUpdateRequest(status="engaged")
 
-    response = await handler.handle(context, message)
+    # Validation should pass
+    assert request.validate_meeting(context) is None
+    assert request.validate_participant(context) is None
+
+    handler = StatusHandler(engagement_service)
+    response = await handler.execute(request, context)
 
     # Should not return an error response (None means success, broadcasts via channel)
     assert response is None

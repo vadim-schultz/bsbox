@@ -1,11 +1,9 @@
 """WebSocket handler for real-time meeting engagement updates."""
 
-import contextlib
 import json
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 from typing import Any
 
 import anyio
@@ -15,33 +13,17 @@ from litestar.exceptions import WebSocketDisconnect
 from litestar.handlers import send_websocket_stream
 from sqlalchemy.orm import Session
 
-from app.models import Meeting
 from app.repos import MeetingRepo
+from app.schema.websocket import ErrorResponse
 from app.services import MeetingService
-from app.utils.datetime import ensure_utc, isoformat_utc
-from app.ws import (
-    ErrorResponse,
-    MeetingCountdownResponse,
-    MeetingEndedResponse,
-    WSContext,
-    WSMessageHandlerFactory,
-)
+from app.ws.context import WSContext
+from app.ws.factory import WSMessageHandlerFactory
+from app.ws.lifecycle import LifecycleCoordinator
+from app.ws.lifecycle.validators.connection import ConnectionValidator
+from app.ws.lifecycle.validators.timing import MeetingTimingValidator
+from app.ws.processor import process_ws_message
 
 logger = logging.getLogger(__name__)
-
-
-def _seconds_until_meeting_end(meeting: Meeting) -> float:
-    """Calculate seconds until meeting ends."""
-    now = datetime.now(tz=UTC)
-    end_ts = ensure_utc(meeting.end_ts)
-    return max(0, (end_ts - now).total_seconds())
-
-
-def _seconds_until_meeting_start(meeting: Meeting) -> float:
-    """Calculate seconds until meeting starts."""
-    now = datetime.now(tz=UTC)
-    start_ts = ensure_utc(meeting.start_ts)
-    return max(0, (start_ts - now).total_seconds())
 
 
 @asynccontextmanager
@@ -50,131 +32,61 @@ async def meeting_stream_lifespan(
     channels: ChannelsPlugin,
     session: Session,
 ) -> AsyncGenerator[None, Any]:
-    """Lifespan context for meeting stream WebSocket connections.
+    """WebSocket connection lifespan using lifecycle coordinator.
 
-    Handles meeting validation, initial snapshot, channel subscription,
-    event streaming, and automatic close when meeting ends.
+    Delegates to coordinator for validation, setup, and management of
+    channel streaming and meeting end watching.
     """
-    meeting_id: str = socket.path_params.get("meeting_id", "")
-    logger.info("WS connection accepted meeting_id=%s", meeting_id)
-
-    # Validate meeting exists
-    meeting_service = MeetingService(MeetingRepo(session))
-    meeting = meeting_service.get_meeting(meeting_id)
-    if not meeting:
-        logger.warning("WS meeting not found meeting_id=%s", meeting_id)
-        await socket.close(code=4404, reason="Meeting not found")
-        return
-
-    # Check if meeting already ended
-    seconds_remaining = _seconds_until_meeting_end(meeting)
-    if seconds_remaining <= 0:
-        logger.info("WS meeting already ended meeting_id=%s", meeting_id)
-        end_time = isoformat_utc(ensure_utc(meeting.end_ts))
-        await socket.send_json(
-            MeetingEndedResponse(
-                message=f"The meeting has already ended at {end_time}.",
-                end_time=end_time,
-            ).to_dict()
-        )
-        await socket.close(code=1000, reason="Meeting ended")
-        return
-
-    # Check if meeting hasn't started yet
-    seconds_until_start = _seconds_until_meeting_start(meeting)
-    if seconds_until_start > 0:
-        # If within 15 minutes (900 seconds), send countdown message
-        if seconds_until_start <= 900:
-            logger.info(
-                "WS meeting not started yet, sending countdown meeting_id=%s seconds=%s",
-                meeting_id,
-                seconds_until_start,
-            )
-            now = datetime.now(tz=UTC)
-            start_time = isoformat_utc(ensure_utc(meeting.start_ts))
-            await socket.send_json(
-                MeetingCountdownResponse(
-                    meeting_id=meeting.id,
-                    start_time=start_time,
-                    server_time=isoformat_utc(now),
-                    city_name=meeting.city.name if meeting.city else None,
-                    meeting_room_name=meeting.meeting_room.name if meeting.meeting_room else None,
-                ).to_dict()
-            )
-        else:
-            # More than 15 minutes away, don't allow connection yet
-            logger.info(
-                "WS meeting too far in future meeting_id=%s seconds=%s", meeting_id, seconds_until_start
-            )
-            start_time = isoformat_utc(ensure_utc(meeting.start_ts))
-            await socket.send_json(
-                ErrorResponse(
-                    message=f"Meeting starts in {int(seconds_until_start / 60)} minutes. Please connect closer to start time.",
-                ).to_dict()
-            )
-            await socket.close(code=1000, reason="Meeting not ready")
-            return
-
-    # Initialize context for handlers
-    context = WSContext(
-        socket=socket,
-        meeting=meeting,
-        session=session,
-        channels=channels,
+    # Create coordinator with dependencies
+    coordinator = LifecycleCoordinator(
+        connection_validator=ConnectionValidator(MeetingTimingValidator()),
+        meeting_service=MeetingService(MeetingRepo(session)),
     )
 
+    # Setup lifecycle
+    result = await coordinator.setup(socket, channels, session)
+    if not result:
+        return  # Connection rejected, response already sent
+
     # Store context and factory on socket state for handler access
-    socket.state.ws_context = context
-    socket.state.handler_factory = WSMessageHandlerFactory(session)
+    socket.state.ws_context = result.context
+    socket.state.handler_factory = result.factory
 
     # Note: Initial snapshot is sent after join (in JoinHandler) to include
     # the newly created participant
 
-    # Subscribe to channel and stream events
-    channel_name = f"meeting:{meeting_id}"
-    is_closed = anyio.Event()
-
-    async def channel_event_stream() -> AsyncGenerator[str, None]:
-        """Generator that yields channel events as strings for send_websocket_stream."""
-        async with channels.start_subscription([channel_name]) as subscriber:
-            async for event in subscriber.iter_events():
-                if is_closed.is_set():
-                    break
-                yield event.decode("utf-8")
-
-    async def meeting_end_watcher() -> None:
-        """Close WebSocket when meeting ends."""
-        await anyio.sleep(seconds_remaining)
-        if not is_closed.is_set():
-            logger.info("WS meeting ended, closing connection meeting_id=%s", meeting_id)
-            with contextlib.suppress(Exception):
-                end_time = isoformat_utc(ensure_utc(meeting.end_ts))
-                await socket.send_json(
-                    MeetingEndedResponse(
-                        message=f"The meeting has ended at {end_time}.",
-                        end_time=end_time,
-                    ).to_dict()
-                )
-            is_closed.set()
-
+    # Run stream and watcher tasks
     try:
         async with anyio.create_task_group() as tg:
-            tg.start_soon(send_websocket_stream, socket, channel_event_stream())
-            tg.start_soon(meeting_end_watcher)
+            tg.start_soon(
+                send_websocket_stream,
+                socket,
+                result.stream_manager.create_event_stream(
+                    f"meeting:{result.context.meeting.id}",
+                    result.is_closed,
+                ),
+            )
+            tg.start_soon(
+                result.watcher.watch,
+                result.context.meeting,
+                socket,
+                result.is_closed,
+                result.seconds_remaining,
+            )
 
             try:
                 yield  # Hand control to the listener for receiving messages
             except WebSocketDisconnect:
-                logger.info("WS disconnect meeting_id=%s", meeting_id)
+                logger.info("WS disconnect meeting_id=%s", result.context.meeting.id)
             finally:
-                is_closed.set()
+                result.is_closed.set()
                 # Commit any pending changes (e.g., last_seen_at updates)
                 try:
                     session.commit()
                 except Exception:
                     session.rollback()
     except Exception as e:
-        logger.exception("WS task group error meeting_id=%s: %s", meeting_id, e)
+        logger.exception("WS task group error: %s", e)
         raise
 
 
@@ -183,39 +95,32 @@ async def meeting_stream_lifespan(
     connection_lifespan=meeting_stream_lifespan,
 )
 async def meeting_stream_handler(data: str, socket: WebSocket) -> str:
-    """Handle incoming WebSocket messages using handler factory pattern.
+    """Handle incoming WebSocket messages using processor.
 
-    Delegates to appropriate handler based on message type.
+    Delegates to processor which routes via discriminated union.
     Channel events are streamed to the client via the lifespan's send_websocket_stream.
     """
     try:
         message = json.loads(data)
     except json.JSONDecodeError:
-        return json.dumps(ErrorResponse(message="Invalid JSON").to_dict())
+        error = ErrorResponse(message="Invalid JSON")
+        return error.model_dump_json()
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("WS decode error: %s", exc)
-        return json.dumps(ErrorResponse(message="Invalid payload").to_dict())
-
-    message_type = message.get("type")
-    if not message_type:
-        return json.dumps(ErrorResponse(message="Missing message type").to_dict())
+        error = ErrorResponse(message="Invalid payload")
+        return error.model_dump_json()
 
     try:
         context: WSContext = socket.state.ws_context
         factory: WSMessageHandlerFactory = socket.state.handler_factory
 
-        handler = factory.get_handler(message_type)
-        if not handler:
-            return json.dumps(
-                ErrorResponse(message=f"Unknown message type: {message_type}").to_dict()
-            )
-
-        response = await handler.handle(context, message)
+        response = await process_ws_message(message, context, factory)
         if response:
-            return json.dumps(response.to_dict())
+            return response.model_dump_json()
     except Exception as exc:  # pragma: no cover - defensive
-        logger.exception("WS handler error for message_type=%s: %s", message_type, exc)
-        return json.dumps(ErrorResponse(message="Internal error").to_dict())
+        logger.exception("WS processing error: %s", exc)
+        error = ErrorResponse(message="Internal error")
+        return error.model_dump_json()
 
     # Litestar expects a string/bytes payload; returning an empty string avoids None decode errors
     # when handlers deliberately produce no direct response (e.g., status updates broadcast via channel).

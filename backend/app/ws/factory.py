@@ -1,11 +1,13 @@
 """WebSocket message handler factory."""
 
+from typing import cast
+
 from sqlalchemy.orm import Session
 
 from app.repos import EngagementRepo, ParticipantRepo
 from app.services import EngagementService, ParticipantService
 from app.ws.handlers import JoinHandler, PingHandler, StatusHandler
-from app.ws.types import WSMessageHandler
+from app.ws.protocol import WSMessageHandler
 
 
 class WSMessageHandlerFactory:
@@ -20,11 +22,11 @@ class WSMessageHandlerFactory:
         participant_service = ParticipantService(participant_repo)
         engagement_service = EngagementService(engagement_repo, participant_repo)
 
-        # Register handlers
+        # Register handlers (cast to protocol type for mypy)
         self._handlers: dict[str, WSMessageHandler] = {
-            "join": JoinHandler(participant_service, engagement_service),
-            "status": StatusHandler(engagement_service),
-            "ping": PingHandler(),
+            "join": cast(WSMessageHandler, JoinHandler(participant_service, engagement_service)),
+            "status": cast(WSMessageHandler, StatusHandler(engagement_service)),
+            "ping": cast(WSMessageHandler, PingHandler()),
         }
 
     def get_handler(self, message_type: str) -> WSMessageHandler | None:

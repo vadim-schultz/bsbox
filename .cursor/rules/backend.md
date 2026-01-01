@@ -15,15 +15,8 @@
 - Cache hotspot metrics or session data with Redis via dependency injection.
 - Ensure every required dependency is declared in `backend/pyproject.toml`. Group dependencies logically (runtime/core vs optional extras such as docs, testing, linting) using Poetry dependency groups.
 
-## Hotspot Integration
-- Place Wi-Fi client discovery helpers in `backend/app/utils`.
-- Wrap interactions with `iw`, `nmcli`, or `hostapd_cli` using async subprocess helpers.
-- Implement meeting detection as a background task triggered from the Litestar lifespan handler; expose configuration through `Settings`.
-
 ## Testing & Quality
 - Write pytest suites under `backend/tests`.
 - Mock system utilities (e.g., subprocess calls) in unit tests.
 - Ensure mypy passes with strict settings and ruff linting is clean before committing.
-- Manage environments with Poetry: run `poetry install` (use `--with`/`--all-extras` as needed for docs/tests). Activate the environment using `poetry env activate` (or prefix commands with `poetry run`) since `poetry shell` is not available by default.
-- After dependencies are installed, execute tox through Poetry (`poetry run tox …`) so tox environments can reuse the resolved packages.
 

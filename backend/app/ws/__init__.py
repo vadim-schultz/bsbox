@@ -1,25 +1,14 @@
 """WebSocket message handling module."""
 
+from app.ws import lifecycle, processor
+from app.ws.context import WSContext
 from app.ws.factory import WSMessageHandlerFactory
-from app.ws.types import (
-    ErrorResponse,
-    JoinedResponse,
-    MeetingCountdownResponse,
-    MeetingEndedResponse,
-    PongResponse,
-    WSContext,
-    WSMessageHandler,
-    WSResponse,
-)
+from app.ws.protocol import WSMessageHandler
 
 __all__ = [
-    "ErrorResponse",
-    "JoinedResponse",
-    "MeetingCountdownResponse",
-    "MeetingEndedResponse",
-    "PongResponse",
     "WSContext",
     "WSMessageHandler",
     "WSMessageHandlerFactory",
-    "WSResponse",
+    "lifecycle",
+    "processor",
 ]
