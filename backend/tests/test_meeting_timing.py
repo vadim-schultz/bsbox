@@ -8,8 +8,9 @@ import pytest
 from app.models import Meeting, Participant
 from app.schema.websocket import MeetingEndedResponse, MeetingNotStartedResponse
 from app.services import EngagementService
-from app.ws.context import WSContext
-from app.ws.handlers import StatusHandler
+from app.ws.repos.broadcast import BroadcastRepo
+from app.ws.services.status import StatusService
+from app.ws.transport.context import WSContext
 
 
 def test_meeting_time_status_before_start():
@@ -141,7 +142,7 @@ async def test_status_handler_rejects_after_end():
 
 @pytest.mark.asyncio
 async def test_status_handler_accepts_during_meeting():
-    """Test that StatusHandler accepts status updates during active meeting."""
+    """Test that StatusService accepts status updates during active meeting."""
     from app.schema.websocket import StatusUpdateRequest
 
     # Create a meeting that is currently active
@@ -168,8 +169,6 @@ async def test_status_handler_accepts_during_meeting():
     context.meeting = meeting
     context.session = MagicMock()
     context.session.commit = MagicMock()
-    context.channels = MagicMock()
-    context.channels.publish = MagicMock()
 
     # Mock engagement service
     engagement_service = MagicMock(spec=EngagementService)
@@ -179,6 +178,9 @@ async def test_status_handler_accepts_during_meeting():
         "participants": {"test-participant": 50.0},
     }
 
+    # Mock broadcast repo
+    broadcast_repo = MagicMock(spec=BroadcastRepo)
+
     # Create validated request
     request = StatusUpdateRequest(status="engaged")
 
@@ -186,14 +188,17 @@ async def test_status_handler_accepts_during_meeting():
     assert request.validate_meeting(context) is None
     assert request.validate_participant(context) is None
 
-    handler = StatusHandler(engagement_service)
-    response = await handler.execute(request, context)
+    service = StatusService(engagement_service, broadcast_repo)
+    response = await service.execute(request, context)
 
-    # Should not return an error response (None means success, broadcasts via channel)
+    # Should not return an error response (None means success, broadcasts via repo)
     assert response is None
 
     # Should have called record_status
     engagement_service.record_status.assert_called_once()
+
+    # Should have called broadcast_delta
+    broadcast_repo.publish_delta.assert_called_once()
 
 
 def test_engagement_service_validates_bucket_bounds():

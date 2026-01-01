@@ -1,17 +1,17 @@
-"""WebSocket handler protocol definition."""
+"""WebSocket service protocol definition."""
 
 from typing import Protocol
 
 from pydantic import BaseModel
 
 from app.schema.websocket import WSRequestBase
-from app.ws.context import WSContext
+from app.ws.transport.context import WSContext
 
 
-class WSMessageHandler(Protocol):
-    """Protocol for WebSocket message handlers.
+class WSService(Protocol):
+    """Protocol for WebSocket message services.
 
-    All handlers must implement the execute method which processes
+    All services must implement the execute method which processes
     validated requests and returns a response.
     """
 

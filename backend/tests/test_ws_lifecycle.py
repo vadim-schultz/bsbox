@@ -8,10 +8,12 @@ import pytest
 
 from app.models import Meeting
 from app.schema.websocket import MeetingCountdownResponse, MeetingEndedResponse
-from app.ws.lifecycle.managers.stream import ChannelStreamManager
-from app.ws.lifecycle.managers.watcher import MeetingEndWatcher
-from app.ws.lifecycle.validators.connection import ConnectionValidator
-from app.ws.lifecycle.validators.timing import MeetingTimingValidator
+from app.ws.repos.subscription import SubscriptionRepo
+from app.ws.transport.lifecycle import (
+    ConnectionValidator,
+    MeetingEndWatcher,
+    MeetingTimingValidator,
+)
 
 
 class TestMeetingTimingValidator:
@@ -181,11 +183,11 @@ class TestConnectionValidator:
         socket.close.assert_not_called()
 
 
-class TestChannelStreamManager:
-    """Tests for ChannelStreamManager."""
+class TestSubscriptionRepo:
+    """Tests for SubscriptionRepo."""
 
     @pytest.mark.asyncio
-    async def test_create_event_stream(self):
+    async def test_subscribe_to_meeting(self):
         """Test event stream creation and yielding."""
         # Mock channels plugin
         channels = MagicMock()
@@ -199,18 +201,18 @@ class TestChannelStreamManager:
         subscriber.iter_events.return_value = mock_iter_events()
         channels.start_subscription.return_value.__aenter__.return_value = subscriber
 
-        manager = ChannelStreamManager(channels)
+        manager = SubscriptionRepo(channels)
         is_closed = anyio.Event()
 
         # Collect events from stream
         events = []
-        async for event in manager.create_event_stream("test-channel", is_closed):
+        async for event in manager.subscribe_to_meeting("test-meeting", is_closed):
             events.append(event)
             if len(events) >= 2:
                 break
 
         assert events == ["event1", "event2"]
-        channels.start_subscription.assert_called_once_with(["test-channel"])
+        channels.start_subscription.assert_called_once_with(["meeting:test-meeting"])
 
     @pytest.mark.asyncio
     async def test_event_stream_stops_when_closed(self):
@@ -228,12 +230,12 @@ class TestChannelStreamManager:
         subscriber.iter_events.return_value = mock_iter_events()
         channels.start_subscription.return_value.__aenter__.return_value = subscriber
 
-        manager = ChannelStreamManager(channels)
+        manager = SubscriptionRepo(channels)
         is_closed = anyio.Event()
 
         # Collect events but set is_closed after 2 events
         events = []
-        async for event in manager.create_event_stream("test-channel", is_closed):
+        async for event in manager.subscribe_to_meeting("test-meeting", is_closed):
             events.append(event)
             if len(events) >= 2:
                 is_closed.set()
@@ -298,7 +300,7 @@ class TestLifecycleIntegration:
     async def test_coordinator_setup_active_meeting(self):
         """Test coordinator setup with active meeting."""
         from app.services import MeetingService
-        from app.ws.lifecycle import LifecycleCoordinator
+        from app.ws.transport.lifecycle import LifecycleCoordinator
 
         # Create active meeting
         now = datetime.now(tz=UTC)
@@ -332,7 +334,7 @@ class TestLifecycleIntegration:
         assert result is not None
         assert result.context.meeting == meeting
         assert result.factory is not None
-        assert result.stream_manager is not None
+        assert result.subscription_repo is not None
         assert result.watcher is not None
         assert result.seconds_remaining > 0
 
@@ -340,7 +342,7 @@ class TestLifecycleIntegration:
     async def test_coordinator_setup_ended_meeting(self):
         """Test coordinator setup with ended meeting returns None."""
         from app.services import MeetingService
-        from app.ws.lifecycle import LifecycleCoordinator
+        from app.ws.transport.lifecycle import LifecycleCoordinator
 
         # Create ended meeting
         now = datetime.now(tz=UTC)

@@ -12,11 +12,11 @@ from app.controllers import (
     MeetingsController,
     VisitsController,
 )
-from app.controllers.realtime import meeting_stream_handler
 from app.db import provide_session
 from app.dependencies import dependencies as app_dependencies
 from app.logging_config import configure_logging
 from app.migrations import run_migrations_on_startup
+from app.ws.controllers import meeting_stream_controller
 
 channels_plugin = ChannelsPlugin(
     backend=MemoryChannelsBackend(),
@@ -55,7 +55,7 @@ def create_app() -> Litestar:
             VisitsController,
             CitiesController,
             MeetingRoomsController,
-            meeting_stream_handler,
+            meeting_stream_controller,
             *_static_routes(),
         ],
         dependencies={"session": Provide(provide_session), **app_dependencies},

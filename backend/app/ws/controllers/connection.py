@@ -1,4 +1,8 @@
-"""WebSocket handler for real-time meeting engagement updates."""
+"""WebSocket connection controller for meeting real-time updates.
+
+This module provides the main WebSocket endpoint for real-time meeting
+engagement tracking, handling connection lifecycle and message routing.
+"""
 
 import json
 import logging
@@ -16,12 +20,12 @@ from sqlalchemy.orm import Session
 from app.repos import MeetingRepo
 from app.schema.websocket import ErrorResponse
 from app.services import MeetingService
-from app.ws.context import WSContext
-from app.ws.factory import WSMessageHandlerFactory
-from app.ws.lifecycle import LifecycleCoordinator
-from app.ws.lifecycle.validators.connection import ConnectionValidator
-from app.ws.lifecycle.validators.timing import MeetingTimingValidator
-from app.ws.processor import process_ws_message
+from app.ws.controllers.routing import MessageRouter
+from app.ws.transport.lifecycle import (
+    ConnectionValidator,
+    LifecycleCoordinator,
+    MeetingTimingValidator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ async def meeting_stream_lifespan(
     """WebSocket connection lifespan using lifecycle coordinator.
 
     Delegates to coordinator for validation, setup, and management of
-    channel streaming and meeting end watching.
+    subscription streaming and meeting end watching.
     """
     # Create coordinator with dependencies
     coordinator = LifecycleCoordinator(
@@ -50,19 +54,19 @@ async def meeting_stream_lifespan(
 
     # Store context and factory on socket state for handler access
     socket.state.ws_context = result.context
-    socket.state.handler_factory = result.factory
+    socket.state.service_factory = result.factory
 
-    # Note: Initial snapshot is sent after join (in JoinHandler) to include
+    # Note: Initial snapshot is sent after join (in JoinService) to include
     # the newly created participant
 
-    # Run stream and watcher tasks
+    # Run subscription stream and watcher tasks
     try:
         async with anyio.create_task_group() as tg:
             tg.start_soon(
                 send_websocket_stream,
                 socket,
-                result.stream_manager.create_event_stream(
-                    f"meeting:{result.context.meeting.id}",
+                result.subscription_repo.subscribe_to_meeting(
+                    result.context.meeting.id,
                     result.is_closed,
                 ),
             )
@@ -94,34 +98,42 @@ async def meeting_stream_lifespan(
     "/ws/meetings/{meeting_id:str}",
     connection_lifespan=meeting_stream_lifespan,
 )
-async def meeting_stream_handler(data: str, socket: WebSocket) -> str:
-    """Handle incoming WebSocket messages using processor.
+async def meeting_stream_controller(data: str, socket: WebSocket) -> str:
+    """Handle incoming WebSocket messages using router.
 
-    Delegates to processor which routes via discriminated union.
-    Channel events are streamed to the client via the lifespan's send_websocket_stream.
+    Routes messages to appropriate services via the message router.
+    Broadcast events are streamed to the client via the lifespan's subscription.
+
+    Args:
+        data: Raw JSON string from client
+        socket: WebSocket connection instance
+
+    Returns:
+        JSON response string or empty string for broadcast-only responses
     """
     try:
         message = json.loads(data)
     except json.JSONDecodeError:
         error = ErrorResponse(message="Invalid JSON")
-        return error.model_dump_json()
+        return str(error.model_dump_json())
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("WS decode error: %s", exc)
         error = ErrorResponse(message="Invalid payload")
-        return error.model_dump_json()
+        return str(error.model_dump_json())
 
     try:
-        context: WSContext = socket.state.ws_context
-        factory: WSMessageHandlerFactory = socket.state.handler_factory
+        context = socket.state.ws_context
+        factory = socket.state.service_factory
 
-        response = await process_ws_message(message, context, factory)
+        router = MessageRouter()
+        response = await router.route_message(message, context, factory)
         if response:
-            return response.model_dump_json()
+            return str(response.model_dump_json())
     except Exception as exc:  # pragma: no cover - defensive
         logger.exception("WS processing error: %s", exc)
         error = ErrorResponse(message="Internal error")
-        return error.model_dump_json()
+        return str(error.model_dump_json())
 
     # Litestar expects a string/bytes payload; returning an empty string avoids None decode errors
-    # when handlers deliberately produce no direct response (e.g., status updates broadcast via channel).
+    # when services deliberately produce no direct response (e.g., status updates broadcast via channel).
     return ""

@@ -69,8 +69,13 @@ class TestStatusUpdateRequest:
 
     def test_invalid_status_raises_error(self):
         """Test that invalid status value raises validation error."""
+        from typing import cast
+
+        from app.schema.participant.types import StatusLiteral
+
         with pytest.raises(ValidationError) as exc_info:
-            StatusUpdateRequest(status="invalid-status")  # type: ignore[arg-type]
+            # Testing validation - intentionally passing invalid literal
+            StatusUpdateRequest(status=cast(StatusLiteral, "invalid-status"))
         assert "status" in str(exc_info.value).lower()
 
     def test_missing_status_raises_error(self):

@@ -1,4 +1,4 @@
-"""Meeting end watcher for WebSocket connections."""
+"""Watcher for meeting end and connection closure."""
 
 import contextlib
 import logging
