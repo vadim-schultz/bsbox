@@ -1,6 +1,6 @@
 """Engagement schemas for tracking and analytics."""
 
-from app.schema.engagement.messages import DeltaMessage, DeltaMessageData
+from app.schema.engagement.messages import DeltaMessage, RollupData
 from app.schema.engagement.models import (
     BucketRollup,
     EngagementPoint,
@@ -16,5 +16,5 @@ __all__ = [
     "EngagementSummary",
     "BucketRollup",
     "DeltaMessage",
-    "DeltaMessageData",
+    "RollupData",
 ]

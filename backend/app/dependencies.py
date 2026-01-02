@@ -9,6 +9,9 @@ from app.services import (
     MeetingService,
     ParticipantService,
 )
+from app.services.engagement.bucketing import BucketManager
+from app.services.engagement.smoothing import SmoothingAlgorithm, SmoothingFactory
+from app.services.engagement.summary import SnapshotBuilder
 
 
 def provide_meeting_service(session: Session) -> MeetingService:
@@ -24,7 +27,23 @@ def provide_participant_service(session: Session) -> ParticipantService:
 def provide_engagement_service(session: Session) -> EngagementService:
     participant_repo = ParticipantRepo(session)
     engagement_repo = EngagementRepo(session)
-    return EngagementService(engagement_repo, participant_repo)
+
+    # Create components
+    bucket_manager = BucketManager()
+    smoothing_strategy = SmoothingFactory.create(SmoothingAlgorithm.KALMAN)
+    snapshot_builder = SnapshotBuilder(
+        engagement_repo=engagement_repo,
+        participant_repo=participant_repo,
+        bucket_manager=bucket_manager,
+        smoothing_strategy=smoothing_strategy,
+    )
+
+    return EngagementService(
+        engagement_repo=engagement_repo,
+        participant_repo=participant_repo,
+        bucket_manager=bucket_manager,
+        snapshot_builder=snapshot_builder,
+    )
 
 
 def provide_city_service(session: Session) -> CityService:

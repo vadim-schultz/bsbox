@@ -12,10 +12,11 @@ from app.controllers import (
     MeetingsController,
     VisitsController,
 )
-from app.db import provide_session
+from app.db import SessionLocal, provide_session
 from app.dependencies import dependencies as app_dependencies
 from app.logging_config import configure_logging
 from app.migrations import run_migrations_on_startup
+from app.ws.background import start_broadcaster, stop_broadcaster
 from app.ws.controllers import meeting_stream_controller
 
 channels_plugin = ChannelsPlugin(
@@ -27,6 +28,16 @@ channels_plugin = ChannelsPlugin(
 def setup_logging(app: object | None = None) -> None:
     """Litestar startup hook to configure application logging."""
     configure_logging()
+
+
+async def on_startup(app: Litestar) -> None:
+    """Application startup hook."""
+    await start_broadcaster(app, SessionLocal, interval_seconds=10)
+
+
+async def on_shutdown(app: Litestar) -> None:
+    """Application shutdown hook."""
+    await stop_broadcaster(app)
 
 
 def _static_routes():
@@ -60,7 +71,8 @@ def create_app() -> Litestar:
         ],
         dependencies={"session": Provide(provide_session), **app_dependencies},
         plugins=[channels_plugin],
-        on_startup=[run_migrations_on_startup, setup_logging],
+        on_startup=[run_migrations_on_startup, setup_logging, on_startup],
+        on_shutdown=[on_shutdown],
     )
 
 

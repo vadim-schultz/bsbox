@@ -27,11 +27,6 @@ class MeetingService:
 
         return snapped
 
-    @staticmethod
-    def _to_utc(ts: datetime) -> datetime:
-        """Convert aware/naive datetime to UTC aware for storage."""
-        return ensure_utc(ts)
-
     def ensure_meeting(
         self,
         now: datetime,
@@ -46,8 +41,8 @@ class MeetingService:
         start_local = self._snap_to_half_hour_local(local_now)
         end_local = start_local + timedelta(hours=1)
 
-        start_ts = self._to_utc(start_local)
-        end_ts = self._to_utc(end_local)
+        start_ts = ensure_utc(start_local)
+        end_ts = ensure_utc(end_local)
 
         return self.meeting_repo.upsert_by_start(
             start_ts=start_ts,

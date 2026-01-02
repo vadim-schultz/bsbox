@@ -1,6 +1,7 @@
 """Join service for handling participant join logic."""
 
 import logging
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -65,9 +66,14 @@ class JoinService:
 
             # Build and broadcast snapshot so all clients receive it
             summary = self.engagement_service.build_engagement_summary(context.meeting)
-            self.broadcast_repo.publish_snapshot(context.meeting.id, summary)
+            self.broadcast_repo.publish(context.meeting.id, summary)
 
             logger.info("Published snapshot for meeting %s", context.meeting.id)
+
+            # Always broadcast delta for join event
+            now = datetime.now(tz=UTC)
+            bucket = self.engagement_service.bucket_manager.bucketize(now)
+            self.broadcast_repo.publish_rollup(context.meeting, bucket, self.engagement_service)
 
             return JoinedResponse(
                 participant_id=participant.id,

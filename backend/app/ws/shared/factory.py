@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.repos import EngagementRepo, ParticipantRepo
 from app.services import EngagementService, ParticipantService
+from app.services.engagement.bucketing import BucketManager
+from app.services.engagement.smoothing import SmoothingAlgorithm, SmoothingFactory
+from app.services.engagement.summary import SnapshotBuilder
 from app.ws.repos.broadcast import BroadcastRepo
 from app.ws.services.join import JoinService
 from app.ws.services.ping import PingService
@@ -33,7 +36,23 @@ class WSServiceFactory:
 
         # Initialize domain services
         participant_service = ParticipantService(participant_repo)
-        engagement_service = EngagementService(engagement_repo, participant_repo)
+
+        # Create engagement service components
+        bucket_manager = BucketManager()
+        smoothing_strategy = SmoothingFactory.create(SmoothingAlgorithm.KALMAN)
+        snapshot_builder = SnapshotBuilder(
+            engagement_repo=engagement_repo,
+            participant_repo=participant_repo,
+            bucket_manager=bucket_manager,
+            smoothing_strategy=smoothing_strategy,
+        )
+
+        engagement_service = EngagementService(
+            engagement_repo=engagement_repo,
+            participant_repo=participant_repo,
+            bucket_manager=bucket_manager,
+            snapshot_builder=snapshot_builder,
+        )
 
         # Register services (cast to protocol type for mypy)
         self._services: dict[str, WSService] = {

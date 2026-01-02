@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
-from app.schema.engagement.messages import DeltaMessageData
 from app.schema.websocket import ErrorResponse, StatusUpdateRequest
 from app.services import EngagementService
 from app.ws.repos.broadcast import BroadcastRepo
@@ -71,20 +70,8 @@ class StatusService:
         # Commit immediately to release database lock
         context.session.commit()
 
-        # Build and broadcast delta to all subscribers
-        rollup = self.engagement_service.bucket_rollup(
-            meeting=context.meeting,
-            bucket=bucket,
-        )
-        delta_data = DeltaMessageData(
-            meeting_id=context.meeting.id,
-            participant_id=context.participant.id,
-            bucket=bucket,
-            status=request.status,
-            overall=rollup["overall"],
-            participants=rollup["participants"],
-        )
-        self.broadcast_repo.publish_delta(context.meeting.id, delta_data)
+        # Always broadcast delta on status update
+        self.broadcast_repo.publish_rollup(context.meeting, bucket, self.engagement_service)
 
         # Update activity timestamp
         context.participant.last_seen_at = now

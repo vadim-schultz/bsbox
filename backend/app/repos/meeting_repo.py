@@ -63,14 +63,6 @@ class MeetingRepo:
         )
         return self.session.scalars(stmt).first()
 
-    def get_by_start(self, start_ts: datetime) -> Meeting | None:
-        stmt = (
-            select(Meeting)
-            .options(selectinload(Meeting.ms_teams_meeting))
-            .where(Meeting.start_ts == start_ts)
-        )
-        return self.session.scalars(stmt).first()
-
     def upsert_by_start(
         self,
         start_ts: datetime,
@@ -118,62 +110,26 @@ class MeetingRepo:
         # Fetch the meeting with relationships loaded
         return self.get_by_id(meeting_id)  # type: ignore[return-value]
 
-    def create(
-        self,
-        start_ts: datetime,
-        end_ts: datetime,
-        *,
-        city_id: str | None = None,
-        meeting_room_id: str | None = None,
-        ms_teams: ParsedTeamsMeeting | None = None,
-    ) -> Meeting:
-        """Create a new meeting. Prefer upsert_by_start for race-condition safety."""
-        ms_teams_meeting = self._ms_teams_repo.get_or_create(ms_teams) if ms_teams else None
-
-        start_ts = ensure_utc(start_ts)
-        end_ts = ensure_utc(end_ts)
-
-        meeting = Meeting(
-            id=self._generate_meeting_id(start_ts),
-            start_ts=start_ts,
-            end_ts=end_ts,
-            city_id=city_id,
-            meeting_room_id=meeting_room_id,
-            ms_teams_meeting_id=ms_teams_meeting.id if ms_teams_meeting else None,
-        )
-        self.session.add(meeting)
-        self.session.flush()
-        self.session.refresh(meeting)
-        return meeting
-
     def update_end(self, meeting: Meeting, end_ts: datetime) -> Meeting:
         meeting.end_ts = ensure_utc(end_ts)
         self.session.flush()
         self.session.refresh(meeting)
         return meeting
 
-    def upsert_metadata(
-        self,
-        meeting: Meeting,
-        *,
-        city_id: str | None = None,
-        meeting_room_id: str | None = None,
-        ms_teams: ParsedTeamsMeeting | None = None,
-    ) -> Meeting:
-        updated = False
-        if city_id and not meeting.city_id:
-            meeting.city_id = city_id
-            updated = True
-        if meeting_room_id and not meeting.meeting_room_id:
-            meeting.meeting_room_id = meeting_room_id
-            updated = True
-        if ms_teams and not meeting.ms_teams_meeting_id:
-            ms_teams_meeting = self._ms_teams_repo.get_or_create(ms_teams)
-            if ms_teams_meeting:
-                meeting.ms_teams_meeting_id = ms_teams_meeting.id
-                updated = True
+    def get_active_meetings(self, current_time: datetime) -> Sequence[Meeting]:
+        """Get meetings that are currently active (started but not ended).
 
-        if updated:
-            self.session.flush()
-            self.session.refresh(meeting)
-        return meeting
+        Args:
+            current_time: Current timestamp to check against
+
+        Returns:
+            List of active meetings with participants loaded
+        """
+        current_time = ensure_utc(current_time)
+        stmt = (
+            select(Meeting)
+            .options(selectinload(Meeting.participants))
+            .where(Meeting.start_ts <= current_time)
+            .where(Meeting.end_ts > current_time)
+        )
+        return self.session.scalars(stmt).all()

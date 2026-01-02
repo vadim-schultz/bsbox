@@ -197,20 +197,38 @@ async def test_status_handler_accepts_during_meeting():
     # Should have called record_status
     engagement_service.record_status.assert_called_once()
 
-    # Should have called broadcast_delta
-    broadcast_repo.publish_delta.assert_called_once()
+    # Should have called broadcast publish_rollup
+    broadcast_repo.publish_rollup.assert_called_once()
 
 
 def test_engagement_service_validates_bucket_bounds():
     """Test that EngagementService validates bucket is within meeting bounds."""
     from app.repos import EngagementRepo, ParticipantRepo
     from app.services import EngagementService
+    from app.services.engagement.bucketing import BucketManager
+    from app.services.engagement.smoothing import SmoothingAlgorithm, SmoothingFactory
+    from app.services.engagement.summary import SnapshotBuilder
 
     # Create mocks
     engagement_repo = MagicMock(spec=EngagementRepo)
     participant_repo = MagicMock(spec=ParticipantRepo)
 
-    service = EngagementService(engagement_repo, participant_repo)
+    # Create real components
+    bucket_manager = BucketManager()
+    smoothing_strategy = SmoothingFactory.create(SmoothingAlgorithm.KALMAN)
+    snapshot_builder = SnapshotBuilder(
+        engagement_repo=engagement_repo,
+        participant_repo=participant_repo,
+        bucket_manager=bucket_manager,
+        smoothing_strategy=smoothing_strategy,
+    )
+
+    service = EngagementService(
+        engagement_repo=engagement_repo,
+        participant_repo=participant_repo,
+        bucket_manager=bucket_manager,
+        snapshot_builder=snapshot_builder,
+    )
 
     # Create a meeting with specific bounds
     now = datetime.now(tz=UTC)

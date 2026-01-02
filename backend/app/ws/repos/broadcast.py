@@ -6,12 +6,18 @@ channel operations.
 """
 
 import logging
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from litestar.channels import ChannelsPlugin
 
-from app.schema.engagement.messages import DeltaMessage, DeltaMessageData
+from app.models import Meeting
+from app.schema.engagement.messages import DeltaMessage, RollupData
 from app.schema.engagement.models import EngagementSummary
 from app.schema.websocket import SnapshotMessage
+
+if TYPE_CHECKING:
+    from app.services import EngagementService
 
 logger = logging.getLogger(__name__)
 
@@ -32,40 +38,53 @@ class BroadcastRepo:
         """
         self.channels = channels
 
-    def publish_snapshot(self, meeting_id: str, summary: EngagementSummary) -> None:
-        """Publish complete engagement snapshot to meeting subscribers.
+    def publish(self, meeting_id: str, data: EngagementSummary | RollupData) -> None:
+        """Publish engagement data to meeting subscribers.
 
-        Broadcasts a full snapshot of meeting engagement data, typically sent when
-        a participant joins or when a complete refresh is needed.
+        Automatically wraps the data in the appropriate message type based on
+        the data structure:
+        - EngagementSummary -> SnapshotMessage (complete historical data)
+        - RollupData -> DeltaMessage (incremental update)
 
         Args:
             meeting_id: ID of the meeting to broadcast to
-            summary: Complete engagement summary data
+            data: Engagement data to broadcast (summary or rollup)
         """
-        message = SnapshotMessage(data=summary)
+        # Wrap data in appropriate message type
+        message: SnapshotMessage | DeltaMessage
+        if isinstance(data, EngagementSummary):
+            message = SnapshotMessage(data=data)
+        else:  # RollupData
+            message = DeltaMessage(data=data)
 
         self.channels.publish(
             data=message.model_dump_json(),
             channels=[f"meeting:{meeting_id}"],
         )
 
-        logger.debug("Published snapshot to channel meeting:%s", meeting_id)
+        logger.debug("Published to channel meeting:%s", meeting_id)
 
-    def publish_delta(self, meeting_id: str, delta_data: DeltaMessageData) -> None:
-        """Publish incremental engagement delta to meeting subscribers.
+    def publish_rollup(
+        self, meeting: Meeting, bucket: datetime, engagement_service: "EngagementService"
+    ) -> None:
+        """Compute and broadcast engagement rollup for a meeting.
 
-        Broadcasts a delta update when a participant's engagement status changes,
-        providing real-time updates without sending the full dataset.
+        This is a convenience method that combines rollup computation and broadcasting,
+        used by join/status handlers and the periodic broadcaster.
 
         Args:
-            meeting_id: ID of the meeting to broadcast to
-            delta_data: Delta update data with participant status change
+            meeting: The meeting to compute rollup for
+            bucket: The time bucket for the rollup (already normalized)
+            engagement_service: Service for computing engagement rollups
         """
-        message = DeltaMessage(data=delta_data)
+        rollup = engagement_service.bucket_rollup(meeting, bucket)
 
-        self.channels.publish(
-            data=message.model_dump_json(),
-            channels=[f"meeting:{meeting_id}"],
+        rollup_data = RollupData(
+            meeting_id=meeting.id,
+            bucket=bucket,
+            overall=rollup["overall"],
+            participants=rollup["participants"],
         )
 
-        logger.debug("Published delta to channel meeting:%s", meeting_id)
+        self.publish(meeting.id, rollup_data)
+        logger.debug("Published rollup for meeting %s at bucket %s", meeting.id, bucket)
