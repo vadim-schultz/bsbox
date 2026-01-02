@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.models import Meeting
+from app.schema.engagement.models import EngagementSummary
 from app.schema.websocket import (
     ErrorResponse,
     JoinedResponse,
@@ -47,7 +48,16 @@ async def test_processor_routes_join_request():
 
     # Make execute return a coroutine
     async def mock_execute(req, ctx):
-        return JoinedResponse(participant_id="p123", meeting_id="test-meeting")
+        snapshot = EngagementSummary(
+            meeting_id="test-meeting",
+            start=past_start,
+            end=future_end,
+            bucket_minutes=1,
+            window_minutes=5,
+            overall=[],
+            participants=[],
+        )
+        return JoinedResponse(participant_id="p123", meeting_id="test-meeting", snapshot=snapshot)
 
     mock_service.execute = mock_execute
     factory.get_service.return_value = mock_service

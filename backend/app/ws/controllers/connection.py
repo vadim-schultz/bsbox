@@ -30,65 +30,110 @@ from app.ws.transport.lifecycle import (
 logger = logging.getLogger(__name__)
 
 
+async def _setup_connection(
+    socket: WebSocket,
+    channels: ChannelsPlugin,
+    session: Session,
+):
+    """Setup and validate WebSocket connection.
+
+    Returns:
+        LifecycleResult if successful, None if connection rejected
+    """
+    coordinator = LifecycleCoordinator(
+        connection_validator=ConnectionValidator(MeetingTimingValidator()),
+        meeting_service=MeetingService(MeetingRepo(session)),
+    )
+
+    result = await coordinator.setup(socket, channels, session)
+    if not result:
+        return None  # Connection rejected, response already sent
+
+    # Store context and factory on socket state for handler access
+    socket.state.ws_context = result.context
+    socket.state.service_factory = result.factory
+
+    return result
+
+
+def _start_background_tasks(task_group: anyio.abc.TaskGroup, result, socket: WebSocket) -> None:
+    """Start subscription and watcher background tasks.
+
+    Args:
+        task_group: anyio task group to spawn tasks in
+        result: LifecycleResult with subscription repo and watcher
+        socket: WebSocket connection
+    """
+    # Start subscription stream task
+    task_group.start_soon(
+        send_websocket_stream,
+        socket,
+        result.subscription_repo.subscribe_to_meeting(
+            result.context.meeting.id,
+            result.is_closed,
+        ),
+    )
+
+    # Start meeting end watcher task
+    task_group.start_soon(
+        result.watcher.watch,
+        result.context.meeting,
+        socket,
+        result.is_closed,
+        result.seconds_remaining,
+    )
+
+
+def _handle_disconnect(result, session: Session) -> None:
+    """Handle connection cleanup on disconnect.
+
+    Args:
+        result: LifecycleResult with context and factory
+        session: Database session for committing changes
+    """
+    result.is_closed.set()
+
+    # Handle participant leave via service
+    leave_service = result.factory.create_leave_service()
+    leave_service.handle_leave(result.context)
+
+    # Commit any pending changes (e.g., last_seen_at updates)
+    try:
+        session.commit()
+    except Exception:
+        session.rollback()
+
+
 @asynccontextmanager
 async def meeting_stream_lifespan(
     socket: WebSocket,
     channels: ChannelsPlugin,
     session: Session,
 ) -> AsyncGenerator[None, Any]:
-    """WebSocket connection lifespan using lifecycle coordinator.
+    """WebSocket connection lifespan manager.
 
-    Delegates to coordinator for validation, setup, and management of
-    subscription streaming and meeting end watching.
+    Handles connection setup, message streaming, and cleanup.
+
+    Note: Initial snapshot is returned in JoinedResponse to the joining client.
+    Deltas are broadcast to other participants on join/leave/status changes.
     """
-    # Create coordinator with dependencies
-    coordinator = LifecycleCoordinator(
-        connection_validator=ConnectionValidator(MeetingTimingValidator()),
-        meeting_service=MeetingService(MeetingRepo(session)),
-    )
-
-    # Setup lifecycle
-    result = await coordinator.setup(socket, channels, session)
+    # Setup and validate connection
+    result = await _setup_connection(socket, channels, session)
     if not result:
-        return  # Connection rejected, response already sent
+        return
 
-    # Store context and factory on socket state for handler access
-    socket.state.ws_context = result.context
-    socket.state.service_factory = result.factory
-
-    # Note: Initial snapshot is sent after join (in JoinService) to include
-    # the newly created participant
-
-    # Run subscription stream and watcher tasks
+    # Run subscription and watcher tasks
     try:
         async with anyio.create_task_group() as tg:
-            tg.start_soon(
-                send_websocket_stream,
-                socket,
-                result.subscription_repo.subscribe_to_meeting(
-                    result.context.meeting.id,
-                    result.is_closed,
-                ),
-            )
-            tg.start_soon(
-                result.watcher.watch,
-                result.context.meeting,
-                socket,
-                result.is_closed,
-                result.seconds_remaining,
-            )
+            _start_background_tasks(tg, result, socket)
 
             try:
                 yield  # Hand control to the listener for receiving messages
             except WebSocketDisconnect:
                 logger.info("WS disconnect meeting_id=%s", result.context.meeting.id)
             finally:
-                result.is_closed.set()
-                # Commit any pending changes (e.g., last_seen_at updates)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
+                _handle_disconnect(result, session)
+
     except Exception as e:
         logger.exception("WS task group error: %s", e)
         raise

@@ -1,8 +1,8 @@
-import type { StatusLiteral } from "./dto";
+import type { EngagementSummaryDto, StatusLiteral } from "./dto";
 
 export type SnapshotMessage = {
   type: "snapshot";
-  data: unknown;
+  data: EngagementSummaryDto;
 };
 
 export type DeltaMessageData = {

@@ -1,8 +1,11 @@
 """Tests for WebSocket request/response Pydantic models validation."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from pydantic import ValidationError
 
+from app.schema.engagement.models import EngagementSummary
 from app.schema.websocket import (
     ErrorResponse,
     JoinedResponse,
@@ -109,11 +112,22 @@ class TestResponseModels:
 
     def test_joined_response_structure(self):
         """Test JoinedResponse has correct structure."""
-        response = JoinedResponse(participant_id="p123", meeting_id="m456")
+        now = datetime.now(tz=UTC)
+        snapshot = EngagementSummary(
+            meeting_id="m456",
+            start=now,
+            end=now + timedelta(hours=1),
+            bucket_minutes=1,
+            window_minutes=5,
+            overall=[],
+            participants=[],
+        )
+        response = JoinedResponse(participant_id="p123", meeting_id="m456", snapshot=snapshot)
         data = response.model_dump()
         assert data["type"] == "joined"
         assert data["participant_id"] == "p123"
         assert data["meeting_id"] == "m456"
+        assert "snapshot" in data
 
     def test_pong_response_structure(self):
         """Test PongResponse has correct structure."""
@@ -179,12 +193,23 @@ class TestResponseModels:
 
     def test_response_json_serialization(self):
         """Test that responses can be serialized to JSON."""
-        response = JoinedResponse(participant_id="p123", meeting_id="m456")
+        now = datetime.now(tz=UTC)
+        snapshot = EngagementSummary(
+            meeting_id="m456",
+            start=now,
+            end=now + timedelta(hours=1),
+            bucket_minutes=1,
+            window_minutes=5,
+            overall=[],
+            participants=[],
+        )
+        response = JoinedResponse(participant_id="p123", meeting_id="m456", snapshot=snapshot)
         json_str = response.model_dump_json()
         assert isinstance(json_str, str)
         assert "joined" in json_str
         assert "p123" in json_str
         assert "m456" in json_str
+        assert "snapshot" in json_str
 
 
 class TestSnapshotMessage:

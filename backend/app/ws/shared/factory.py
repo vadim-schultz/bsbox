@@ -11,6 +11,7 @@ from app.services.engagement.smoothing import SmoothingAlgorithm, SmoothingFacto
 from app.services.engagement.summary import SnapshotBuilder
 from app.ws.repos.broadcast import BroadcastRepo
 from app.ws.services.join import JoinService
+from app.ws.services.leave import LeaveService
 from app.ws.services.ping import PingService
 from app.ws.services.protocol import WSService
 from app.ws.services.status import StatusService
@@ -30,6 +31,9 @@ class WSServiceFactory:
             session: Database session for domain repos/services
             broadcast_repo: Repository for broadcasting operations
         """
+        # Store for creating non-message services
+        self.broadcast_repo = broadcast_repo
+
         # Initialize domain repos
         participant_repo = ParticipantRepo(session)
         engagement_repo = EngagementRepo(session)
@@ -47,22 +51,22 @@ class WSServiceFactory:
             smoothing_strategy=smoothing_strategy,
         )
 
-        engagement_service = EngagementService(
+        self.engagement_service = EngagementService(
             engagement_repo=engagement_repo,
             participant_repo=participant_repo,
             bucket_manager=bucket_manager,
             snapshot_builder=snapshot_builder,
         )
 
-        # Register services (cast to protocol type for mypy)
+        # Register message handler services (cast to protocol type for mypy)
         self._services: dict[str, WSService] = {
             "join": cast(
                 WSService,
-                JoinService(participant_service, engagement_service, broadcast_repo),
+                JoinService(participant_service, self.engagement_service, broadcast_repo),
             ),
             "status": cast(
                 WSService,
-                StatusService(engagement_service, broadcast_repo),
+                StatusService(self.engagement_service, broadcast_repo),
             ),
             "ping": cast(WSService, PingService()),
         }
@@ -77,6 +81,16 @@ class WSServiceFactory:
             Service instance or None if message type not supported
         """
         return self._services.get(message_type)
+
+    def create_leave_service(self) -> LeaveService:
+        """Create a LeaveService instance.
+
+        Used by the connection controller to handle participant disconnects.
+
+        Returns:
+            LeaveService instance with required dependencies
+        """
+        return LeaveService(self.engagement_service, self.broadcast_repo)
 
     @property
     def supported_types(self) -> list[str]:

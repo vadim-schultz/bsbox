@@ -4,13 +4,20 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.schema.engagement.models import EngagementSummary
+
 
 class JoinedResponse(BaseModel):
-    """Response when a participant successfully joins."""
+    """Response when a participant successfully joins.
+
+    Includes a complete engagement snapshot for the joining client,
+    eliminating the need to broadcast snapshots to all participants.
+    """
 
     type: Literal["joined"] = "joined"
     participant_id: str
     meeting_id: str
+    snapshot: EngagementSummary
 
 
 class PongResponse(BaseModel):

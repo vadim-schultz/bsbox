@@ -5,7 +5,8 @@
  * Uses connection-based identity (no fingerprints needed).
  */
 
-import type { StatusLiteral } from "../types/dto";
+import type { EngagementSummaryDto, StatusLiteral } from "../types/dto";
+import type { DeltaMessageData } from "../types/ws";
 
 /** Messages sent from client to server */
 type WSMessage =
@@ -15,9 +16,9 @@ type WSMessage =
 
 /** Responses received from server */
 type WSResponse =
-  | { type: "snapshot"; data: unknown }
-  | { type: "delta"; data: unknown }
-  | { type: "joined"; participant_id: string; meeting_id: string }
+  | { type: "snapshot"; data: EngagementSummaryDto }
+  | { type: "delta"; data: DeltaMessageData }
+  | { type: "joined"; participant_id: string; meeting_id: string; snapshot: EngagementSummaryDto }
   | { type: "pong"; server_time: string }
   | { type: "error"; message: string }
   | { type: "meeting_ended"; message?: string; end_time?: string }
@@ -49,8 +50,8 @@ export class MeetingSocket {
   private connectionState: ConnectionState = "disconnected";
 
   private handlers = {
-    snapshot: [] as ((data: unknown) => void)[],
-    delta: [] as ((data: unknown) => void)[],
+    snapshot: [] as ((data: EngagementSummaryDto) => void)[],
+    delta: [] as ((data: DeltaMessageData) => void)[],
     joined: [] as ((participantId: string, meetingId: string) => void)[],
     meetingEnded: [] as ((message?: string) => void)[],
     meetingNotStarted: [] as ((message?: string) => void)[],
@@ -188,7 +189,7 @@ export class MeetingSocket {
   }
 
   /** Register snapshot handler */
-  onSnapshot(handler: (data: unknown) => void): () => void {
+  onSnapshot(handler: (data: EngagementSummaryDto) => void): () => void {
     this.handlers.snapshot.push(handler);
     return () => {
       const idx = this.handlers.snapshot.indexOf(handler);
@@ -197,7 +198,7 @@ export class MeetingSocket {
   }
 
   /** Register delta handler */
-  onDelta(handler: (data: unknown) => void): () => void {
+  onDelta(handler: (data: DeltaMessageData) => void): () => void {
     this.handlers.delta.push(handler);
     return () => {
       const idx = this.handlers.delta.indexOf(handler);
@@ -289,6 +290,10 @@ export class MeetingSocket {
         break;
       case "joined":
         this.participantId = response.participant_id;
+        // Trigger snapshot handlers with embedded snapshot data
+        if (response.snapshot) {
+          this.handlers.snapshot.forEach((h) => h(response.snapshot));
+        }
         this.handlers.joined.forEach((h) =>
           h(response.participant_id, response.meeting_id)
         );

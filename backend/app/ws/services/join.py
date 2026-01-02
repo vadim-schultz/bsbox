@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class JoinService:
     """Service for handling participant join operations.
 
-    Creates or reuses participants for WebSocket connections and broadcasts
-    engagement snapshots to all meeting subscribers.
+    Creates or reuses participants for WebSocket connections, returns
+    engagement snapshot to the joining client, and broadcasts a delta
+    to other participants.
     """
 
     def __init__(
@@ -38,14 +39,17 @@ class JoinService:
         self.broadcast_repo = broadcast_repo
 
     async def execute(self, request: JoinRequest, context: WSContext) -> BaseModel:
-        """Execute join request - create participant and broadcast snapshot.
+        """Execute join request - create participant and return snapshot.
+
+        Returns a JoinedResponse with embedded engagement snapshot to the joining
+        client, and broadcasts a delta to notify other participants of the join.
 
         Args:
             request: Validated join request with device fingerprint
             context: WebSocket connection context
 
         Returns:
-            JoinedResponse with participant and meeting IDs, or ErrorResponse on failure
+            JoinedResponse with participant ID, meeting ID, and snapshot, or ErrorResponse on failure
         """
         try:
             # Create or reuse participant for this connection
@@ -64,20 +68,25 @@ class JoinService:
                 request.fingerprint,
             )
 
-            # Build and broadcast snapshot so all clients receive it
+            # Build engagement summary for the joining client
             summary = self.engagement_service.build_engagement_summary(context.meeting)
-            self.broadcast_repo.publish(context.meeting.id, summary)
 
-            logger.info("Published snapshot for meeting %s", context.meeting.id)
-
-            # Always broadcast delta for join event
+            # Broadcast delta to notify other participants of the join
             now = datetime.now(tz=UTC)
             bucket = self.engagement_service.bucket_manager.bucketize(now)
             self.broadcast_repo.publish_rollup(context.meeting, bucket, self.engagement_service)
 
+            logger.info(
+                "Participant %s joined meeting %s, delta broadcast to others",
+                participant.id,
+                context.meeting.id,
+            )
+
+            # Return snapshot directly to joining client
             return JoinedResponse(
                 participant_id=participant.id,
                 meeting_id=context.meeting.id,
+                snapshot=summary,
             )
         except Exception as e:
             logger.exception("Error in JoinService: %s", e)
