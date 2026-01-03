@@ -1,4 +1,4 @@
-import { Box, Heading } from "@chakra-ui/react";
+import { Card, Heading } from "@chakra-ui/react";
 import type { PropsWithChildren } from "react";
 
 type Props = PropsWithChildren<{
@@ -7,12 +7,16 @@ type Props = PropsWithChildren<{
 
 export function ChartCard({ title, children }: Props) {
   return (
-    <Box borderWidth="1px" borderRadius="lg" p={4}>
-      <Heading size="sm" mb={4}>
-        {title}
-      </Heading>
-      {children}
-    </Box>
+    <Card.Root>
+      <Card.Header>
+        <Heading size="sm">
+          {title}
+        </Heading>
+      </Card.Header>
+      <Card.Body>
+        {children}
+      </Card.Body>
+    </Card.Root>
   );
 }
 

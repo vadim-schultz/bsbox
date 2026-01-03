@@ -1,4 +1,5 @@
 import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
+import { interactiveCardRecipe, chartContainerRecipe, statusBadgeRecipe } from "./recipes";
 
 const brand = {
   50: { value: "#fff8eb" },
@@ -35,6 +36,10 @@ const customConfig = defineConfig({
         muted: { value: { base: "{colors.gray.600}", _dark: "{colors.gray.400}" } },
         focusRing: { value: { base: "{colors.blue.500}", _dark: "{colors.blue.300}" } },
         textColor: { value: { base: "{colors.gray.900}", _dark: "{colors.gray.100}" } },
+        success: { value: { base: "{colors.green.600}", _dark: "{colors.green.400}" } },
+        warning: { value: { base: "{colors.orange.600}", _dark: "{colors.orange.400}" } },
+        error: { value: { base: "{colors.red.600}", _dark: "{colors.red.400}" } },
+        info: { value: { base: "{colors.blue.600}", _dark: "{colors.blue.400}" } },
       },
     },
     textStyles: {
@@ -46,6 +51,11 @@ const customConfig = defineConfig({
           fontSize: "sm",
         },
       },
+    },
+    recipes: {
+      interactiveCard: interactiveCardRecipe,
+      chartContainer: chartContainerRecipe,
+      statusBadge: statusBadgeRecipe,
     },
   },
 });

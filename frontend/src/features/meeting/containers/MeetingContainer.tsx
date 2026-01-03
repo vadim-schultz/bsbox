@@ -5,11 +5,11 @@ import { useMeetingExperience } from "../hooks/useMeetingExperience";
 import { useMeetingDuration } from "../hooks/useMeetingDuration";
 import { buildBaselineChart, buildChartData } from "../domain/engagement";
 import { formatTimespan } from "../utils/time";
-import { ErrorNotice, LoadingState } from "../components/feedback";
-import { MeetingInfo } from "../components/meeting-info";
-import { StatusSelector } from "../components/cards";
+import { Notice, LoadingState } from "../../../app/components/feedback";
+import { MeetingInfo } from "../components/MeetingInfo";
+import { StatusSelector } from "../components/StatusCards";
 import { EngagementChart } from "../components/charts/EngagementChart";
-import { MeetingCountdown } from "../components/countdown";
+import { MeetingCountdown } from "../components/MeetingCountdown";
 import type { VisitSession } from "../types/domain";
 
 type Props = {
@@ -116,7 +116,8 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
       />
 
       {error ? (
-        <ErrorNotice
+        <Notice
+          status="error"
           message={error}
           title={
             meetingEnded
@@ -129,7 +130,8 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
       ) : loading ? (
         <LoadingState label="Connecting to meeting..." />
       ) : meetingEnded || meetingNotStarted ? (
-        <ErrorNotice
+        <Notice
+          status="error"
           message={
             meetingEnded
               ? "This meeting has ended. Status updates are no longer possible."

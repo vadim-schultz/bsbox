@@ -1,6 +1,8 @@
-import { Box, Button, Stack, Text } from "@chakra-ui/react";
+import { Alert, Button, Stack, Text } from "@chakra-ui/react";
 
-import { CitySelector, MeetingRoomSelector, MSTeamsInput } from "../components/selection";
+import { CitySelector } from "../components/Selection/CitySelector";
+import { MeetingRoomSelector } from "../components/Selection/MeetingRoomSelector";
+import { MSTeamsInput } from "../components/Selection/MSTeamsInput";
 import { useSelectionFlow } from "../hooks/useSelectionFlow";
 import type { VisitSession } from "../types/domain";
 
@@ -46,14 +48,15 @@ export function SelectionContainer({ onSessionReady }: Props) {
       </Text>
       
       {error ? (
-        <Box bg="red.50" border="1px solid" borderColor="red.200" px={3} py={2} rounded="md">
-          <Text color="red.700" fontSize="sm" fontWeight="medium">
-            Error: {error}
-          </Text>
-          <Text color="red.600" fontSize="xs" mt={1}>
-            Please try again or contact support if the problem persists.
-          </Text>
-        </Box>
+        <Alert.Root status="error">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Error</Alert.Title>
+            <Alert.Description>
+              {error}. Please try again or contact support if the problem persists.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
       ) : null}
 
       <CitySelector
@@ -74,7 +77,7 @@ export function SelectionContainer({ onSessionReady }: Props) {
       <MSTeamsInput value={msTeamsInput} onChange={setMsTeamsInput} />
 
       {isContinueDisabled && !loading && (
-        <Text color="orange.600" fontSize="sm">
+        <Text color="warning" fontSize="sm">
           Please select a city or enter a Teams meeting link to continue.
         </Text>
       )}

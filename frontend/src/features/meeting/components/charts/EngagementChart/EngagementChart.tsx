@@ -1,6 +1,6 @@
 import { Text } from "@chakra-ui/react";
 
-import { LoadingState, ErrorNotice } from "../../feedback";
+import { LoadingState, Notice } from "../../../../../app/components/feedback";
 import type { ChartPoint } from "../../../types/chart";
 import type { MeetingTimes } from "../../../types/domain";
 import { ChartCard } from "./ChartCard";
@@ -35,7 +35,7 @@ export function EngagementChart({
   if (error) {
     return (
       <ChartCard title="Engagement">
-        <ErrorNotice message={error} title="Unable to load engagement" />
+        <Notice status="error" message={error} title="Unable to load engagement" />
       </ChartCard>
     );
   }

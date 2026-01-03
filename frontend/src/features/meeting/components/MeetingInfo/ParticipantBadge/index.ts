@@ -1,0 +1,2 @@
+export { ParticipantBadge } from "./ParticipantBadge";
+

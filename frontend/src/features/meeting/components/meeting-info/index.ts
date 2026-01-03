@@ -1,2 +1,0 @@
-export { MeetingInfo } from "./MeetingInfo";
-
