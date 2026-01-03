@@ -2,7 +2,6 @@ import { Button, Flex, Stack, Text } from "@chakra-ui/react";
 import { useMemo } from "react";
 
 import { useMeetingExperience } from "../hooks/useMeetingExperience";
-import { useMeetingDuration } from "../hooks/useMeetingDuration";
 import { buildBaselineChart, buildChartData } from "../domain/engagement";
 import { formatTimespan } from "../utils/time";
 import { Notice, LoadingState } from "../../../app/components/feedback";
@@ -35,11 +34,6 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     error,
     sendStatus,
   } = useMeetingExperience(initialSession);
-
-  const { isLocked, durationMinutes, updateDuration } = useMeetingDuration({
-    meetingId,
-    meetingTimes,
-  });
 
   // Prepare chart data from engagement summary
   const chartData = useMemo(() => {
@@ -104,11 +98,6 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
 
       <MeetingInfo
         meetingLabel={formatTimespan(meetingTimes?.start, meetingTimes?.end)}
-        meetingStart={meetingTimes?.start}
-        meetingEnd={meetingTimes?.end}
-        currentDurationMinutes={durationMinutes ?? 60}
-        onDurationChange={updateDuration}
-        durationLocked={isLocked}
         participantCount={participantCount}
         cityName={cityName}
         meetingRoomName={meetingRoomName}

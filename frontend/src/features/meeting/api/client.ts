@@ -1,7 +1,6 @@
 import type {
   MeetingDto,
   VisitResponseDto,
-  MeetingDurationUpdateDto,
   CityDto,
   MeetingRoomDto,
   PaginatedDto,
@@ -37,26 +36,14 @@ export async function visit(params: {
   cityId?: string;
   meetingRoomId?: string;
   msTeamsInput?: string;
+  durationMinutes: 30 | 60;
 }): Promise<VisitResponseDto> {
   return postJSON<VisitResponseDto>("/visit", {
     city_id: params.cityId,
     meeting_room_id: params.meetingRoomId,
     ms_teams_input: params.msTeamsInput,
+    duration_minutes: params.durationMinutes,
   });
-}
-
-export async function updateMeetingDuration(params: {
-  meetingId: string;
-  data: MeetingDurationUpdateDto;
-}): Promise<MeetingDto> {
-  const res = await fetch(`${API_BASE}/meetings/${params.meetingId}/duration`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(params.data),
-  });
-  return parse<MeetingDto>(res);
 }
 
 export async function getCities(): Promise<CityDto[]> {

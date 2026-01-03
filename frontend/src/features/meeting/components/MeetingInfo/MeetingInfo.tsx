@@ -1,6 +1,5 @@
 import { Flex, Heading, Stack, Text } from "@chakra-ui/react";
 import { ParticipantBadge } from "./ParticipantBadge";
-import { MeetingRangeControl } from "./MeetingRangeControl";
 import type { MSTeamsMeeting } from "../../types/domain";
 
 /**
@@ -11,16 +10,6 @@ type Props = {
   meetingLabel: string;
   /** Number of participants in the meeting */
   participantCount: number;
-  /** Meeting start time */
-  meetingStart?: Date;
-  /** Meeting end time */
-  meetingEnd?: Date;
-  /** Current meeting duration in minutes */
-  currentDurationMinutes?: number;
-  /** Callback when duration is changed */
-  onDurationChange?: (minutes: 30 | 60) => Promise<void> | void;
-  /** Whether duration adjustment is locked */
-  durationLocked?: boolean;
   /** Optional city name for the meeting */
   cityName?: string | null;
   /** Optional meeting room name */
@@ -31,15 +20,13 @@ type Props = {
 
 /**
  * Displays comprehensive meeting information including time, location,
- * participant count, and duration controls.
+ * and participant count.
  *
  * @example
  * ```tsx
  * <MeetingInfo
  *   meetingLabel="10:00 AM - 11:00 AM"
  *   participantCount={5}
- *   meetingStart={startDate}
- *   meetingEnd={endDate}
  *   cityName="San Francisco"
  *   meetingRoomName="Conference Room A"
  * />
@@ -48,11 +35,6 @@ type Props = {
 export function MeetingInfo({
   meetingLabel,
   participantCount,
-  meetingStart,
-  meetingEnd,
-  currentDurationMinutes = 60,
-  onDurationChange,
-  durationLocked,
   cityName,
   meetingRoomName,
   msTeams,
@@ -84,13 +66,6 @@ export function MeetingInfo({
         </Stack>
         <ParticipantBadge count={participantCount} />
       </Flex>
-      <MeetingRangeControl
-        start={meetingStart}
-        end={meetingEnd}
-        currentDurationMinutes={currentDurationMinutes}
-        onDurationChange={onDurationChange}
-        isLocked={durationLocked}
-      />
     </Stack>
   );
 }

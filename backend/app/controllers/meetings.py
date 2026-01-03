@@ -2,14 +2,13 @@ from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
-from litestar import Controller, get, patch, post
+from litestar import Controller, get, post
 from litestar.di import Provide
 from litestar.exceptions import HTTPException
 
 from app.schema.common.pagination import Paginated, PaginationParams
 from app.schema.engagement.models import EngagementSummary
 from app.schema.meeting.models import MeetingRead, MeetingWithParticipants
-from app.schema.meeting.requests import MeetingDurationUpdate
 from app.services import MeetingService
 from app.services.engagement_service import EngagementService
 
@@ -60,21 +59,3 @@ class MeetingsController(Controller):
             raise HTTPException(status_code=404, detail="Meeting not found")
 
         return engagement_service.build_engagement_summary(meeting)
-
-    @patch("/{meeting_id:str}/duration", sync_to_thread=False)
-    def update_duration(
-        self,
-        meeting_id: str,
-        data: MeetingDurationUpdate,
-        meeting_service: MeetingService,
-    ) -> MeetingRead:
-        try:
-            meeting = meeting_service.update_duration(
-                meeting_id=meeting_id, duration_minutes=data.duration_minutes
-            )
-        except ValueError as exc:
-            message = str(exc)
-            status = 404 if "not found" in message.lower() else 400
-            raise HTTPException(status_code=status, detail=message) from exc
-
-        return meeting.to_read_schema()

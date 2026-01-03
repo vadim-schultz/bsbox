@@ -1,8 +1,10 @@
 import { Alert, Button, Stack, Text } from "@chakra-ui/react";
+import { useState } from "react";
 
 import { CitySelector } from "../components/Selection/CitySelector";
 import { MeetingRoomSelector } from "../components/Selection/MeetingRoomSelector";
 import { MSTeamsInput } from "../components/Selection/MSTeamsInput";
+import { DurationControl } from "../components/Selection/DurationControl";
 import { useSelectionFlow } from "../hooks/useSelectionFlow";
 import type { VisitSession } from "../types/domain";
 
@@ -27,10 +29,12 @@ export function SelectionContainer({ onSessionReady }: Props) {
     setMsTeamsInput,
   } = useSelectionFlow();
 
+  const [durationInput, setDurationInput] = useState<30 | 60>(60);
+
   const handleSubmit = async () => {
     if (loading) return;
     try {
-      const session = await submit();
+      const session = await submit(durationInput);
       onSessionReady(session);
     } catch {
       // errors are handled in hook state
@@ -74,6 +78,8 @@ export function SelectionContainer({ onSessionReady }: Props) {
         disabled={!cityInput.trim()}
       />
 
+      <DurationControl value={durationInput} onChange={setDurationInput} />
+
       <MSTeamsInput value={msTeamsInput} onChange={setMsTeamsInput} />
 
       {isContinueDisabled && !loading && (
@@ -82,7 +88,7 @@ export function SelectionContainer({ onSessionReady }: Props) {
         </Text>
       )}
 
-      <Button onClick={handleSubmit} isLoading={loading} isDisabled={isContinueDisabled} size="lg">
+      <Button onClick={handleSubmit} loading={loading} disabled={isContinueDisabled} size="lg">
         {loading ? "Starting meeting..." : "Continue to meeting"}
       </Button>
     </Stack>

@@ -15,7 +15,6 @@ export { useMeetingExperience } from "./hooks/useMeetingExperience";
 export { useMeetingSocket } from "./hooks/useMeetingSocket";
 export { useMeetingSession } from "./hooks/useMeetingSession";
 export { useSelectionFlow } from "./hooks/useSelectionFlow";
-export { useMeetingDuration } from "./hooks/useMeetingDuration";
 export { useCountdownTimer } from "./hooks/useCountdownTimer";
 
 // Public types

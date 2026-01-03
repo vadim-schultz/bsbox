@@ -34,12 +34,16 @@ class MeetingService:
         city_id: str | None = None,
         meeting_room_id: str | None = None,
         ms_teams: ParsedTeamsMeeting | None = None,
+        duration_minutes: int = 60,
     ) -> Meeting:
-        """Get or create meeting for the current time slot using atomic UPSERT."""
+        """Get or create meeting for the current time slot using atomic UPSERT.
+
+        Duration is set once at meeting creation and cannot be changed afterward.
+        """
         # Use provided timezone (local) for snapping; caller supplies local-aware now
         local_now = ensure_tz(now, now.tzinfo or UTC)
         start_local = self._snap_to_half_hour_local(local_now)
-        end_local = start_local + timedelta(hours=1)
+        end_local = start_local + timedelta(minutes=duration_minutes)
 
         start_ts = ensure_utc(start_local)
         end_ts = ensure_utc(end_local)
@@ -58,16 +62,3 @@ class MeetingService:
 
     def get_meeting(self, meeting_id: str) -> Meeting | None:
         return self.meeting_repo.get_with_participants(meeting_id)
-
-    def update_duration(self, meeting_id: str, duration_minutes: int) -> Meeting:
-        meeting = self.meeting_repo.get_by_id(meeting_id)
-        if not meeting:
-            raise ValueError("Meeting not found")
-
-        default_duration = timedelta(hours=1)
-        current_duration = meeting.end_ts - meeting.start_ts
-        if current_duration != default_duration:
-            raise ValueError("Meeting duration already updated")
-
-        new_end = meeting.start_ts + timedelta(minutes=duration_minutes)
-        return self.meeting_repo.update_end(meeting, new_end)

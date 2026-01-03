@@ -110,12 +110,6 @@ class MeetingRepo:
         # Fetch the meeting with relationships loaded
         return self.get_by_id(meeting_id)  # type: ignore[return-value]
 
-    def update_end(self, meeting: Meeting, end_ts: datetime) -> Meeting:
-        meeting.end_ts = ensure_utc(end_ts)
-        self.session.flush()
-        self.session.refresh(meeting)
-        return meeting
-
     def get_active_meetings(self, current_time: datetime) -> Sequence[Meeting]:
         """Get meetings that are currently active (started but not ended).
 

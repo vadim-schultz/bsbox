@@ -33,6 +33,7 @@ class VisitsController(Controller):
             city_id=data.city_id,
             meeting_room_id=data.meeting_room_id,
             ms_teams=data.ms_teams,
+            duration_minutes=data.duration_minutes,
         )
 
         return VisitResponse(

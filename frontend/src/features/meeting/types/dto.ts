@@ -57,10 +57,6 @@ export type MeetingDto = {
   ms_teams?: MSTeamsMeetingDto | null;
 };
 
-export type MeetingDurationUpdateDto = {
-  duration_minutes: 30 | 60;
-};
-
 export type MeetingWithParticipantsDto = MeetingDto & {
   participants: ParticipantDto[];
 };

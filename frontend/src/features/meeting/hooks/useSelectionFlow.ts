@@ -18,6 +18,7 @@ type State = {
   roomInput: string;
   selectedCityId: string | null;
   msTeamsInput: string | null;
+  durationInput: 30 | 60;
   session: VisitSession | null;
   loadingCities: boolean;
   loadingRooms: boolean;
@@ -29,6 +30,7 @@ type PersistedInputs = {
   cityInput: string;
   roomInput: string;
   msTeamsInput: string | null;
+  durationInput: 30 | 60;
 };
 
 const STORAGE_KEY = "meeting-selection-inputs";
@@ -40,6 +42,7 @@ const initialState: State = {
   roomInput: "",
   selectedCityId: null,
   msTeamsInput: null,
+  durationInput: 60,
   session: null,
   loadingCities: false,
   loadingRooms: false,
@@ -75,6 +78,7 @@ export function useSelectionFlow() {
         cityInput: persisted.cityInput,
         roomInput: persisted.roomInput,
         msTeamsInput: persisted.msTeamsInput,
+        durationInput: persisted.durationInput,
       };
     }
     return initialState;
@@ -120,8 +124,9 @@ export function useSelectionFlow() {
       cityInput: state.cityInput,
       roomInput: state.roomInput,
       msTeamsInput: state.msTeamsInput,
+      durationInput: state.durationInput,
     });
-  }, [state.cityInput, state.roomInput, state.msTeamsInput]);
+  }, [state.cityInput, state.roomInput, state.msTeamsInput, state.durationInput]);
 
   const findCityByName = useCallback(
     (name: string) => {
@@ -168,7 +173,7 @@ export function useSelectionFlow() {
     setState((prev) => ({ ...prev, msTeamsInput: value ?? "" }));
   }, []);
 
-  const submit = useCallback(async (): Promise<VisitSession> => {
+  const submit = useCallback(async (durationMinutes: 30 | 60): Promise<VisitSession> => {
     setState((prev) => ({ ...prev, submitting: true, error: null }));
     try {
       let cityIdToUse: string | undefined;
@@ -222,6 +227,7 @@ export function useSelectionFlow() {
         cityId: cityIdToUse,
         meetingRoomId: roomIdToUse,
         msTeamsInput: state.msTeamsInput || undefined,
+        durationMinutes,
       });
       const session: VisitSession = {
         ...mapVisitResponse(response),
