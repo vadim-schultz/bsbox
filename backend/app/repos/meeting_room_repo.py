@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import MeetingRoom
 from app.schema.common.pagination import PaginationParams
+from app.schema.location.requests import MeetingRoomCreate
 
 
 class MeetingRoomRepo:
@@ -46,8 +47,8 @@ class MeetingRoomRepo:
     def exists(self, name: str, city_id: str) -> bool:
         return self.get_by_name(name=name, city_id=city_id) is not None
 
-    def create(self, name: str, city_id: str) -> MeetingRoom:
-        meeting_room = MeetingRoom(name=name, city_id=city_id)
+    def create(self, request: MeetingRoomCreate) -> MeetingRoom:
+        meeting_room = MeetingRoom(name=request.name, city_id=request.city_id)
         self.session.add(meeting_room)
         self.session.flush()
         self.session.refresh(meeting_room)

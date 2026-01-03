@@ -54,7 +54,7 @@ class JoinService:
         try:
             # Create or reuse participant for this connection
             participant = self.participant_service.create_or_reuse_for_connection(
-                context.meeting, request.fingerprint
+                context.meeting, request
             )
 
             # Commit immediately to release the database lock for other connections

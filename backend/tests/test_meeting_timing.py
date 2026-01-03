@@ -204,6 +204,7 @@ async def test_status_handler_accepts_during_meeting():
 def test_engagement_service_validates_bucket_bounds():
     """Test that EngagementService validates bucket is within meeting bounds."""
     from app.repos import EngagementRepo, ParticipantRepo
+    from app.schema.websocket.requests import StatusUpdateRequest
     from app.services import EngagementService
     from app.services.engagement.bucketing import BucketManager
     from app.services.engagement.smoothing import SmoothingAlgorithm, SmoothingFactory
@@ -250,17 +251,20 @@ def test_engagement_service_validates_bucket_bounds():
 
     # Test recording status before meeting start (should fail)
     time_before_start = meeting_start - timedelta(minutes=5)
+    request_before = StatusUpdateRequest(status="engaged")
     with pytest.raises(ValueError, match="before meeting start"):
-        service.record_status(participant, "engaged", time_before_start)
+        service.record_status(participant, request_before, time_before_start)
 
     # Test recording status after meeting end (should fail)
     time_after_end = meeting_end + timedelta(minutes=5)
+    request_after = StatusUpdateRequest(status="engaged")
     with pytest.raises(ValueError, match="after meeting end"):
-        service.record_status(participant, "engaged", time_after_end)
+        service.record_status(participant, request_after, time_after_end)
 
     # Test recording status during meeting (should succeed)
     time_during_meeting = meeting_start + timedelta(minutes=15)
-    service.record_status(participant, "engaged", time_during_meeting)
+    request_during = StatusUpdateRequest(status="engaged")
+    service.record_status(participant, request_during, time_during_meeting)
 
     # Verify the repo was called
     engagement_repo.upsert_sample.assert_called_once()

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import EngagementSample
+from app.schema.websocket.requests import StatusUpdateRequest
 
 
 class EngagementRepo:
@@ -16,7 +17,7 @@ class EngagementRepo:
         meeting_id: str,
         participant_id: str,
         bucket: datetime,
-        status: str,
+        request: StatusUpdateRequest,
     ) -> EngagementSample:
         """Upsert an engagement sample for a participant at a given time bucket."""
         stmt = select(EngagementSample).where(
@@ -25,7 +26,7 @@ class EngagementRepo:
         )
         existing = self.session.scalars(stmt).first()
         if existing:
-            existing.status = status
+            existing.status = request.status
             self.session.add(existing)
             self.session.flush()
             self.session.refresh(existing)
@@ -35,7 +36,7 @@ class EngagementRepo:
             participant_id=participant_id,
             meeting_id=meeting_id,
             bucket=bucket,
-            status=status,
+            status=request.status,
         )
         self.session.add(sample)
         self.session.flush()

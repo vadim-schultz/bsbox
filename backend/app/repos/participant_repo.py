@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Participant
+from app.schema.websocket.requests import JoinRequest
 
 
 class ParticipantRepo:
@@ -23,7 +24,7 @@ class ParticipantRepo:
         )
         return self.session.scalars(stmt).first()
 
-    def create(self, meeting_id: str, device_fingerprint: str) -> Participant:
+    def create(self, meeting_id: str, request: JoinRequest) -> Participant:
         """Create a new participant for a meeting.
 
         No fingerprint needed - each connection creates a fresh participant.
@@ -31,7 +32,7 @@ class ParticipantRepo:
         participant = Participant(
             id=str(uuid4()),
             meeting_id=meeting_id,
-            device_fingerprint=device_fingerprint,
+            device_fingerprint=request.fingerprint,
         )
         self.session.add(participant)
         self.session.flush()

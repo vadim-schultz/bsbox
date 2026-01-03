@@ -4,6 +4,7 @@ from typing import Any
 from app.models import Meeting, Participant
 from app.repos import EngagementRepo, ParticipantRepo
 from app.schema.engagement.models import EngagementSummary
+from app.schema.websocket.requests import StatusUpdateRequest
 from app.services.engagement.bucketing import BucketManager
 from app.services.engagement.summary import SnapshotBuilder
 
@@ -24,13 +25,13 @@ class EngagementService:
         self.snapshot_builder = snapshot_builder
 
     def record_status(
-        self, participant: Participant, status: str, current_time: datetime
+        self, participant: Participant, request: StatusUpdateRequest, current_time: datetime
     ) -> datetime:
         """Record a status update for a participant.
 
         Args:
             participant: The participant recording the status
-            status: The engagement status to record
+            request: The status update request containing the status
             current_time: The current timestamp
 
         Returns:
@@ -51,9 +52,9 @@ class EngagementService:
             meeting_id=participant.meeting_id,
             participant_id=participant.id,
             bucket=bucket,
-            status=status,
+            request=request,
         )
-        self.participant_repo.update_last_status(participant, status)
+        self.participant_repo.update_last_status(participant, request.status)
         return bucket
 
     def build_engagement_summary(

@@ -33,7 +33,7 @@ class MeetingRoomsController(Controller):
         self, data: MeetingRoomCreate, meeting_room_service: MeetingRoomService
     ) -> MeetingRoomRead:
         try:
-            room = meeting_room_service.create_room(name=data.name, city_id=data.city_id)
+            room = meeting_room_service.create_room(data)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         result: MeetingRoomRead = MeetingRoomRead.model_validate(room)

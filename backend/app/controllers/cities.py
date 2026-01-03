@@ -28,7 +28,7 @@ class CitiesController(Controller):
     @post("/", sync_to_thread=False)
     def create_city(self, data: CityCreate, city_service: CityService) -> CityRead:
         try:
-            city = city_service.create_city(data.name)
+            city = city_service.create_city(data)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         result: CityRead = CityRead.model_validate(city)

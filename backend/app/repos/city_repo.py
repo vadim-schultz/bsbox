@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import City
 from app.schema.common.pagination import PaginationParams
+from app.schema.location.requests import CityCreate
 
 
 class CityRepo:
@@ -33,8 +34,8 @@ class CityRepo:
     def exists(self, name: str) -> bool:
         return self.get_by_name(name) is not None
 
-    def create(self, name: str) -> City:
-        city = City(name=name)
+    def create(self, request: CityCreate) -> City:
+        city = City(name=request.name)
         self.session.add(city)
         self.session.flush()
         self.session.refresh(city)

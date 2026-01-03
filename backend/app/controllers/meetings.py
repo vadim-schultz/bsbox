@@ -9,6 +9,7 @@ from litestar.exceptions import HTTPException
 from app.schema.common.pagination import Paginated, PaginationParams
 from app.schema.engagement.models import EngagementSummary
 from app.schema.meeting.models import MeetingRead, MeetingWithParticipants
+from app.schema.visit.requests import VisitRequest
 from app.services import MeetingService
 from app.services.engagement_service import EngagementService
 
@@ -34,7 +35,7 @@ class MeetingsController(Controller):
 
     @post("/", sync_to_thread=False)
     def create_meeting(self, meeting_service: MeetingService) -> MeetingRead:
-        meeting = meeting_service.ensure_meeting(datetime.now(tz=UTC))
+        meeting = meeting_service.ensure_meeting(datetime.now(tz=UTC), VisitRequest())
         return meeting.to_read_schema()
 
     @get("/{meeting_id:str}", sync_to_thread=False)

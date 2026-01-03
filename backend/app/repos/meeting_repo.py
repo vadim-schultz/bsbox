@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import Meeting
 from app.repos.ms_teams_meeting_repo import MSTeamsMeetingRepo
 from app.schema.common.pagination import PaginationParams
-from app.schema.integration.parsers import ParsedTeamsMeeting
+from app.schema.visit.requests import VisitRequest
 from app.utils.datetime import ensure_utc, isoformat_utc
 
 
@@ -67,13 +67,12 @@ class MeetingRepo:
         self,
         start_ts: datetime,
         end_ts: datetime,
-        *,
-        city_id: str | None = None,
-        meeting_room_id: str | None = None,
-        ms_teams: ParsedTeamsMeeting | None = None,
+        request: VisitRequest,
     ) -> Meeting:
         """Atomically get or create meeting for time slot using deterministic ID."""
-        ms_teams_meeting = self._ms_teams_repo.get_or_create(ms_teams) if ms_teams else None
+        ms_teams_meeting = (
+            self._ms_teams_repo.get_or_create(request.ms_teams) if request.ms_teams else None
+        )
         ms_teams_meeting_id = ms_teams_meeting.id if ms_teams_meeting else None
 
         start_ts = ensure_utc(start_ts)
@@ -85,8 +84,8 @@ class MeetingRepo:
             id=meeting_id,
             start_ts=start_ts,
             end_ts=end_ts,
-            city_id=city_id,
-            meeting_room_id=meeting_room_id,
+            city_id=request.city_id,
+            meeting_room_id=request.meeting_room_id,
             ms_teams_meeting_id=ms_teams_meeting_id,
         )
 

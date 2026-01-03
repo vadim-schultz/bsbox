@@ -28,13 +28,7 @@ class VisitsController(Controller):
         """
         # Use local time (with zone) for snapping; it will be normalized to UTC in the service
         now = datetime.now().astimezone()
-        meeting = meeting_service.ensure_meeting(
-            now,
-            city_id=data.city_id,
-            meeting_room_id=data.meeting_room_id,
-            ms_teams=data.ms_teams,
-            duration_minutes=data.duration_minutes,
-        )
+        meeting = meeting_service.ensure_meeting(now, data)
 
         return VisitResponse(
             meeting_id=meeting.id,

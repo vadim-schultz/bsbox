@@ -59,7 +59,7 @@ class StatusService:
         try:
             bucket = self.engagement_service.record_status(
                 participant=context.participant,
-                status=request.status,
+                request=request,
                 current_time=now,
             )
         except ValueError as e:
