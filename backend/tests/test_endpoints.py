@@ -28,8 +28,10 @@ def test_meeting_creation_via_visit(app, monkeypatch):
     monkeypatch.setattr("app.controllers.visit.datetime", FixedDateTime)
 
     with TestClient(app, raise_server_exceptions=True) as client:
-        # Create meeting via visit (no device_fingerprint needed anymore)
-        visit_resp = client.post("/visit", json={})
+        # Create meeting via visit with Teams link (required context)
+        visit_resp = client.post(
+            "/visit", json={"ms_teams_input": "https://teams.microsoft.com/meet/test123"}
+        )
         assert visit_resp.status_code in (200, 201)
         visit = visit_resp.json()
 
@@ -57,8 +59,8 @@ def test_meeting_list(app, monkeypatch):
     monkeypatch.setattr("app.controllers.visit.datetime", FixedDateTime)
 
     with TestClient(app, raise_server_exceptions=True) as client:
-        # Create a meeting first
-        client.post("/visit", json={})
+        # Create a meeting first with Teams link
+        client.post("/visit", json={"ms_teams_input": "https://teams.microsoft.com/meet/test456"})
 
         # List meetings with pagination defaults
         list_resp = client.get("/meetings")
@@ -83,7 +85,7 @@ def test_time_slot_snapping(app, monkeypatch):
         (datetime(2025, 1, 1, 10, 59, tzinfo=UTC), "2025-01-01T11:00"),  # :59 -> next :00
     ]
 
-    for fixed_now, expected_start in test_cases:
+    for i, (fixed_now, expected_start) in enumerate(test_cases):
 
         class FixedDateTime(datetime):
             _fixed = fixed_now  # Bind loop variable to class attribute
@@ -95,7 +97,10 @@ def test_time_slot_snapping(app, monkeypatch):
         monkeypatch.setattr("app.controllers.visit.datetime", FixedDateTime)
 
         with TestClient(app, raise_server_exceptions=True) as client:
-            visit_resp = client.post("/visit", json={})
+            # Use different Teams link for each test case to avoid collisions
+            visit_resp = client.post(
+                "/visit", json={"ms_teams_input": f"https://teams.microsoft.com/meet/test{i}"}
+            )
             assert visit_resp.status_code in (200, 201)
             visit = visit_resp.json()
             assert visit["meeting_start"].startswith(expected_start), (
@@ -121,7 +126,9 @@ def test_visit_uses_local_timezone_for_snapping(app, monkeypatch):
     monkeypatch.setattr("app.services.meeting_service.datetime", FixedDateTime)
 
     with TestClient(app, raise_server_exceptions=True) as client:
-        visit_resp = client.post("/visit", json={})
+        visit_resp = client.post(
+            "/visit", json={"ms_teams_input": "https://teams.microsoft.com/meet/timezone_test"}
+        )
         assert visit_resp.status_code in (200, 201)
         visit = visit_resp.json()
         # 09:00 local UTC+2 -> 07:00 UTC stored/returned
@@ -130,7 +137,7 @@ def test_visit_uses_local_timezone_for_snapping(app, monkeypatch):
 
 
 def test_deterministic_meeting_id(app, monkeypatch):
-    """Test that the same time slot always produces the same meeting ID."""
+    """Test that the same time slot with same context produces the same meeting ID."""
     fixed_now = datetime(2025, 1, 1, 10, 0, tzinfo=UTC)
 
     class FixedDateTime(datetime):
@@ -141,12 +148,14 @@ def test_deterministic_meeting_id(app, monkeypatch):
     monkeypatch.setattr("app.controllers.visit.datetime", FixedDateTime)
 
     with TestClient(app, raise_server_exceptions=True) as client:
+        teams_link = "https://teams.microsoft.com/meet/deterministic_test"
+
         # First visit
-        resp1 = client.post("/visit", json={})
+        resp1 = client.post("/visit", json={"ms_teams_input": teams_link})
         meeting_id_1 = resp1.json()["meeting_id"]
 
-        # Second visit at same time should return same meeting
-        resp2 = client.post("/visit", json={})
+        # Second visit at same time with same Teams link should return same meeting
+        resp2 = client.post("/visit", json={"ms_teams_input": teams_link})
         meeting_id_2 = resp2.json()["meeting_id"]
 
         assert meeting_id_1 == meeting_id_2

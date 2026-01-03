@@ -143,10 +143,6 @@ export function useMeetingSocket(
           return prev;
         }
       });
-      // Update currentStatus if this delta is for our participant
-      if (delta.participant_id === participantIdRef.current) {
-        setCurrentStatus(delta.status);
-      }
     });
 
     const unsubEnded = socket.onMeetingEnded((message) => {
@@ -176,6 +172,31 @@ export function useMeetingSocket(
       });
       setError(null);
       setLoading(false); // Stop loading since we're in countdown mode
+    });
+
+    const unsubMeetingStarted = socket.onMeetingStarted((mid) => {
+      console.log("[useMeetingSocket] Meeting started notification:", mid);
+      // Trigger auto-join immediately
+      if (!participantIdRef.current && deviceFingerprint) {
+        console.log("[useMeetingSocket] Auto-joining after meeting start notification");
+        setLoading(true);
+        socket
+          .join(deviceFingerprint)
+          .then((pid) => {
+            participantIdRef.current = pid;
+            setParticipantId(pid);
+            setCountdownData(null);
+            console.log("[useMeetingSocket] Auto-join successful:", pid);
+          })
+          .catch((err) => {
+            const message = err instanceof Error ? err.message : "Auto-join failed";
+            setError(message);
+            console.error("[useMeetingSocket] Auto-join failed:", err);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
     });
 
     const unsubError = socket.onError((message) => {
@@ -233,6 +254,7 @@ export function useMeetingSocket(
       unsubEnded();
       unsubNotStarted();
       unsubCountdown();
+      unsubMeetingStarted();
       unsubError();
       unsubState();
       socket.disconnect();

@@ -25,6 +25,8 @@ class VisitsController(Controller):
         """Get or create meeting for the current time slot.
 
         Returns meeting details. Participant creation happens via WebSocket join.
+
+        Validation of required context (Teams or room) is handled by the VisitRequest model.
         """
         # Use local time (with zone) for snapping; it will be normalized to UTC in the service
         now = datetime.now().astimezone()

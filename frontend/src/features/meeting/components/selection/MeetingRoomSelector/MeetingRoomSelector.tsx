@@ -7,12 +7,20 @@ type Props = {
   onChange: (value: string) => void;
   loading?: boolean;
   disabled?: boolean;
+  teamsProvided?: boolean;
 };
 
-export function MeetingRoomSelector({ rooms, value, onChange, loading, disabled }: Props) {
+export function MeetingRoomSelector({ rooms, value, onChange, loading, disabled, teamsProvided }: Props) {
   const handleChange = (val: string | null) => {
     onChange(val ?? "");
   };
+
+  let placeholder = "Select or type a room";
+  if (teamsProvided) {
+    placeholder = "Not needed - Teams link provided";
+  } else if (disabled) {
+    placeholder = "Select a city first";
+  }
 
   return (
     <BaseCombobox
@@ -20,7 +28,7 @@ export function MeetingRoomSelector({ rooms, value, onChange, loading, disabled 
       items={rooms}
       value={value || null}
       onChange={handleChange}
-      placeholder={disabled ? "Select a city first" : "Select or type a room"}
+      placeholder={placeholder}
       loading={loading}
       disabled={disabled}
     />

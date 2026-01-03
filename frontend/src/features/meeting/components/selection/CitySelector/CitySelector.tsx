@@ -6,9 +6,10 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   loading?: boolean;
+  disabled?: boolean;
 };
 
-export function CitySelector({ cities, value, onChange, loading }: Props) {
+export function CitySelector({ cities, value, onChange, loading, disabled }: Props) {
   const handleChange = (val: string | null) => {
     onChange(val ?? "");
   };
@@ -19,8 +20,9 @@ export function CitySelector({ cities, value, onChange, loading }: Props) {
       items={cities}
       value={value || null}
       onChange={handleChange}
-      placeholder="Select or type a city"
+      placeholder={disabled ? "Not needed - Teams link provided" : "Select or type a city"}
       loading={loading}
+      disabled={disabled}
     />
   );
 }

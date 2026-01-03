@@ -7,9 +7,7 @@ export type SnapshotMessage = {
 
 export type DeltaMessageData = {
   meeting_id: string;
-  participant_id: string;
   bucket: string;
-  status: StatusLiteral;
   overall: number;
   participants: Record<string, number>;
 };

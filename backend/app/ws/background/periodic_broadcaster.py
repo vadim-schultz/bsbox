@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Meeting
 from app.repos import EngagementRepo, MeetingRepo, ParticipantRepo
+from app.schema.websocket import MeetingStartedResponse
 from app.services import EngagementService
 from app.services.engagement.bucketing import BucketManager
 from app.services.engagement.smoothing.base import SmoothingStrategy
@@ -49,6 +50,9 @@ class PeriodicBroadcaster:
         self.smoothing_strategy = smoothing_strategy
         self.interval_seconds = interval_seconds
         self._task: asyncio.Task | None = None
+        self._notified_started_meetings: set[str] = (
+            set()
+        )  # Track meetings we've notified as started
 
     async def start(self) -> None:
         """Start periodic broadcasting task."""
@@ -75,7 +79,10 @@ class PeriodicBroadcaster:
                 logger.exception("Error in periodic broadcaster")
 
     async def _broadcast_active_meetings(self) -> None:
-        """Query active meetings and broadcast rollups."""
+        """Query active meetings and broadcast rollups.
+
+        Also notifies clients waiting in countdown mode when meetings start.
+        """
         session = self.session_factory()
         try:
             # Create repos and services for this broadcast cycle
@@ -103,11 +110,27 @@ class PeriodicBroadcaster:
 
             for meeting in active_meetings:
                 try:
+                    # Check if meeting just started (wasn't in our set yet)
+                    if meeting.id not in self._notified_started_meetings:
+                        self._notify_meeting_started(meeting)
+                        self._notified_started_meetings.add(meeting.id)
+
+                    # Broadcast regular rollup
                     self._broadcast_meeting_rollup(meeting, now, engagement_service)
                 except Exception:
                     logger.exception("Failed to broadcast rollup for meeting %s", meeting.id)
         finally:
             session.close()
+
+    def _notify_meeting_started(self, meeting: Meeting) -> None:
+        """Notify clients waiting in countdown mode that the meeting has started.
+
+        Args:
+            meeting: The meeting that just started
+        """
+        logger.info("Meeting %s started, notifying countdown clients", meeting.id)
+        response = MeetingStartedResponse(meeting_id=meeting.id, message="The meeting has started.")
+        self.broadcast_repo.send_to_meeting(meeting.id, response.model_dump(mode="json"))
 
     def _broadcast_meeting_rollup(
         self, meeting: Meeting, now: datetime, engagement_service: EngagementService

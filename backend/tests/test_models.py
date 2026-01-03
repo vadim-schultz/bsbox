@@ -17,8 +17,9 @@ def test_engagement_bucket_rounding(session_factory):
         engagement_repo = EngagementRepo(session)
 
         start = datetime(2025, 1, 1, 10, 30, tzinfo=UTC)
-        visit_request = VisitRequest()
-        meeting = meeting_repo.upsert_by_start(
+        # Provide Teams meeting context (required)
+        visit_request = VisitRequest(ms_teams_input="https://teams.microsoft.com/meet/bucket_test")
+        meeting = meeting_repo.get_or_create(
             start_ts=start, end_ts=start + timedelta(hours=1), request=visit_request
         )
         join_request = JoinRequest(fingerprint="fp-test")
@@ -62,8 +63,9 @@ def test_participant_reuse_by_fingerprint(session_factory):
         participant_service = ParticipantService(participant_repo)
 
         start = datetime(2025, 1, 1, 12, 0, tzinfo=UTC)
-        visit_request = VisitRequest()
-        meeting = meeting_repo.upsert_by_start(
+        # Provide Teams meeting context (required)
+        visit_request = VisitRequest(ms_teams_input="https://teams.microsoft.com/meet/reuse_test")
+        meeting = meeting_repo.get_or_create(
             start_ts=start, end_ts=start + timedelta(hours=1), request=visit_request
         )
 
@@ -84,8 +86,11 @@ def test_participant_new_for_different_fingerprint(session_factory):
         participant_service = ParticipantService(participant_repo)
 
         start = datetime(2025, 1, 1, 13, 0, tzinfo=UTC)
-        visit_request = VisitRequest()
-        meeting = meeting_repo.upsert_by_start(
+        # Provide Teams meeting context (required)
+        visit_request = VisitRequest(
+            ms_teams_input="https://teams.microsoft.com/meet/different_fp_test"
+        )
+        meeting = meeting_repo.get_or_create(
             start_ts=start, end_ts=start + timedelta(hours=1), request=visit_request
         )
 

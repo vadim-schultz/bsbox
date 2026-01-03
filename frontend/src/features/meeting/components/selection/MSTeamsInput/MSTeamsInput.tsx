@@ -41,7 +41,7 @@ export function MSTeamsInput({ value, onChange }: Props) {
 
   return (
     <Field.Root invalid={hasValue ? !validation.isValid : undefined}>
-      <Field.Label>Microsoft Teams meeting (optional)</Field.Label>
+      <Field.Label>Microsoft Teams meeting (primary identifier)</Field.Label>
       <Input
         placeholder="Paste invite URL or meeting ID"
         value={value ?? ""}
@@ -49,7 +49,7 @@ export function MSTeamsInput({ value, onChange }: Props) {
         size="md"
       />
       <Field.HelperText>
-        Accepts full Teams invite links or numeric meeting IDs
+        If provided, this uniquely identifies your meeting regardless of location
       </Field.HelperText>
       {hasValue && validation.message && (
         <Text

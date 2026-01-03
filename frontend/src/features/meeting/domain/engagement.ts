@@ -131,13 +131,13 @@ export const buildChartData = (
     });
   }
 
-  // Calculate cutoff time: max of (latest data point, current time)
+  // Calculate cutoff time: min of (latest data point, current time)
   // This ensures we only plot up to "now" and don't project into the future
   const now = Date.now();
   const latestDataTime = engagementSummary?.overall.length
     ? Math.max(...engagementSummary.overall.map(p => p.bucket.getTime()))
     : now;
-  const cutoffTime = Math.max(latestDataTime, now);
+  const cutoffTime = Math.min(latestDataTime, now);
   
   const points: ChartPoint[] = [];
   const stepMs = bucketMinutes * 60_000;

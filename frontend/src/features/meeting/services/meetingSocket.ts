@@ -30,7 +30,8 @@ type WSResponse =
       server_time: string;
       city_name?: string | null;
       meeting_room_name?: string | null;
-    };
+    }
+  | { type: "meeting_started"; meeting_id: string; message?: string };
 
 type ConnectionState =
   | "disconnected"
@@ -55,6 +56,7 @@ export class MeetingSocket {
     joined: [] as ((participantId: string, meetingId: string) => void)[],
     meetingEnded: [] as ((message?: string) => void)[],
     meetingNotStarted: [] as ((message?: string) => void)[],
+    meetingStarted: [] as ((meetingId: string) => void)[],
     countdown: [] as ((data: {
       meeting_id: string;
       start_time: string;
@@ -239,6 +241,15 @@ export class MeetingSocket {
     };
   }
 
+  /** Register meeting started handler */
+  onMeetingStarted(handler: (meetingId: string) => void): () => void {
+    this.handlers.meetingStarted.push(handler);
+    return () => {
+      const idx = this.handlers.meetingStarted.indexOf(handler);
+      if (idx !== -1) this.handlers.meetingStarted.splice(idx, 1);
+    };
+  }
+
   /** Register error handler */
   onError(handler: (message: string) => void): () => void {
     this.handlers.error.push(handler);
@@ -321,6 +332,10 @@ export class MeetingSocket {
           city_name: response.city_name,
           meeting_room_name: response.meeting_room_name,
         }));
+        break;
+      case "meeting_started":
+        console.log("[WS] Meeting started notification received");
+        this.handlers.meetingStarted.forEach((h) => h(response.meeting_id));
         break;
     }
   }

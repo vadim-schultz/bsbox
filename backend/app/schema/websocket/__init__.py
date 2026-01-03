@@ -14,6 +14,7 @@ from app.schema.websocket.responses import (
     MeetingCountdownResponse,
     MeetingEndedResponse,
     MeetingNotStartedResponse,
+    MeetingStartedResponse,
     PongResponse,
 )
 
@@ -32,6 +33,7 @@ __all__ = [
     "MeetingEndedResponse",
     "MeetingNotStartedResponse",
     "MeetingCountdownResponse",
+    "MeetingStartedResponse",
     # Broadcasts
     "SnapshotMessage",
 ]

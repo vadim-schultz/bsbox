@@ -19,9 +19,26 @@ class MeetingRepo:
         self._ms_teams_repo = MSTeamsMeetingRepo(session)
 
     @staticmethod
-    def _generate_meeting_id(start_ts: datetime) -> str:
-        """Generate deterministic meeting ID from time slot."""
+    def _generate_meeting_id(
+        start_ts: datetime, ms_teams_meeting_id: str | None, meeting_room_id: str | None
+    ) -> str:
+        """Generate deterministic meeting ID from time slot and context.
+
+        Hierarchical logic:
+        - If Teams meeting ID is provided, it's the primary identifier
+        - Otherwise, room ID must be provided
+        - Raises ValueError if neither is provided
+        """
         key = isoformat_utc(start_ts)
+
+        # Hierarchical: Teams link is primary, room is secondary
+        if ms_teams_meeting_id:
+            key = f"{key}|teams:{ms_teams_meeting_id}"
+        elif meeting_room_id:
+            key = f"{key}|room:{meeting_room_id}"
+        else:
+            raise ValueError("Meeting must have either Teams link or room")
+
         return hashlib.sha256(key.encode()).hexdigest()[:36]
 
     def list(self, pagination: PaginationParams) -> tuple[Sequence[Meeting], int]:
@@ -63,13 +80,17 @@ class MeetingRepo:
         )
         return self.session.scalars(stmt).first()
 
-    def upsert_by_start(
+    def get_or_create(
         self,
         start_ts: datetime,
         end_ts: datetime,
         request: VisitRequest,
     ) -> Meeting:
-        """Atomically get or create meeting for time slot using deterministic ID."""
+        """Get or create meeting using deterministic ID from context.
+
+        The meeting ID is generated from start_ts and context (Teams or room).
+        If a meeting with that ID exists, it's returned; otherwise, a new one is created.
+        """
         ms_teams_meeting = (
             self._ms_teams_repo.get_or_create(request.ms_teams) if request.ms_teams else None
         )
@@ -77,9 +98,13 @@ class MeetingRepo:
 
         start_ts = ensure_utc(start_ts)
         end_ts = ensure_utc(end_ts)
-        meeting_id = self._generate_meeting_id(start_ts)
 
-        # Build the upsert statement
+        # Generate meeting ID with hierarchical context (Teams > Room)
+        meeting_id = self._generate_meeting_id(
+            start_ts, ms_teams_meeting_id, request.meeting_room_id
+        )
+
+        # Simple upsert by ID (primary key) - no complex conflict logic needed
         stmt = insert(Meeting).values(
             id=meeting_id,
             start_ts=start_ts,
@@ -89,9 +114,9 @@ class MeetingRepo:
             ms_teams_meeting_id=ms_teams_meeting_id,
         )
 
-        # On conflict, update metadata only if new values are provided and existing are null
+        # On conflict with the primary key (id), update metadata if new values provided
         stmt = stmt.on_conflict_do_update(
-            index_elements=["start_ts"],
+            index_elements=["id"],
             set_={
                 "city_id": func.coalesce(Meeting.city_id, stmt.excluded.city_id),
                 "meeting_room_id": func.coalesce(

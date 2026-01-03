@@ -88,3 +88,20 @@ class BroadcastRepo:
 
         self.publish(meeting.id, rollup_data)
         logger.debug("Published rollup for meeting %s at bucket %s", meeting.id, bucket)
+
+    def send_to_meeting(self, meeting_id: str, data: dict) -> None:
+        """Send arbitrary JSON data to all subscribers of a meeting.
+
+        Used for control messages like meeting_started notifications.
+
+        Args:
+            meeting_id: ID of the meeting to send to
+            data: JSON-serializable dictionary to send
+        """
+        import json
+
+        self.channels.publish(
+            data=json.dumps(data),
+            channels=[f"meeting:{meeting_id}"],
+        )
+        logger.debug("Sent message to channel meeting:%s", meeting_id)

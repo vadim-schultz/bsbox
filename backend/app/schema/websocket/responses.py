@@ -59,3 +59,11 @@ class MeetingCountdownResponse(BaseModel):
     server_time: str
     city_name: str | None = None
     meeting_room_name: str | None = None
+
+
+class MeetingStartedResponse(BaseModel):
+    """Notification that the meeting has started (sent to countdown clients)."""
+
+    type: Literal["meeting_started"] = "meeting_started"
+    meeting_id: str
+    message: str = "The meeting has started."

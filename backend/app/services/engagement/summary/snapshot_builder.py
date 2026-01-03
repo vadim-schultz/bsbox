@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.models import Meeting
@@ -15,6 +15,7 @@ from app.schema.engagement.models import (
 )
 from app.services.engagement.bucketing import BucketManager
 from app.services.engagement.smoothing.base import SmoothingStrategy
+from app.utils.datetime import ensure_utc
 
 
 class SnapshotBuilder:
@@ -172,8 +173,10 @@ class SnapshotBuilder:
         Returns:
             Complete engagement summary with all participants and overall data
         """
-        start = self.bucket_manager.bucketize(meeting.start_ts)
-        end = self.bucket_manager.bucketize(meeting.end_ts)
+        start = self.bucket_manager.bucketize(ensure_utc(meeting.start_ts))
+        # Cap end time to current time to avoid generating future buckets
+        current_time = datetime.now(tz=UTC)
+        end = self.bucket_manager.bucketize(min(ensure_utc(meeting.end_ts), current_time))
         buckets = self.bucket_manager.generate_buckets(start, end, bucket_minutes)
 
         # Query participants fresh to include newly joined participants

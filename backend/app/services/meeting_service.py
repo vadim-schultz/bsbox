@@ -44,7 +44,7 @@ class MeetingService:
         start_ts = ensure_utc(start_local)
         end_ts = ensure_utc(end_local)
 
-        return self.meeting_repo.upsert_by_start(
+        return self.meeting_repo.get_or_create(
             start_ts=start_ts,
             end_ts=end_ts,
             request=request,
