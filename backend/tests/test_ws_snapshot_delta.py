@@ -8,6 +8,9 @@ import pytest
 from app.models import Meeting, Participant
 from app.schema.engagement.models import EngagementSummary
 from app.schema.websocket import JoinedResponse, JoinRequest
+from app.services.engagement.bucketing import BucketManager
+from app.services.engagement.smoothing.no_smoothing import NoSmoothingStrategy
+from app.services.engagement.summary.snapshot_builder import SnapshotBuilder
 from app.ws.repos.broadcast import BroadcastRepo
 from app.ws.services.join import JoinService
 from app.ws.services.leave import LeaveService
@@ -44,7 +47,6 @@ async def test_join_service_returns_snapshot_in_response():
         start=past_start,
         end=future_end,
         bucket_minutes=1,
-        window_minutes=5,
         overall=[],
         participants=[],
     )
@@ -90,6 +92,41 @@ async def test_join_service_returns_snapshot_in_response():
     assert call_args[0][2] == mock_engagement_service  # engagement_service argument
 
 
+def test_bucket_rollup_carries_last_status_forward():
+    """Bucket rollup should preserve last known status even without new samples."""
+    bucket_manager = BucketManager()
+    engagement_repo = MagicMock()
+    participant_repo = MagicMock()
+
+    participant_a = Participant(
+        id="p-speaking",
+        meeting_id="test-meeting",
+        device_fingerprint="device-a",
+    )
+    participant_a.last_status = "speaking"
+    participant_b = Participant(
+        id="p-idle",
+        meeting_id="test-meeting",
+        device_fingerprint="device-b",
+    )
+    participant_b.last_status = None
+
+    participant_repo.get_for_meeting.return_value = [participant_a, participant_b]
+    engagement_repo.get_samples_for_meeting.return_value = []
+
+    builder = SnapshotBuilder(
+        engagement_repo=engagement_repo,
+        participant_repo=participant_repo,
+        bucket_manager=bucket_manager,
+        smoothing_strategy=NoSmoothingStrategy(),
+    )
+
+    result = builder.bucket_rollup(MagicMock(id="test-meeting"), datetime.now(tz=UTC))
+
+    assert result["participants"] == {"p-speaking": 100.0, "p-idle": 0.0}
+    assert result["overall"] == 50.0
+
+
 @pytest.mark.asyncio
 async def test_join_service_broadcasts_delta_not_snapshot():
     """Test that JoinService only broadcasts delta, not snapshot."""
@@ -119,7 +156,6 @@ async def test_join_service_broadcasts_delta_not_snapshot():
         start=past_start,
         end=future_end,
         bucket_minutes=1,
-        window_minutes=5,
         overall=[],
         participants=[],
     )
@@ -196,7 +232,6 @@ def test_joined_response_includes_snapshot():
         start=past_start,
         end=future_end,
         bucket_minutes=1,
-        window_minutes=5,
         overall=[],
         participants=[],
     )

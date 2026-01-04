@@ -30,7 +30,6 @@ export type EngagementSummary = {
   start: Date;
   end: Date;
   bucketMinutes: number;
-  windowMinutes: number;
   overall: EngagementPoint[];
   participants: ParticipantEngagementSeries[];
 };

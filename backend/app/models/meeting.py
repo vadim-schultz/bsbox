@@ -36,6 +36,7 @@ class Meeting(Base):
     city: Mapped[City] = relationship(back_populates="meetings")
     meeting_room: Mapped[MeetingRoom] = relationship(back_populates="meetings")
     ms_teams_meeting: Mapped[MSTeamsMeeting | None] = relationship()
+    summary: Mapped[MeetingSummary | None] = relationship(back_populates="meeting")
 
     def to_read_schema(self) -> MeetingRead:
         """Convert ORM model to MeetingRead schema."""
@@ -102,6 +103,7 @@ class Meeting(Base):
 if TYPE_CHECKING:
     from app.models.city import City
     from app.models.meeting_room import MeetingRoom
+    from app.models.meeting_summary import MeetingSummary
     from app.models.ms_teams_meeting import MSTeamsMeeting
     from app.models.participant import Participant
     from app.schema.meeting.models import MeetingRead, MeetingWithParticipants

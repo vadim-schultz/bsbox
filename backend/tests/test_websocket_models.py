@@ -118,7 +118,6 @@ class TestResponseModels:
             start=now,
             end=now + timedelta(hours=1),
             bucket_minutes=1,
-            window_minutes=5,
             overall=[],
             participants=[],
         )
@@ -199,7 +198,6 @@ class TestResponseModels:
             start=now,
             end=now + timedelta(hours=1),
             bucket_minutes=1,
-            window_minutes=5,
             overall=[],
             participants=[],
         )
@@ -226,7 +224,6 @@ class TestSnapshotMessage:
             start=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC),
             end=datetime(2024, 1, 1, 13, 0, 0, tzinfo=UTC),
             bucket_minutes=5,
-            window_minutes=30,
             overall=[],
             participants=[],
         )
@@ -246,7 +243,6 @@ class TestSnapshotMessage:
             start=datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC),
             end=datetime(2024, 1, 1, 13, 0, 0, tzinfo=UTC),
             bucket_minutes=5,
-            window_minutes=30,
             overall=[],
             participants=[],
         )

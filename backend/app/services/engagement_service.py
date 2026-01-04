@@ -1,4 +1,5 @@
 from datetime import datetime
+from math import log2
 from typing import Any
 
 from app.models import Meeting, Participant
@@ -57,26 +58,19 @@ class EngagementService:
         self.participant_repo.update_last_status(participant, request.status)
         return bucket
 
-    def build_engagement_summary(
-        self, meeting: Meeting, bucket_minutes: int = 1, window_minutes: int = 5
-    ) -> EngagementSummary:
+    def build_engagement_summary(self, meeting: Meeting, bucket_minutes: int = 1) -> EngagementSummary:
         """Build complete engagement summary for a meeting.
 
         Args:
             meeting: The meeting to build summary for
             bucket_minutes: Bucket size in minutes (default: 1)
-            window_minutes: Window size for smoothing (default: 5)
 
         Returns:
             Complete engagement summary with all participants and buckets
         """
-        return self.snapshot_builder.build_engagement_summary(
-            meeting, bucket_minutes, window_minutes
-        )
+        return self.snapshot_builder.build_engagement_summary(meeting, bucket_minutes)
 
-    def bucket_rollup(
-        self, meeting: Meeting, bucket: datetime, window_minutes: int = 5
-    ) -> dict[str, Any]:
+    def bucket_rollup(self, meeting: Meeting, bucket: datetime) -> dict[str, Any]:
         """Compute engagement rollup for a specific bucket.
 
         Used for real-time updates (periodic broadcasts and event-triggered updates).
@@ -84,9 +78,67 @@ class EngagementService:
         Args:
             meeting: The meeting to compute rollup for
             bucket: The bucket timestamp
-            window_minutes: Window size for smoothing (default: 5)
 
         Returns:
             Dictionary with 'bucket', 'participants', and 'overall' keys
         """
-        return self.snapshot_builder.bucket_rollup(meeting, bucket, window_minutes)
+        return self.snapshot_builder.bucket_rollup(meeting, bucket)
+
+    def compute_average_engagement(self, meeting: Meeting) -> float:
+        """Compute average raw engagement score across all meeting buckets.
+
+        Args:
+            meeting: The meeting to compute engagement for
+
+        Returns:
+            Average raw engagement score (0.0 to 1.0)
+        """
+        summary = self.build_engagement_summary(meeting)
+        if not summary.overall:
+            return 0.0
+
+        # Calculate mean of overall engagement values
+        total = sum(point.value for point in summary.overall)
+        return total / len(summary.overall)
+
+    def normalize_engagement(
+        self, raw_engagement: float, participant_count: int, alpha: float = 0.8
+    ) -> float:
+        """Apply size-aware normalization to raw engagement score.
+
+        Formula: E_normalized = min(E × (1 + α / log2(N + 1)), E + 0.25, 1.0)
+
+        Args:
+            raw_engagement: Raw engagement score (0.0 to 1.0)
+            participant_count: Number of participants
+            alpha: Tuning constant (default: 0.8)
+
+        Returns:
+            Normalized engagement score (0.0 to 1.0)
+        """
+        if participant_count == 0:
+            return 0.0
+
+        # Apply normalization formula
+        boost_factor = 1 + alpha / log2(participant_count + 1)
+        normalized = raw_engagement * boost_factor
+
+        # Apply safety cap: don't boost more than 0.25 above raw value
+        return min(normalized, raw_engagement + 0.25, 1.0)
+
+    def classify_engagement_level(self, normalized_engagement: float) -> str:
+        """Classify normalized engagement into buckets.
+
+        Args:
+            normalized_engagement: Normalized engagement score (0.0 to 1.0)
+
+        Returns:
+            Engagement level: "high", "healthy", "passive", or "low"
+        """
+        if normalized_engagement >= 0.60:
+            return "high"
+        if normalized_engagement >= 0.40:
+            return "healthy"
+        if normalized_engagement >= 0.20:
+            return "passive"
+        return "low"

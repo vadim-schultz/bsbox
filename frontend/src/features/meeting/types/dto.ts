@@ -27,7 +27,6 @@ export type EngagementSummaryDto = {
   start: string;
   end: string;
   bucket_minutes: number;
-  window_minutes: number;
   overall: EngagementPointDto[];
   participants: ParticipantEngagementSeriesDto[];
 };

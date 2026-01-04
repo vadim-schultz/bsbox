@@ -52,7 +52,8 @@ class SubscriptionRepo:
 
         async with self.channels.start_subscription([channel_name]) as subscriber:
             async for event in subscriber.iter_events():
+                decoded = event.decode("utf-8")
+                yield decoded
                 if is_closed.is_set():
                     logger.debug("Connection closed, stopping subscription for %s", channel_name)
                     break
-                yield event.decode("utf-8")

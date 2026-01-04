@@ -55,6 +55,7 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
     meetingEnded,
     meetingNotStarted,
     countdownData,
+    summaryData,
     error: socketError,
     loading: socketLoading,
     sendStatus: wsSendStatus,
@@ -103,6 +104,8 @@ export function useMeetingExperience(initialSession?: VisitSession | null) {
     // Countdown mode
     isCountdownMode,
     countdownData,
+    // Summary data (when meeting ends)
+    summaryData,
     // Connection state
     connectionState,
     meetingEnded,

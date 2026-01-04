@@ -53,7 +53,6 @@ async def test_processor_routes_join_request():
             start=past_start,
             end=future_end,
             bucket_minutes=1,
-            window_minutes=5,
             overall=[],
             participants=[],
         )

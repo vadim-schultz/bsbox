@@ -43,6 +43,19 @@ type UseMeetingSocketResult = {
     cityName?: string | null;
     meetingRoomName?: string | null;
   } | null;
+  /** Meeting summary data (when meeting ends) */
+  summaryData: {
+    meetingId: string;
+    cityName?: string | null;
+    meetingRoomName?: string | null;
+    msTeamsInviteUrl?: string | null;
+    startTs: string;
+    endTs: string;
+    durationMinutes: number;
+    maxParticipants: number;
+    normalizedEngagement: number;
+    engagementLevel: "high" | "healthy" | "passive" | "low";
+  } | null;
   /** Error message if any */
   error: string | null;
   /** Loading state (connecting or joining) */
@@ -78,6 +91,18 @@ export function useMeetingSocket(
     cityName?: string | null;
     meetingRoomName?: string | null;
   } | null>(null);
+  const [summaryData, setSummaryData] = useState<{
+    meetingId: string;
+    cityName?: string | null;
+    meetingRoomName?: string | null;
+    msTeamsInviteUrl?: string | null;
+    startTs: string;
+    endTs: string;
+    durationMinutes: number;
+    maxParticipants: number;
+    normalizedEngagement: number;
+    engagementLevel: "high" | "healthy" | "passive" | "low";
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -93,6 +118,7 @@ export function useMeetingSocket(
       setMeetingEnded(false);
       setMeetingNotStarted(false);
       setCountdownData(null);
+      setSummaryData(null);
       setError(null);
       setLoading(false);
       return;
@@ -131,7 +157,6 @@ export function useMeetingSocket(
             start: bucket,
             end: bucket,
             bucketMinutes: 1,
-            windowMinutes: 5,
             overall: [{ bucket, value: delta.overall }],
             participants,
           };
@@ -199,6 +224,25 @@ export function useMeetingSocket(
       }
     });
 
+    const unsubSummary = socket.onMeetingSummary((data) => {
+      console.log("[useMeetingSocket] Meeting summary received:", data);
+      setSummaryData({
+        meetingId: data.meeting_id,
+        cityName: data.city_name,
+        meetingRoomName: data.meeting_room_name,
+        msTeamsInviteUrl: data.ms_teams_invite_url,
+        startTs: data.start_ts,
+        endTs: data.end_ts,
+        durationMinutes: data.duration_minutes,
+        maxParticipants: data.max_participants,
+        normalizedEngagement: data.normalized_engagement,
+        engagementLevel: data.engagement_level,
+      });
+      setMeetingEnded(true);
+      setConnectionState("ended");
+      setError(null);
+    });
+
     const unsubError = socket.onError((message) => {
       setError(message);
     });
@@ -255,6 +299,7 @@ export function useMeetingSocket(
       unsubNotStarted();
       unsubCountdown();
       unsubMeetingStarted();
+      unsubSummary();
       unsubError();
       unsubState();
       socket.disconnect();
@@ -345,6 +390,7 @@ export function useMeetingSocket(
       meetingEnded,
       meetingNotStarted,
       countdownData,
+      summaryData,
       error,
       loading,
       sendStatus,
@@ -358,6 +404,7 @@ export function useMeetingSocket(
       meetingEnded,
       meetingNotStarted,
       countdownData,
+      summaryData,
       error,
       loading,
       sendStatus,

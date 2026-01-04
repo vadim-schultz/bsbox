@@ -243,6 +243,28 @@ class TestSubscriptionRepo:
         # Should stop after 2 events when is_closed is set
         assert len(events) == 2
 
+    @pytest.mark.asyncio
+    async def test_event_stream_yields_final_event_before_close(self):
+        """Ensure final queued event is delivered even when closed immediately."""
+        channels = MagicMock()
+        subscriber = MagicMock()
+
+        async def mock_iter_events():
+            yield b"final-event"
+
+        subscriber.iter_events.return_value = mock_iter_events()
+        channels.start_subscription.return_value.__aenter__.return_value = subscriber
+
+        manager = SubscriptionRepo(channels)
+        is_closed = anyio.Event()
+        events = []
+
+        async for event in manager.subscribe_to_meeting("test-meeting", is_closed):
+            events.append(event)
+            is_closed.set()
+
+        assert events == ["final-event"]
+
 
 class TestMeetingEndWatcher:
     """Tests for MeetingEndWatcher."""
@@ -250,47 +272,71 @@ class TestMeetingEndWatcher:
     @pytest.mark.asyncio
     async def test_watcher_waits_and_closes(self):
         """Test watcher waits for meeting end and closes connection."""
-        # Create meeting
+        # Create meeting with mocked relationships
         now = datetime.now(tz=UTC)
         meeting = Meeting(
             id="test-meeting",
             start_ts=now,
             end_ts=now + timedelta(seconds=1),
         )
+        meeting.city = None  # type: ignore[assignment]
+        meeting.meeting_room = None  # type: ignore[assignment]
+        meeting.ms_teams_meeting = None
 
         socket = AsyncMock()
         is_closed = anyio.Event()
-        watcher = MeetingEndWatcher()
+
+        # Mock dependencies
+        meeting_summary_service = MagicMock()
+        broadcast_repo = MagicMock()
+
+        # Mock summary creation
+        mock_summary = MagicMock()
+        mock_summary.max_participants = 5
+        mock_summary.normalized_engagement = 0.75
+        mock_summary.engagement_level = "high"
+        meeting_summary_service.persist_summary.return_value = mock_summary
+
+        watcher = MeetingEndWatcher(meeting_summary_service, broadcast_repo)
 
         # Run watcher with short timeout
         await watcher.watch(meeting, socket, is_closed, seconds_remaining=0.1)
 
-        # Should have sent end message and set is_closed
+        # Should have set is_closed and broadcast summary
         assert is_closed.is_set()
-        socket.send_json.assert_called_once()
+        broadcast_repo.send_to_meeting.assert_called_once()
+        socket.close.assert_called_once_with(code=1000, reason="Meeting ended")
 
     @pytest.mark.asyncio
     async def test_watcher_skips_if_already_closed(self):
         """Test watcher does nothing if connection already closed."""
-        # Create meeting
+        # Create meeting with mocked relationships
         now = datetime.now(tz=UTC)
         meeting = Meeting(
             id="test-meeting",
             start_ts=now,
             end_ts=now + timedelta(seconds=1),
         )
+        meeting.city = None  # type: ignore[assignment]
+        meeting.meeting_room = None  # type: ignore[assignment]
+        meeting.ms_teams_meeting = None
 
         socket = AsyncMock()
         is_closed = anyio.Event()
         is_closed.set()  # Already closed
 
-        watcher = MeetingEndWatcher()
+        # Mock dependencies
+        meeting_summary_service = MagicMock()
+        broadcast_repo = MagicMock()
+
+        watcher = MeetingEndWatcher(meeting_summary_service, broadcast_repo)
 
         # Run watcher
         await watcher.watch(meeting, socket, is_closed, seconds_remaining=0.1)
 
-        # Should not have sent anything since already closed
-        socket.send_json.assert_not_called()
+        # Should not have done anything since already closed
+        broadcast_repo.send_to_meeting.assert_not_called()
+        meeting_summary_service.persist_summary.assert_not_called()
 
 
 class TestLifecycleIntegration:

@@ -9,7 +9,8 @@ from litestar import WebSocket
 from litestar.channels import ChannelsPlugin
 from sqlalchemy.orm import Session
 
-from app.services import MeetingService
+from app.repos import MeetingSummaryRepo, ParticipantRepo
+from app.services import MeetingService, MeetingSummaryService
 from app.ws.repos.broadcast import BroadcastRepo
 from app.ws.repos.subscription import SubscriptionRepo
 from app.ws.transport.context import WSContext
@@ -91,8 +92,21 @@ class LifecycleCoordinator:
 
         factory = WSServiceFactory(session, broadcast_repo)
 
-        # 7. Create watcher and event
-        watcher = MeetingEndWatcher()
+        # 7. Create meeting summary service for watcher
+        participant_repo = ParticipantRepo(session)
+        meeting_summary_repo = MeetingSummaryRepo(session)
+
+        meeting_summary_service = MeetingSummaryService(
+            engagement_service=factory.engagement_service,
+            participant_repo=participant_repo,
+            meeting_summary_repo=meeting_summary_repo,
+        )
+
+        # 8. Create watcher with dependencies
+        watcher = MeetingEndWatcher(
+            meeting_summary_service=meeting_summary_service,
+            broadcast_repo=broadcast_repo,
+        )
         is_closed = anyio.Event()
 
         logger.info("WS lifecycle setup complete for meeting_id=%s", meeting_id)

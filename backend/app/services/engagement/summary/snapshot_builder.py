@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from app.models import Meeting
@@ -79,6 +79,7 @@ class SnapshotBuilder:
         buckets: list[datetime],
         participant_ids: Iterable[str],
         sample_map: dict[str, dict[datetime, str]],
+        initial_status: dict[str, str],
     ) -> dict[str, list[int]]:
         """Build binary engagement flags for each participant.
 
@@ -93,7 +94,7 @@ class SnapshotBuilder:
         flags: dict[str, list[int]] = {}
         for pid in participant_ids:
             pid_samples = sample_map.get(pid, {})
-            last_status = "disengaged"
+            last_status = initial_status.get(pid, "disengaged")
             pid_flags: list[int] = []
             for bucket in buckets:
                 status = pid_samples.get(bucket, last_status)
@@ -161,14 +162,13 @@ class SnapshotBuilder:
         return overall
 
     def build_engagement_summary(
-        self, meeting: Meeting, bucket_minutes: int = 1, window_minutes: int = 5
+        self, meeting: Meeting, bucket_minutes: int = 1
     ) -> EngagementSummary:
         """Build complete engagement summary for a meeting.
 
         Args:
             meeting: The meeting to build summary for
             bucket_minutes: Bucket size in minutes
-            window_minutes: Smoothing window size in minutes
 
         Returns:
             Complete engagement summary with all participants and overall data
@@ -183,12 +183,14 @@ class SnapshotBuilder:
         participants = self.participant_repo.get_for_meeting(meeting.id)
         participant_ids = [p.id for p in participants]
         sample_map = self._load_sample_map(meeting.id, start=start, end=end)
-        flags = self._build_flags(buckets, participant_ids, sample_map)
+        initial_status = {p.id: p.last_status or "disengaged" for p in participants}
+        flags = self._build_flags(buckets, participant_ids, sample_map, initial_status)
 
         # Apply smoothing to each participant's flags
         participant_series: dict[str, list[float]] = {}
         for pid, pid_flags in flags.items():
-            participant_series[pid] = self.smoothing_strategy.smooth(pid_flags, window_minutes)
+            smoothing_window = max(len(pid_flags), 1)
+            participant_series[pid] = self.smoothing_strategy.smooth(pid_flags, smoothing_window)
 
         # Compose output
         fingerprint_by_participant = {p.id: p.device_fingerprint for p in participants}
@@ -205,42 +207,30 @@ class SnapshotBuilder:
             start=start,
             end=end,
             bucket_minutes=bucket_minutes,
-            window_minutes=window_minutes,
             participants=participants_payload,
             overall=overall_points,
         )
 
-    def bucket_rollup(
-        self, meeting: Meeting, bucket: datetime, window_minutes: int = 5
-    ) -> dict[str, Any]:
-        """Compute engagement rollup for a specific bucket.
-
-        Used for real-time updates (periodic broadcasts and event-triggered updates).
-        Computes engagement values over a sliding window ending at the given bucket.
-
-        Args:
-            meeting: The meeting to compute rollup for
-            bucket: The bucket timestamp (will be normalized)
-            window_minutes: Window size for smoothing (default: 5)
-
-        Returns:
-            Dictionary with 'bucket', 'participants', and 'overall' keys
-        """
+    def bucket_rollup(self, meeting: Meeting, bucket: datetime) -> dict[str, Any]:
+        """Compute engagement rollup for a specific bucket using last known statuses."""
         bucket = self.bucket_manager.bucketize(bucket)
-        start = bucket - timedelta(minutes=window_minutes - 1)
-        sample_map = self._load_sample_map(meeting.id, start=start, end=bucket)
 
-        # Query participants fresh to include newly joined participants
+        # Query participants (includes historical entries)
         participants = self.participant_repo.get_for_meeting(meeting.id)
         participant_ids = [p.id for p in participants]
-        buckets = [start + timedelta(minutes=i) for i in range(window_minutes)]
-        flags = self._build_flags(buckets, participant_ids, sample_map)
 
-        # Use the injected smoothing strategy (consistent with snapshots!)
+        # Seed with persisted last_status
+        latest_status: dict[str, str] = {p.id: p.last_status or "disengaged" for p in participants}
+
+        # Overlay with latest samples up to the bucket
+        samples = self.engagement_repo.get_samples_for_meeting(meeting.id, end=bucket)
+        for sample in samples:
+            latest_status[sample.participant_id] = sample.status
+
         participant_values: dict[str, float] = {}
-        for pid, pid_flags in flags.items():
-            smoothed = self.smoothing_strategy.smooth(pid_flags, window_minutes)
-            participant_values[pid] = smoothed[-1] if smoothed else 0.0
+        for pid in participant_ids:
+            status = latest_status.get(pid, "disengaged")
+            participant_values[pid] = 100.0 if status in {"speaking", "engaged"} else 0.0
 
         overall_value = (
             sum(participant_values.values()) / len(participant_values)

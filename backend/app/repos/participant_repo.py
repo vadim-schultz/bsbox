@@ -2,7 +2,7 @@
 
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Participant
@@ -59,3 +59,16 @@ class ParticipantRepo:
         self.session.flush()
         self.session.refresh(participant)
         return participant
+
+    def get_max_participant_count(self, meeting_id: str) -> int:
+        """Get the maximum number of participants who joined the meeting.
+
+        Args:
+            meeting_id: The meeting ID
+
+        Returns:
+            Count of unique participants for the meeting
+        """
+        stmt = select(func.count(Participant.id)).where(Participant.meeting_id == meeting_id)
+        count = self.session.scalar(stmt)
+        return int(count) if count else 0

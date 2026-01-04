@@ -30,7 +30,6 @@ export const mapEngagementSummary = (
     start: toLocalDate(summary.start),
     end: toLocalDate(summary.end),
     bucketMinutes: summary.bucket_minutes,
-    windowMinutes: summary.window_minutes,
     overall: summary.overall.map((p) => toPoint(p.bucket, p.value)),
     participants: summary.participants.map((p) => ({
       participantId: p.participant_id,

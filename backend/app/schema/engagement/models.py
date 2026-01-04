@@ -46,7 +46,6 @@ class EngagementSummary(BaseModel):
     start: datetime
     end: datetime
     bucket_minutes: int
-    window_minutes: int
     overall: list[EngagementPoint]
     participants: list[ParticipantEngagementSeries]
 

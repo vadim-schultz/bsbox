@@ -1,11 +1,12 @@
 import { Button, Flex, Stack, Text } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useMeetingExperience } from "../hooks/useMeetingExperience";
 import { buildBaselineChart, buildChartData } from "../domain/engagement";
 import { formatTimespan } from "../utils/time";
 import { Notice, LoadingState } from "../../../app/components/feedback";
 import { MeetingInfo } from "../components/MeetingInfo";
+import { MeetingSummary } from "../components/MeetingSummary";
 import { StatusSelector } from "../components/StatusCards";
 import { EngagementChart } from "../components/charts/EngagementChart";
 import { MeetingCountdown } from "../components/MeetingCountdown";
@@ -17,6 +18,8 @@ type Props = {
 };
 
 export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
+  const [summaryWaitElapsed, setSummaryWaitElapsed] = useState(false);
+
   const {
     meetingId,
     meetingTimes,
@@ -30,6 +33,7 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     meetingNotStarted,
     isCountdownMode,
     countdownData,
+    summaryData,
     loading,
     error,
     sendStatus,
@@ -64,6 +68,17 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
     ? { inviteUrl: msTeamsInput, threadId: null, meetingId: null }
     : null;
 
+  // Allow a short grace period for the summary message to arrive before showing
+  // the generic "Meeting Ended" notice.
+  useEffect(() => {
+    if (meetingEnded && !summaryData) {
+      setSummaryWaitElapsed(false);
+      const timeout = window.setTimeout(() => setSummaryWaitElapsed(true), 4000);
+      return () => window.clearTimeout(timeout);
+    }
+    setSummaryWaitElapsed(false);
+  }, [meetingEnded, summaryData]);
+
   // Show countdown view if in countdown mode
   if (isCountdownMode && countdownData) {
     return (
@@ -82,6 +97,51 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
           cityName={countdownData.cityName || cityName}
           meetingRoomName={countdownData.meetingRoomName || meetingRoomName}
         />
+      </Stack>
+    );
+  }
+
+  // Show summary view if meeting ended with summary data
+  if (meetingEnded && summaryData) {
+    return (
+      <Stack gap={6}>
+        {onBackToSelection && (
+          <Flex justify="flex-start">
+            <Button variant="ghost" size="sm" onClick={onBackToSelection}>
+              ← Change Location
+            </Button>
+          </Flex>
+        )}
+
+        <MeetingSummary
+          meetingId={summaryData.meetingId}
+          cityName={summaryData.cityName}
+          meetingRoomName={summaryData.meetingRoomName}
+          msTeamsInviteUrl={summaryData.msTeamsInviteUrl}
+          startTs={summaryData.startTs}
+          endTs={summaryData.endTs}
+          durationMinutes={summaryData.durationMinutes}
+          maxParticipants={summaryData.maxParticipants}
+          normalizedEngagement={summaryData.normalizedEngagement}
+          engagementLevel={summaryData.engagementLevel}
+        />
+      </Stack>
+    );
+  }
+
+  // Grace period while waiting for summary data after meeting end
+  if (meetingEnded && !summaryData && !summaryWaitElapsed) {
+    return (
+      <Stack gap={6}>
+        {onBackToSelection && (
+          <Flex justify="flex-start">
+            <Button variant="ghost" size="sm" onClick={onBackToSelection}>
+              ← Change Location
+            </Button>
+          </Flex>
+        )}
+
+        <LoadingState label="Preparing meeting summary..." />
       </Stack>
     );
   }
@@ -140,7 +200,6 @@ export function MeetingContainer({ initialSession, onBackToSelection }: Props) {
       <EngagementChart
         data={chartData}
         meetingTimes={meetingTimes}
-        windowMinutes={engagementSummary?.windowMinutes}
         bucketMinutes={engagementSummary?.bucketMinutes}
         loading={loading}
         error={error}

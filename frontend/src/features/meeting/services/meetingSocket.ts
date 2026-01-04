@@ -31,7 +31,20 @@ type WSResponse =
       city_name?: string | null;
       meeting_room_name?: string | null;
     }
-  | { type: "meeting_started"; meeting_id: string; message?: string };
+  | { type: "meeting_started"; meeting_id: string; message?: string }
+  | {
+      type: "meeting_summary";
+      meeting_id: string;
+      city_name?: string | null;
+      meeting_room_name?: string | null;
+      ms_teams_invite_url?: string | null;
+      start_ts: string;
+      end_ts: string;
+      duration_minutes: number;
+      max_participants: number;
+      normalized_engagement: number;
+      engagement_level: "high" | "healthy" | "passive" | "low";
+    };
 
 type ConnectionState =
   | "disconnected"
@@ -57,6 +70,18 @@ export class MeetingSocket {
     meetingEnded: [] as ((message?: string) => void)[],
     meetingNotStarted: [] as ((message?: string) => void)[],
     meetingStarted: [] as ((meetingId: string) => void)[],
+    meetingSummary: [] as ((data: {
+      meeting_id: string;
+      city_name?: string | null;
+      meeting_room_name?: string | null;
+      ms_teams_invite_url?: string | null;
+      start_ts: string;
+      end_ts: string;
+      duration_minutes: number;
+      max_participants: number;
+      normalized_engagement: number;
+      engagement_level: "high" | "healthy" | "passive" | "low";
+    }) => void)[],
     countdown: [] as ((data: {
       meeting_id: string;
       start_time: string;
@@ -250,6 +275,26 @@ export class MeetingSocket {
     };
   }
 
+  /** Register meeting summary handler */
+  onMeetingSummary(handler: (data: {
+    meeting_id: string;
+    city_name?: string | null;
+    meeting_room_name?: string | null;
+    ms_teams_invite_url?: string | null;
+    start_ts: string;
+    end_ts: string;
+    duration_minutes: number;
+    max_participants: number;
+    normalized_engagement: number;
+    engagement_level: "high" | "healthy" | "passive" | "low";
+  }) => void): () => void {
+    this.handlers.meetingSummary.push(handler);
+    return () => {
+      const idx = this.handlers.meetingSummary.indexOf(handler);
+      if (idx !== -1) this.handlers.meetingSummary.splice(idx, 1);
+    };
+  }
+
   /** Register error handler */
   onError(handler: (message: string) => void): () => void {
     this.handlers.error.push(handler);
@@ -336,6 +381,22 @@ export class MeetingSocket {
       case "meeting_started":
         console.log("[WS] Meeting started notification received");
         this.handlers.meetingStarted.forEach((h) => h(response.meeting_id));
+        break;
+      case "meeting_summary":
+        console.log("[WS] Meeting summary received");
+        this.setConnectionState("ended");
+        this.handlers.meetingSummary.forEach((h) => h({
+          meeting_id: response.meeting_id,
+          city_name: response.city_name,
+          meeting_room_name: response.meeting_room_name,
+          ms_teams_invite_url: response.ms_teams_invite_url,
+          start_ts: response.start_ts,
+          end_ts: response.end_ts,
+          duration_minutes: response.duration_minutes,
+          max_participants: response.max_participants,
+          normalized_engagement: response.normalized_engagement,
+          engagement_level: response.engagement_level,
+        }));
         break;
     }
   }

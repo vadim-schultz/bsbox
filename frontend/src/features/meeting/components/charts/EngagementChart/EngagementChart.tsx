@@ -10,7 +10,6 @@ import { EngagementComposedChart } from "./EngagementComposedChart";
 type Props = {
   data: ChartPoint[];
   meetingTimes?: MeetingTimes;
-  windowMinutes?: number;
   bucketMinutes?: number;
   loading: boolean;
   error?: string | null;
@@ -19,7 +18,6 @@ type Props = {
 export function EngagementChart({
   data,
   meetingTimes,
-  windowMinutes,
   bucketMinutes,
   loading,
   error,

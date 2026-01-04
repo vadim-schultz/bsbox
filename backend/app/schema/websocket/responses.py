@@ -67,3 +67,19 @@ class MeetingStartedResponse(BaseModel):
     type: Literal["meeting_started"] = "meeting_started"
     meeting_id: str
     message: str = "The meeting has started."
+
+
+class MeetingSummaryResponse(BaseModel):
+    """Final meeting summary sent when meeting ends."""
+
+    type: Literal["meeting_summary"] = "meeting_summary"
+    meeting_id: str
+    city_name: str | None
+    meeting_room_name: str | None
+    ms_teams_invite_url: str | None
+    start_ts: str
+    end_ts: str
+    duration_minutes: int
+    max_participants: int
+    normalized_engagement: float
+    engagement_level: Literal["high", "healthy", "passive", "low"]
