@@ -677,7 +677,7 @@ wheels = [
 ]
 
 [[package]]
-name = "muda-meter"
+name = "bsbox"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

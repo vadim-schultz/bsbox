@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import func, select
-from sqlalchemy.dialects.sqlite import insert
+from app.db_utils import dialect_insert
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Meeting
@@ -104,8 +104,8 @@ class MeetingRepo:
             start_ts, ms_teams_meeting_id, request.meeting_room_id
         )
 
-        # Simple upsert by ID (primary key) - no complex conflict logic needed
-        stmt = insert(Meeting).values(
+        # Build the upsert statement (dialect-aware for postgres/sqlite)
+        stmt = dialect_insert(Meeting).values(
             id=meeting_id,
             start_ts=start_ts,
             end_ts=end_ts,

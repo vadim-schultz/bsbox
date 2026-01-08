@@ -1,0 +1,38 @@
+# Ignore Python cache files
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# IDE files
+.idea
+.vscode
+*.code-workspace
+
+# Virtual environments
+**/.venv
+**/venv
+
+# Ignore build artifacts
+**/dist
+**/build
+frontend/.vite
+frontend/node_modules
+
+# Ignore local environment files
+.env
+*.env
+
+# Ignore Git-related files (except .git which may be needed for versioning)
+.gitignore
+
+# Ignore test/coverage output
+**/.coverage
+**/coverage.xml
+**/.tox
+**/htmlcov
+
+# Ignore egg-info
+**/*.egg-info
+
+# Ignore local databases
+*.db

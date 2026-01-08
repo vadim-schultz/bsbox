@@ -35,7 +35,11 @@ build/
 dist/
 
 # Local database
-muda.db
+bsbox.db
+
+# Environment files (may contain corporate URLs)
+.env
+deployment/.env
 
 # IDE / editor
 .vscode/

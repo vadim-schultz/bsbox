@@ -1,5 +1,5 @@
 """
-Demo script for muda-meter engagement simulation.
+Demo script for bsbox engagement simulation.
 
 Demonstrates multiple separate meetings with different contexts:
 - Physical meetings in different cities/rooms

@@ -1,4 +1,4 @@
-# Muda Meter Backend (Litestar)
+# BSBox Backend (Litestar)
 
 Minimal Litestar API for meeting tracking with engagement buckets.
 

@@ -6,29 +6,29 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/ws': {
-        target: 'http://localhost:8000',
+      "/ws": {
+        target: "http://backend:8000",
         ws: true,
         changeOrigin: true,
       },
-      '/meetings': {
-        target: 'http://localhost:8000',
+      "/meetings": {
+        target: "http://backend:8000",
         changeOrigin: true,
       },
-      '/visit': {
-        target: 'http://localhost:8000',
+      "/visit": {
+        target: "http://backend:8000",
         changeOrigin: true,
       },
-      '/users': {
-        target: 'http://localhost:8000',
+      "/users": {
+        target: "http://backend:8000",
         changeOrigin: true,
       },
-      '/cities': {
-        target: 'http://localhost:8000',
+      "/cities": {
+        target: "http://backend:8000",
         changeOrigin: true,
       },
-      '/meeting-rooms': {
-        target: 'http://localhost:8000',
+      "/meeting-rooms": {
+        target: "http://backend:8000",
         changeOrigin: true,
       },
     },

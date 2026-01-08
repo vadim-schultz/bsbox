@@ -11,6 +11,7 @@ from app.controllers import (
     MeetingRoomsController,
     MeetingsController,
     VisitsController,
+    health_check,
 )
 from app.db import SessionLocal, provide_session
 from app.dependencies import dependencies as app_dependencies
@@ -67,6 +68,7 @@ def create_app() -> Litestar:
             CitiesController,
             MeetingRoomsController,
             meeting_stream_controller,
+            health_check,
             *_static_routes(),
         ],
         dependencies={"session": Provide(provide_session), **app_dependencies},

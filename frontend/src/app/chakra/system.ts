@@ -15,7 +15,7 @@ const brand = {
 };
 
 const customConfig = defineConfig({
-  cssVarsPrefix: "muda",
+  cssVarsPrefix: "bsbox",
   theme: {
     tokens: {
       colors: {

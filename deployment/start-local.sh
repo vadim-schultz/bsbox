@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Muda Meter Quick Start Script
+# bsbox Local Quick Start Script
 # Starts the backend API (8000) and frontend dev server (5173) together.
-# Usage: ./start.sh [--no-install] [--no-migrate]
+# Usage: ./start-local.sh [--no-install] [--no-migrate]
 # Prereqs: bash, python3, npm, and access to the internet for dependency install.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 NO_INSTALL=false
 NO_MIGRATE=false
@@ -31,7 +32,7 @@ parse_args() {
 
 ensure_prereqs() {
   if [[ ! -d "backend" || ! -d "frontend" ]]; then
-    echo "❌ Error: run this script from the repository root (backend/ and frontend/ required)."
+    echo "Error: backend/ and frontend/ directories not found in project root."
     exit 1
   fi
 
@@ -40,13 +41,13 @@ ensure_prereqs() {
     PY_BIN="python"
   fi
   if ! command -v "$PY_BIN" >/dev/null 2>&1; then
-    echo "❌ python3 (or python) is required but was not found on PATH."
+    echo "python3 (or python) is required but was not found on PATH."
     exit 1
   fi
   PYTHON_BIN="$PY_BIN"
 
   if ! command -v npm >/dev/null 2>&1; then
-    echo "❌ npm is required but was not found on PATH."
+    echo "npm is required but was not found on PATH."
     exit 1
   fi
 }
@@ -54,26 +55,9 @@ ensure_prereqs() {
 ensure_venv() {
   VENV_PATH="backend/.venv"
   if [[ ! -d "$VENV_PATH" ]]; then
-    echo "📦 Creating backend virtual environment..."
+    echo "Creating backend virtual environment..."
     "$PYTHON_BIN" -m venv "$VENV_PATH"
   fi
-}
-
-kill_port() {
-  local port="$1"
-  local pids
-  # lsof works on macOS, Linux (Ubuntu, WSL)
-  pids=$(lsof -ti:"$port" 2>/dev/null || true)
-  if [[ -n "$pids" ]]; then
-    echo "⚠️  Port $port is in use. Killing process(es): $pids"
-    echo "$pids" | xargs kill -9 2>/dev/null || true
-    sleep 1
-  fi
-}
-
-ensure_ports_free() {
-  kill_port "$PORT"
-  kill_port "$FRONTEND_PORT"
 }
 
 activate_venv() {
@@ -82,13 +66,13 @@ activate_venv() {
 
 install_backend_deps() {
   if [[ "$NO_INSTALL" == true ]]; then
-    echo "⏭️  Skipping backend dependency install (--no-install)"
+    echo "Skipping backend dependency install (--no-install)"
     return
   fi
-  echo "📦 Upgrading pip..."
+  echo "Upgrading pip..."
   pip install --upgrade pip --quiet
 
-  echo "📦 Installing backend dependencies..."
+  echo "Installing backend dependencies..."
   pushd backend >/dev/null
   pip install -e . --quiet
   popd >/dev/null
@@ -96,10 +80,10 @@ install_backend_deps() {
 
 install_frontend_deps() {
   if [[ "$NO_INSTALL" == true ]]; then
-    echo "⏭️  Skipping frontend dependency install (--no-install)"
+    echo "Skipping frontend dependency install (--no-install)"
     return
   fi
-  echo "📦 Installing frontend dependencies..."
+  echo "Installing frontend dependencies..."
   pushd frontend >/dev/null
   if [[ ! -d "node_modules" ]] || [[ ! -f "node_modules/.bin/vite" ]]; then
     if ! npm install; then
@@ -115,10 +99,10 @@ install_frontend_deps() {
 
 run_migrations() {
   if [[ "$NO_MIGRATE" == true ]]; then
-    echo "⏭️  Skipping migrations (--no-migrate)"
+    echo "Skipping migrations (--no-migrate)"
     return
   fi
-  echo "🗄️  Applying database migrations..."
+  echo "Applying database migrations..."
   pushd backend >/dev/null
   alembic upgrade head
   popd >/dev/null
@@ -126,7 +110,7 @@ run_migrations() {
 
 start_backend() {
   pushd backend >/dev/null
-  "$SCRIPT_DIR/$VENV_PATH/bin/uvicorn" app.main:app --host "$HOST" --port "$PORT" --reload &
+  "$PROJECT_ROOT/$VENV_PATH/bin/uvicorn" app.main:app --host "$HOST" --port "$PORT" --reload &
   PIDS+=("$!")
   popd >/dev/null
 }
@@ -141,13 +125,13 @@ start_frontend() {
 cleanup() {
   if [[ ${#PIDS[@]} -gt 0 ]]; then
     echo ""
-    echo "🧹 Stopping services..."
+    echo "Stopping services..."
     kill "${PIDS[@]}" 2>/dev/null || true
   fi
 }
 
 main() {
-  echo "🚀 Starting Muda Meter..."
+  echo "Starting bsbox..."
   echo ""
 
   parse_args "$@"
@@ -163,10 +147,8 @@ main() {
   FRONTEND_HOST="${FRONTEND_HOST:-0.0.0.0}"
   FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
-  ensure_ports_free
-
   echo ""
-  echo "✅ Setup complete!"
+  echo "Setup complete!"
   echo "Starting services..."
   echo "  - Backend API:  http://${HOST}:${PORT}"
   echo "  - Frontend dev: http://${FRONTEND_HOST}:${FRONTEND_PORT}"
@@ -185,4 +167,3 @@ main() {
 }
 
 main "$@"
-

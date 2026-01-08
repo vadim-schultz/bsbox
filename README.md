@@ -1,4 +1,4 @@
-# Muda Meter
+# BSBox
 
 Litestar backend with a React + TypeScript + Chakra UI v3 frontend.
 
