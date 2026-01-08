@@ -1,4 +1,7 @@
-FROM python:3.11-slim
+ARG DOCKER_REGISTRY=docker.io
+ARG PYPI_INDEX_URL=https://pypi.org/simple
+
+FROM ${DOCKER_REGISTRY}/python:3.11-slim
 
 # Use ARG variables to capture the user ID from the build command
 ARG USER_ID=1000
@@ -19,8 +22,18 @@ USER devuser
 
 WORKDIR /app
 
+# Configure pip index (overridable via ARG)
+RUN pip config set global.disable-pip-version-check true && \
+    pip config set global.index-url "${PYPI_INDEX_URL}"
+
 # Create venv for development
 RUN python3 -m venv /app/venv
 
 # Default command: run in dev with autoreload
-CMD ["/bin/bash", "-c", ". /app/venv/bin/activate && pip install -e ./backend && cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend/app"]
+CMD ["/bin/bash", "-c", "\
+    set -e \
+    && . /app/venv/bin/activate \
+    && pip install --config-settings editable_mode=compat -e ./backend \
+    && cd backend \
+    && alembic upgrade head \
+    && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/backend/app"]

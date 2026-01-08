@@ -74,12 +74,25 @@ fi
 # Ensure ports are available before starting
 ensure_ports_available
 
+export DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io}"
+export NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
+export PYPI_INDEX_URL="${PYPI_INDEX_URL:-https://pypi.org/simple}"
+
 echo "Starting bsbox in production mode..."
 echo ""
 echo "Services:"
 echo "  - Frontend (via Nginx): http://localhost:80"
 echo "  - Backend API: http://localhost:8000"
 echo "  - PostgreSQL: internal only"
+if [ "$DOCKER_REGISTRY" != "docker.io" ]; then
+    echo "Using Docker Registry: $DOCKER_REGISTRY"
+fi
+if [ "$NPM_REGISTRY" != "https://registry.npmjs.org/" ]; then
+    echo "Using NPM Registry: $NPM_REGISTRY"
+fi
+if [ "$PYPI_INDEX_URL" != "https://pypi.org/simple" ]; then
+    echo "Using PyPI Index: $PYPI_INDEX_URL"
+fi
 echo ""
 echo "Press Ctrl+C to stop all services"
 echo ""

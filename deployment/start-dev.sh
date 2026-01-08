@@ -28,8 +28,14 @@ free_port() {
     local port=$1
     local pid
 
-    # Try to find process using the port (works on Linux)
-    pid=$(lsof -t -i:"$port" 2>/dev/null || true)
+    # Try to find process using the port (Linux/WSL)
+    if command -v lsof >/dev/null 2>&1; then
+        pid=$(lsof -t -i:"$port" 2>/dev/null || true)
+    elif command -v ss >/dev/null 2>&1; then
+        pid=$(ss -ltnp 2>/dev/null | awk -v p=":$port" '$4 ~ p {print $6}' | cut -d, -f2 | head -n1)
+    else
+        pid=""
+    fi
 
     if [ -n "$pid" ]; then
         echo "Port $port is in use by PID $pid. Killing process..."
@@ -75,19 +81,33 @@ fi
 ensure_ports_available
 
 # Get the current user's UID and GID for bind mount permissions
-DEV_UID=$(id -u)
-DEV_GID=$(id -g)
+if command -v id >/dev/null 2>&1; then
+    DEV_UID=$(id -u)
+    DEV_GID=$(id -g)
+else
+    DEV_UID=${DEV_UID:-1000}
+    DEV_GID=${DEV_GID:-1000}
+fi
 
 # Export the variables so they are available to Docker Compose
 export DEV_UID
 export DEV_GID
+export DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io}"
+export NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
+export PYPI_INDEX_URL="${PYPI_INDEX_URL:-https://pypi.org/simple}"
 
 echo "Starting bsbox in development mode..."
 echo ""
 echo "Using Host UID: $DEV_UID"
 echo "Using Host GID: $DEV_GID"
-if [ -n "${NPM_REGISTRY:-}" ]; then
+if [ "$DOCKER_REGISTRY" != "docker.io" ]; then
+    echo "Using Docker Registry: $DOCKER_REGISTRY"
+fi
+if [ "$NPM_REGISTRY" != "https://registry.npmjs.org/" ]; then
     echo "Using NPM Registry: $NPM_REGISTRY"
+fi
+if [ "$PYPI_INDEX_URL" != "https://pypi.org/simple" ]; then
+    echo "Using PyPI Index: $PYPI_INDEX_URL"
 fi
 echo ""
 echo "Services:"

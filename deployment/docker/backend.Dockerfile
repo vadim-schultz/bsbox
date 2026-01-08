@@ -1,5 +1,9 @@
 # Production Dockerfile for backend
-FROM python:3.11-slim AS builder
+ARG DOCKER_REGISTRY=docker.io
+ARG PYPI_INDEX_URL=https://pypi.org/simple
+
+FROM ${DOCKER_REGISTRY}/python:3.11-slim AS builder
+ARG PYPI_INDEX_URL
 
 WORKDIR /app
 
@@ -7,6 +11,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure pip index (overridable via ARG)
+RUN pip config set global.disable-pip-version-check true && \
+    pip config set global.index-url "${PYPI_INDEX_URL}"
 
 # Copy backend directory
 COPY backend /app/backend
@@ -19,7 +27,7 @@ RUN python3 -m venv /app/venv && \
     pip install --no-cache-dir /app/backend/
 
 # Production stage
-FROM python:3.11-slim
+FROM ${DOCKER_REGISTRY}/python:3.11-slim
 
 WORKDIR /app
 

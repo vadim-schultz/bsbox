@@ -25,6 +25,8 @@ services:
       args:
         - USER_ID=${DEV_UID:-1000}
         - GROUP_ID=${DEV_GID:-1000}
+        - DOCKER_REGISTRY=${DOCKER_REGISTRY:-docker.io}
+        - PYPI_INDEX_URL=${PYPI_INDEX_URL:-https://pypi.org/simple}
     container_name: bsbox-backend-dev
     ports:
       - "8000:8000"
@@ -32,7 +34,10 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - dev-network
+      dev-network:
+        aliases:
+          - backend
+          - bsbox-backend-dev
     environment:
       DATABASE_URL: postgresql://bsbox:bsbox@postgres:5432/bsbox
     volumes:
@@ -46,19 +51,20 @@ services:
       args:
         - USER_ID=${DEV_UID:-1000}
         - GROUP_ID=${DEV_GID:-1000}
-        - NPM_REGISTRY=${NPM_REGISTRY:-}
+        - DOCKER_REGISTRY=${DOCKER_REGISTRY:-docker.io}
+        - NPM_REGISTRY=${NPM_REGISTRY:-https://registry.npmjs.org/}
     container_name: bsbox-frontend-dev
     ports:
       - "5173:5173"
     networks:
-      - dev-network
+      dev-network:
+        aliases:
+          - frontend
     depends_on:
       - backend
-    environment:
-      - NPM_CONFIG_REGISTRY=${NPM_REGISTRY:-}
     volumes:
       - ../../frontend:/app/frontend
-      # keep node_modules inside container
+      # keep node_modules inside container (anonymous volume)
       - /app/frontend/node_modules
 
 volumes:

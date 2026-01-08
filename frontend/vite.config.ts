@@ -1,34 +1,36 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const backendTarget = process.env.VITE_BACKEND_URL || "http://backend:8000";
+
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
       "/ws": {
-        target: "http://backend:8000",
+        target: backendTarget,
         ws: true,
         changeOrigin: true,
       },
       "/meetings": {
-        target: "http://backend:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/visit": {
-        target: "http://backend:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/users": {
-        target: "http://backend:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/cities": {
-        target: "http://backend:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
       "/meeting-rooms": {
-        target: "http://backend:8000",
+        target: backendTarget,
         changeOrigin: true,
       },
     },
