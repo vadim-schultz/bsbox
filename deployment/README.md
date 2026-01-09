@@ -4,48 +4,38 @@ This directory contains scripts for starting bsbox in different modes.
 
 ## Scripts
 
-| Script           | Description                                |
-| ---------------- | ------------------------------------------ |
-| `start-local.sh` | Run locally without Docker (uses SQLite)   |
-| `start-dev.sh`   | Docker development mode with hot-reloading |
-| `start-prod.sh`  | Docker production mode                     |
+| Script          | Description                                |
+| --------------- | ------------------------------------------ |
+| `start-dev.sh`  | Docker development mode with hot-reloading |
+| `start-prod.sh` | Docker production mode                     |
 
 ## Configuration
 
-### Proxy / Registry Configuration
+### Registry Configuration
 
-All proxy/registry settings are controlled via `deployment/.env` (gitignored). A template is provided at `deployment/.env.example`. Copy it and adjust as needed:
+All deployment scripts default to **public registries** for ease of use. To use corporate/internal registries, create `deployment/.env` from the template:
 
 ```bash
 cp deployment/.env.example deployment/.env
+# Edit .env to set corporate registry values
 ```
 
-Defaults (uncommented) use public registries:
+**Fallback behavior:**
 
-- Docker: `docker.io`
-- NPM: `https://registry.npmjs.org/`
-- PyPI: `https://pypi.org/simple`
-
-### Corporate Network / Custom NPM Registry
-
-If you're behind a corporate firewall and need to use a custom npm registry, create a `.env` file in this directory:
-
-```bash
-# deployment/.env
-NPM_REGISTRY=https://your-corporate-registry.example.com/npm/
-```
+- No `.env` file → Uses public registries (`docker.io`, `npmjs.org`, `pypi.org`)
+- `.env` file with values → Uses corporate registries (e.g., `docker.rsint.net/docker.io/...`)
 
 The `.env` file is gitignored and won't be committed.
 
 ### Environment Variables
 
-| Variable          | Description                         | Default                   |
-| ----------------- | ----------------------------------- | ------------------------- |
-| `NPM_REGISTRY`    | Custom npm registry URL             | (public npmjs.org)        |
-| `DOCKER_REGISTRY` | Docker base image registry          | `docker.io`               |
-| `PYPI_INDEX_URL`  | Python package index URL            | `https://pypi.org/simple` |
-| `DEV_UID`         | User ID for bind mount permissions  | Current user's UID        |
-| `DEV_GID`         | Group ID for bind mount permissions | Current user's GID        |
+| Variable          | Description                         | Default (public registry)     |
+| ----------------- | ----------------------------------- | ----------------------------- |
+| `DOCKER_REGISTRY` | Docker base image registry prefix   | `docker.io`                   |
+| `NPM_REGISTRY`    | npm registry URL                    | `https://registry.npmjs.org/` |
+| `PYPI_INDEX_URL`  | Python package index URL            | `https://pypi.org/simple`     |
+| `DEV_UID`         | User ID for bind mount permissions  | Current user's UID            |
+| `DEV_GID`         | Group ID for bind mount permissions | Current user's GID            |
 
 ## Docker Development Mode
 
@@ -82,26 +72,3 @@ Features:
 - Optimized production builds
 - Nginx serves static frontend with API reverse proxy
 - PostgreSQL database with persistent volume
-
-## Local Development (No Docker)
-
-```bash
-./start-local.sh
-```
-
-Requirements:
-
-- Python 3.11+
-- Node.js 18+
-- npm
-
-Features:
-
-- Uses SQLite database (bsbox.db)
-- Runs directly on host machine
-- Suitable for quick development without Docker
-
-Environment:
-
-- `VITE_BACKEND_URL` defaults to `http://localhost:8000` (overridable) so the shared `vite.config.ts` also works for Docker modes where the default remains `http://backend:8000`.
-- Ports 8000 (backend) and 5173 (frontend) are checked and freed automatically before startup.
