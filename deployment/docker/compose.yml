@@ -3,13 +3,13 @@ services:
     image: ${DOCKER_REGISTRY:-docker.io}/postgres:16-alpine
     container_name: bsbox-postgres
     environment:
-      POSTGRES_USER: bsbox
-      POSTGRES_PASSWORD: bsbox
-      POSTGRES_DB: bsbox
+      POSTGRES_USER: ${POSTGRES_USER:-bsbox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bsbox}
+      POSTGRES_DB: ${POSTGRES_DB:-bsbox}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bsbox -d bsbox"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bsbox} -d ${POSTGRES_DB:-bsbox}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,15 +24,15 @@ services:
         - DOCKER_REGISTRY=${DOCKER_REGISTRY:-docker.io}
         - PYPI_INDEX_URL=${PYPI_INDEX_URL:-https://pypi.org/simple}
     container_name: bsbox-backend
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - prod-network
     environment:
-      DATABASE_URL: postgresql://bsbox:bsbox@postgres:5432/bsbox
+      DATABASE_URL: postgresql://${POSTGRES_USER:-bsbox}:${POSTGRES_PASSWORD:-bsbox}@postgres:5432/${POSTGRES_DB:-bsbox}
 
   frontend:
     build:
