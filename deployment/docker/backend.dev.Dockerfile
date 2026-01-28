@@ -7,18 +7,15 @@ FROM ${DOCKER_REGISTRY}/python:3.11-slim
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-# Install system deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user for development
+# Create a non-root user for development (skip if running as root)
 # The UID and GID will be passed at build time from the host machine
-RUN groupadd --gid $GROUP_ID devuser && \
-    useradd --uid $USER_ID --gid $GROUP_ID --shell /bin/bash --create-home devuser
+RUN if [ "$USER_ID" != "0" ]; then \
+        groupadd --gid $GROUP_ID devuser && \
+        useradd --uid $USER_ID --gid $GROUP_ID --shell /bin/bash --create-home devuser; \
+    fi
 
-# Switch to the non-root user
-USER devuser
+# Switch to devuser if not root
+USER ${USER_ID}
 
 WORKDIR /app
 

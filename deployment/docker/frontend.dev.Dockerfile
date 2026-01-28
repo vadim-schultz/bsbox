@@ -9,9 +9,6 @@ ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY} \
     NPM_CONFIG_FUND=false \
     NPM_CONFIG_AUDIT=false
 
-# Install system deps (include lsof/ss/fuser for port freeing)
-RUN apt-get update && apt-get install -y git lsof iproute2 psmisc && apt-get clean
-
 # Configure npm registry and scoped registries (overridable via ARG/ENV)
 RUN npm config set registry "$NPM_CONFIG_REGISTRY" && \
     npm config set @rollup:registry "$NPM_CONFIG_REGISTRY" && \
