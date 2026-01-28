@@ -1,10 +1,10 @@
 import { Alert, Button, Stack, Text } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
 
-import { CitySelector } from "../components/Selection/CitySelector";
-import { MeetingRoomSelector } from "../components/Selection/MeetingRoomSelector";
-import { MSTeamsInput } from "../components/Selection/MSTeamsInput";
-import { DurationControl } from "../components/Selection/DurationControl";
+import { CitySelector } from "../components/selection/CitySelector";
+import { MeetingRoomSelector } from "../components/selection/MeetingRoomSelector";
+import { MSTeamsInput } from "../components/selection/MSTeamsInput";
+import { DurationControl } from "../components/selection/DurationControl";
 import { useSelectionFlow } from "../hooks/useSelectionFlow";
 import type { VisitSession } from "../types/domain";
 

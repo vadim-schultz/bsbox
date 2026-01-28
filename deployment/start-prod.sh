@@ -11,6 +11,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Source common functions
+source "$SCRIPT_DIR/common.sh"
+
 # Load .env file if it exists
 if [ -f "$SCRIPT_DIR/.env" ]; then
     set -a
@@ -20,42 +23,11 @@ fi
 
 cd "$SCRIPT_DIR/docker"
 
-# Required ports for the services
-REQUIRED_PORTS=(80 8000)
+# Verify Docker prerequisites
+check_docker_prerequisites
 
-# Function to check and free a port
-free_port() {
-    local port=$1
-    local pid
-
-    # Try to find process using the port (works on Linux)
-    pid=$(lsof -t -i:"$port" 2>/dev/null || true)
-
-    if [ -n "$pid" ]; then
-        echo "Port $port is in use by PID $pid. Killing process..."
-        kill -9 $pid 2>/dev/null || true
-        sleep 1
-    fi
-
-    # Also check for Docker containers using the port
-    local container
-    container=$(docker ps --filter "publish=$port" --format "{{.Names}}" 2>/dev/null || true)
-    if [ -n "$container" ]; then
-        echo "Port $port is in use by container '$container'. Stopping container..."
-        docker stop "$container" 2>/dev/null || true
-        sleep 1
-    fi
-}
-
-# Ensure required ports are available
-ensure_ports_available() {
-    echo "Checking required ports..."
-    for port in "${REQUIRED_PORTS[@]}"; do
-        free_port "$port"
-    done
-    echo "All ports are available."
-    echo ""
-}
+# Required ports for the services (backend is internal only via nginx)
+REQUIRED_PORTS=(80)
 
 # Cleanup function to stop the containers
 cleanup() {
@@ -72,7 +44,7 @@ if [ ! -f "compose.yml" ]; then
 fi
 
 # Ensure ports are available before starting
-ensure_ports_available
+ensure_ports_available "${REQUIRED_PORTS[@]}"
 
 export DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io}"
 export NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
@@ -82,7 +54,7 @@ echo "Starting bsbox in production mode..."
 echo ""
 echo "Services:"
 echo "  - Frontend (via Nginx): http://localhost:80"
-echo "  - Backend API: http://localhost:8000"
+echo "  - Backend API: internal (via Nginx proxy)"
 echo "  - PostgreSQL: internal only"
 if [ "$DOCKER_REGISTRY" != "docker.io" ]; then
     echo "Using Docker Registry: $DOCKER_REGISTRY"
