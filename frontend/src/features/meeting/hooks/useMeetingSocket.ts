@@ -170,10 +170,27 @@ export function useMeetingSocket(
       });
     });
 
-    const unsubEnded = socket.onMeetingEnded((message) => {
+    const unsubEnded = socket.onMeetingEnded((message, summary) => {
+      console.log("[useMeetingSocket] Meeting ended received", summary ? "with summary" : "without summary");
       setMeetingEnded(true);
       setConnectionState("ended");
-      if (message) {
+      // Extract summary data if present (new atomic message format)
+      if (summary) {
+        setSummaryData({
+          meetingId: summary.meeting.id,
+          cityName: summary.meeting.city_name,
+          meetingRoomName: summary.meeting.meeting_room_name,
+          msTeamsInviteUrl: summary.meeting.ms_teams?.invite_url,
+          startTs: summary.meeting.start_ts,
+          endTs: summary.meeting.end_ts,
+          durationMinutes: summary.duration_minutes,
+          maxParticipants: summary.max_participants,
+          normalizedEngagement: summary.normalized_engagement,
+          engagementLevel: summary.engagement_level,
+        });
+        setError(null);
+      } else if (message) {
+        // Fallback: only set error message if no summary (e.g., connecting to ended meeting)
         setError(message);
       }
     });
@@ -222,25 +239,6 @@ export function useMeetingSocket(
             setLoading(false);
           });
       }
-    });
-
-    const unsubSummary = socket.onMeetingSummary((data) => {
-      console.log("[useMeetingSocket] Meeting summary received:", data);
-      setSummaryData({
-        meetingId: data.meeting_id,
-        cityName: data.city_name,
-        meetingRoomName: data.meeting_room_name,
-        msTeamsInviteUrl: data.ms_teams_invite_url,
-        startTs: data.start_ts,
-        endTs: data.end_ts,
-        durationMinutes: data.duration_minutes,
-        maxParticipants: data.max_participants,
-        normalizedEngagement: data.normalized_engagement,
-        engagementLevel: data.engagement_level,
-      });
-      setMeetingEnded(true);
-      setConnectionState("ended");
-      setError(null);
     });
 
     const unsubError = socket.onError((message) => {
@@ -299,7 +297,6 @@ export function useMeetingSocket(
       unsubNotStarted();
       unsubCountdown();
       unsubMeetingStarted();
-      unsubSummary();
       unsubError();
       unsubState();
       socket.disconnect();

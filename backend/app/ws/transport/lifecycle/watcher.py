@@ -8,7 +8,7 @@ import anyio
 from litestar import WebSocket
 
 from app.models import Meeting
-from app.schema.websocket import MeetingSummaryResponse
+from app.schema.websocket import MeetingEndedResponse, MeetingSummaryData
 from app.services import MeetingSummaryService
 from app.utils.datetime import ensure_utc, isoformat_utc
 from app.ws.repos.broadcast import BroadcastRepo
@@ -61,20 +61,17 @@ class MeetingEndWatcher:
 
         logger.info("Meeting %s ended, generating summary", meeting.id)
 
-        # Generate and broadcast summary (only first connection will compute it)
+        # Generate and broadcast meeting_ended with summary (only first connection will compute it)
         with contextlib.suppress(Exception):
-            await self._generate_and_broadcast_summary(meeting)
-
-        # Allow broadcast to propagate before closing the socket
-        await anyio.sleep(0.05)
+            await self._generate_and_broadcast_meeting_ended(meeting)
 
         # Signal that connection is closed and close socket gracefully
         is_closed.set()
         with contextlib.suppress(Exception):
             await socket.close(code=1000, reason="Meeting ended")
 
-    async def _generate_and_broadcast_summary(self, meeting: Meeting) -> None:
-        """Generate summary and broadcast to all connections.
+    async def _generate_and_broadcast_meeting_ended(self, meeting: Meeting) -> None:
+        """Generate meeting ended response with summary and broadcast to all connections.
 
         Args:
             meeting: The meeting that ended
@@ -83,20 +80,14 @@ class MeetingEndWatcher:
         logger.info("Computing summary for meeting %s", meeting.id)
         summary = self.meeting_summary_service.persist_summary(meeting)
 
-        # Build response with all meeting metadata
-        start_ts = isoformat_utc(ensure_utc(meeting.start_ts))
+        # Get meeting read schema (includes all meeting metadata)
+        meeting_read = meeting.to_read_schema()
         end_ts = isoformat_utc(ensure_utc(meeting.end_ts))
         duration_minutes = int((meeting.end_ts - meeting.start_ts).total_seconds() / 60)
 
-        response = MeetingSummaryResponse(
-            meeting_id=meeting.id,
-            city_name=meeting.city.name if meeting.city else None,
-            meeting_room_name=meeting.meeting_room.name if meeting.meeting_room else None,
-            ms_teams_invite_url=(
-                meeting.ms_teams_meeting.invite_url if meeting.ms_teams_meeting else None
-            ),
-            start_ts=start_ts,
-            end_ts=end_ts,
+        # Build summary data with meeting info and engagement metrics
+        summary_data = MeetingSummaryData(
+            meeting=meeting_read,
             duration_minutes=duration_minutes,
             max_participants=summary.max_participants,
             normalized_engagement=summary.normalized_engagement,
@@ -105,6 +96,12 @@ class MeetingEndWatcher:
             ),
         )
 
+        # Build meeting_ended response with embedded summary
+        response = MeetingEndedResponse(
+            end_time=end_ts,
+            summary=summary_data,
+        )
+
         # Broadcast to ALL connections for this meeting
-        logger.info("Broadcasting summary for meeting %s", meeting.id)
+        logger.info("Broadcasting meeting_ended with summary for meeting %s", meeting.id)
         self.broadcast_repo.send_to_meeting(meeting.id, response.model_dump(mode="json"))

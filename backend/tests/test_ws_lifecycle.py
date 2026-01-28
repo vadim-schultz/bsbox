@@ -302,9 +302,23 @@ class TestMeetingEndWatcher:
         # Run watcher with short timeout
         await watcher.watch(meeting, socket, is_closed, seconds_remaining=0.1)
 
-        # Should have set is_closed and broadcast summary
+        # Should have set is_closed and broadcast meeting_ended with summary
         assert is_closed.is_set()
         broadcast_repo.send_to_meeting.assert_called_once()
+
+        # Verify the broadcast message structure (meeting_ended with nested meeting in summary)
+        call_args = broadcast_repo.send_to_meeting.call_args
+        assert call_args[0][0] == "test-meeting"  # meeting_id
+        message = call_args[0][1]
+        assert message["type"] == "meeting_ended"
+        assert message["message"] == "The meeting has ended."
+        assert "summary" in message
+        # Meeting info is now nested under summary.meeting
+        assert message["summary"]["meeting"]["id"] == "test-meeting"
+        assert message["summary"]["max_participants"] == 5
+        assert message["summary"]["normalized_engagement"] == 0.75
+        assert message["summary"]["engagement_level"] == "high"
+
         socket.close.assert_called_once_with(code=1000, reason="Meeting ended")
 
     @pytest.mark.asyncio

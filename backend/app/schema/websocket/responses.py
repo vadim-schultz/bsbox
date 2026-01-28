@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.schema.engagement.models import EngagementSummary
+from app.schema.meeting.models import MeetingRead
 
 
 class JoinedResponse(BaseModel):
@@ -34,12 +35,30 @@ class ErrorResponse(BaseModel):
     message: str
 
 
+class MeetingSummaryData(BaseModel):
+    """Summary data embedded in meeting_ended response.
+
+    Contains full meeting info and engagement metrics computed when the meeting ends.
+    """
+
+    meeting: MeetingRead
+    duration_minutes: int
+    max_participants: int
+    normalized_engagement: float
+    engagement_level: Literal["high", "healthy", "passive", "low"]
+
+
 class MeetingEndedResponse(BaseModel):
-    """Notification that the meeting has ended."""
+    """Notification that the meeting has ended with optional summary.
+
+    When a meeting ends during an active session, the summary data is included.
+    When connecting to an already-ended meeting, summary may be None.
+    """
 
     type: Literal["meeting_ended"] = "meeting_ended"
     message: str = "The meeting has ended."
     end_time: str
+    summary: MeetingSummaryData | None = None
 
 
 class MeetingNotStartedResponse(BaseModel):
@@ -67,19 +86,3 @@ class MeetingStartedResponse(BaseModel):
     type: Literal["meeting_started"] = "meeting_started"
     meeting_id: str
     message: str = "The meeting has started."
-
-
-class MeetingSummaryResponse(BaseModel):
-    """Final meeting summary sent when meeting ends."""
-
-    type: Literal["meeting_summary"] = "meeting_summary"
-    meeting_id: str
-    city_name: str | None
-    meeting_room_name: str | None
-    ms_teams_invite_url: str | None
-    start_ts: str
-    end_ts: str
-    duration_minutes: int
-    max_participants: int
-    normalized_engagement: float
-    engagement_level: Literal["high", "healthy", "passive", "low"]

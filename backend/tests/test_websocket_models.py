@@ -143,7 +143,7 @@ class TestResponseModels:
         assert data["message"] == "Something went wrong"
 
     def test_meeting_ended_response_structure(self):
-        """Test MeetingEndedResponse has correct structure."""
+        """Test MeetingEndedResponse has correct structure without summary."""
         response = MeetingEndedResponse(
             message="Meeting has ended", end_time="2024-01-01T12:00:00Z"
         )
@@ -151,6 +151,44 @@ class TestResponseModels:
         assert data["type"] == "meeting_ended"
         assert data["message"] == "Meeting has ended"
         assert data["end_time"] == "2024-01-01T12:00:00Z"
+        assert data["summary"] is None
+
+    def test_meeting_ended_response_with_summary(self):
+        """Test MeetingEndedResponse with embedded summary data."""
+        from datetime import UTC, datetime
+
+        from app.schema.meeting.models import MeetingRead
+        from app.schema.websocket import MeetingSummaryData
+
+        meeting = MeetingRead(
+            id="m123",
+            start_ts=datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC),
+            end_ts=datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC),
+            city_name="Paris",
+            meeting_room_name="Louvre",
+        )
+        summary = MeetingSummaryData(
+            meeting=meeting,
+            duration_minutes=60,
+            max_participants=10,
+            normalized_engagement=0.85,
+            engagement_level="high",
+        )
+        response = MeetingEndedResponse(
+            message="The meeting has ended.",
+            end_time="2024-01-01T11:00:00Z",
+            summary=summary,
+        )
+        data = response.model_dump()
+        assert data["type"] == "meeting_ended"
+        assert data["message"] == "The meeting has ended."
+        assert data["end_time"] == "2024-01-01T11:00:00Z"
+        assert data["summary"] is not None
+        # Meeting info is nested under summary.meeting
+        assert data["summary"]["meeting"]["id"] == "m123"
+        assert data["summary"]["meeting"]["city_name"] == "Paris"
+        assert data["summary"]["normalized_engagement"] == 0.85
+        assert data["summary"]["engagement_level"] == "high"
 
     def test_meeting_not_started_response_structure(self):
         """Test MeetingNotStartedResponse has correct structure."""

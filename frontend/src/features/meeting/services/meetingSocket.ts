@@ -14,6 +14,34 @@ type WSMessage =
   | { type: "status"; status: StatusLiteral }
   | { type: "ping" };
 
+/** MS Teams meeting info */
+export type MSTeamsMeetingInfo = {
+  thread_id?: string | null;
+  meeting_id?: string | null;
+  invite_url?: string | null;
+};
+
+/** Full meeting info embedded in summary */
+export type MeetingInfo = {
+  id: string;
+  start_ts: string;
+  end_ts: string;
+  city_id?: string | null;
+  city_name?: string | null;
+  meeting_room_id?: string | null;
+  meeting_room_name?: string | null;
+  ms_teams?: MSTeamsMeetingInfo | null;
+};
+
+/** Summary data embedded in meeting_ended response */
+export type MeetingSummaryData = {
+  meeting: MeetingInfo;
+  duration_minutes: number;
+  max_participants: number;
+  normalized_engagement: number;
+  engagement_level: "high" | "healthy" | "passive" | "low";
+};
+
 /** Responses received from server */
 type WSResponse =
   | { type: "snapshot"; data: EngagementSummaryDto }
@@ -21,7 +49,7 @@ type WSResponse =
   | { type: "joined"; participant_id: string; meeting_id: string; snapshot: EngagementSummaryDto }
   | { type: "pong"; server_time: string }
   | { type: "error"; message: string }
-  | { type: "meeting_ended"; message?: string; end_time?: string }
+  | { type: "meeting_ended"; message?: string; end_time?: string; summary?: MeetingSummaryData | null }
   | { type: "meeting_not_started"; message?: string; start_time?: string }
   | {
       type: "meeting_countdown";
@@ -31,20 +59,7 @@ type WSResponse =
       city_name?: string | null;
       meeting_room_name?: string | null;
     }
-  | { type: "meeting_started"; meeting_id: string; message?: string }
-  | {
-      type: "meeting_summary";
-      meeting_id: string;
-      city_name?: string | null;
-      meeting_room_name?: string | null;
-      ms_teams_invite_url?: string | null;
-      start_ts: string;
-      end_ts: string;
-      duration_minutes: number;
-      max_participants: number;
-      normalized_engagement: number;
-      engagement_level: "high" | "healthy" | "passive" | "low";
-    };
+  | { type: "meeting_started"; meeting_id: string; message?: string };
 
 type ConnectionState =
   | "disconnected"
@@ -67,21 +82,9 @@ export class MeetingSocket {
     snapshot: [] as ((data: EngagementSummaryDto) => void)[],
     delta: [] as ((data: DeltaMessageData) => void)[],
     joined: [] as ((participantId: string, meetingId: string) => void)[],
-    meetingEnded: [] as ((message?: string) => void)[],
+    meetingEnded: [] as ((message?: string, summary?: MeetingSummaryData | null) => void)[],
     meetingNotStarted: [] as ((message?: string) => void)[],
     meetingStarted: [] as ((meetingId: string) => void)[],
-    meetingSummary: [] as ((data: {
-      meeting_id: string;
-      city_name?: string | null;
-      meeting_room_name?: string | null;
-      ms_teams_invite_url?: string | null;
-      start_ts: string;
-      end_ts: string;
-      duration_minutes: number;
-      max_participants: number;
-      normalized_engagement: number;
-      engagement_level: "high" | "healthy" | "passive" | "low";
-    }) => void)[],
     countdown: [] as ((data: {
       meeting_id: string;
       start_time: string;
@@ -158,8 +161,12 @@ export class MeetingSocket {
         this.ws = null;
 
         if (event.code === 1000 && event.reason === "Meeting ended") {
-          this.setConnectionState("ended");
-          this.handlers.meetingEnded.forEach((h) => h());
+          // Only transition to ended if we didn't already receive meeting_ended message
+          // (which would have already set state to "ended" and called handlers)
+          if (this.connectionState !== "ended") {
+            this.setConnectionState("ended");
+            this.handlers.meetingEnded.forEach((h) => h());
+          }
         } else if (this.connectionState !== "ended") {
           this.setConnectionState("disconnected");
           this.scheduleReconnect();
@@ -234,8 +241,8 @@ export class MeetingSocket {
     };
   }
 
-  /** Register meeting ended handler */
-  onMeetingEnded(handler: (message?: string) => void): () => void {
+  /** Register meeting ended handler (includes optional embedded summary) */
+  onMeetingEnded(handler: (message?: string, summary?: MeetingSummaryData | null) => void): () => void {
     this.handlers.meetingEnded.push(handler);
     return () => {
       const idx = this.handlers.meetingEnded.indexOf(handler);
@@ -273,26 +280,6 @@ export class MeetingSocket {
     return () => {
       const idx = this.handlers.meetingStarted.indexOf(handler);
       if (idx !== -1) this.handlers.meetingStarted.splice(idx, 1);
-    };
-  }
-
-  /** Register meeting summary handler */
-  onMeetingSummary(handler: (data: {
-    meeting_id: string;
-    city_name?: string | null;
-    meeting_room_name?: string | null;
-    ms_teams_invite_url?: string | null;
-    start_ts: string;
-    end_ts: string;
-    duration_minutes: number;
-    max_participants: number;
-    normalized_engagement: number;
-    engagement_level: "high" | "healthy" | "passive" | "low";
-  }) => void): () => void {
-    this.handlers.meetingSummary.push(handler);
-    return () => {
-      const idx = this.handlers.meetingSummary.indexOf(handler);
-      if (idx !== -1) this.handlers.meetingSummary.splice(idx, 1);
     };
   }
 
@@ -363,8 +350,9 @@ export class MeetingSocket {
         this.handlers.error.forEach((h) => h(response.message));
         break;
       case "meeting_ended":
+        console.log("[WS] Meeting ended received", response.summary ? "with summary" : "without summary");
         this.setConnectionState("ended");
-        this.handlers.meetingEnded.forEach((h) => h(response.message));
+        this.handlers.meetingEnded.forEach((h) => h(response.message, response.summary));
         break;
       case "meeting_not_started":
         this.setConnectionState("not_started");
@@ -382,22 +370,6 @@ export class MeetingSocket {
       case "meeting_started":
         console.log("[WS] Meeting started notification received");
         this.handlers.meetingStarted.forEach((h) => h(response.meeting_id));
-        break;
-      case "meeting_summary":
-        console.log("[WS] Meeting summary received");
-        this.setConnectionState("ended");
-        this.handlers.meetingSummary.forEach((h) => h({
-          meeting_id: response.meeting_id,
-          city_name: response.city_name,
-          meeting_room_name: response.meeting_room_name,
-          ms_teams_invite_url: response.ms_teams_invite_url,
-          start_ts: response.start_ts,
-          end_ts: response.end_ts,
-          duration_minutes: response.duration_minutes,
-          max_participants: response.max_participants,
-          normalized_engagement: response.normalized_engagement,
-          engagement_level: response.engagement_level,
-        }));
         break;
     }
   }

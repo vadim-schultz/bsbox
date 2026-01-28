@@ -6,14 +6,36 @@ import { createRoot, Root } from "react-dom/client";
 
 import { useMeetingSocket } from "./useMeetingSocket";
 
+type MeetingInfo = {
+  id: string;
+  start_ts: string;
+  end_ts: string;
+  city_id?: string | null;
+  city_name?: string | null;
+  meeting_room_id?: string | null;
+  meeting_room_name?: string | null;
+  ms_teams?: {
+    thread_id?: string | null;
+    meeting_id?: string | null;
+    invite_url?: string | null;
+  } | null;
+};
+
+type SummaryData = {
+  meeting: MeetingInfo;
+  duration_minutes: number;
+  max_participants: number;
+  normalized_engagement: number;
+  engagement_level: "high" | "healthy" | "passive" | "low";
+};
+
 type HandlerMap = {
   snapshot: Array<(data: unknown) => void>;
   delta: Array<(data: unknown) => void>;
   joined: Array<(participantId: string, meetingId: string) => void>;
-  meetingEnded: Array<(message?: string) => void>;
+  meetingEnded: Array<(message?: string, summary?: SummaryData | null) => void>;
   meetingNotStarted: Array<(message?: string) => void>;
   meetingStarted: Array<(meetingId: string) => void>;
-  meetingSummary: Array<(data: any) => void>;
   countdown: Array<(data: any) => void>;
   error: Array<(message: string) => void>;
   stateChange: Array<(state: "connected" | "connecting" | "disconnected" | "ended" | "not_started") => void>;
@@ -29,7 +51,6 @@ class MockMeetingSocket {
     meetingEnded: [],
     meetingNotStarted: [],
     meetingStarted: [],
-    meetingSummary: [],
     countdown: [],
     error: [],
     stateChange: [],
@@ -66,7 +87,7 @@ class MockMeetingSocket {
     return () => this.unregister("delta", handler);
   }
 
-  onMeetingEnded(handler: (message?: string) => void) {
+  onMeetingEnded(handler: (message?: string, summary?: SummaryData | null) => void) {
     this.handlers.meetingEnded.push(handler);
     return () => this.unregister("meetingEnded", handler);
   }
@@ -86,11 +107,6 @@ class MockMeetingSocket {
     return () => this.unregister("meetingStarted", handler);
   }
 
-  onMeetingSummary(handler: (data: any) => void) {
-    this.handlers.meetingSummary.push(handler);
-    return () => this.unregister("meetingSummary", handler);
-  }
-
   onError(handler: (message: string) => void) {
     this.handlers.error.push(handler);
     return () => this.unregister("error", handler);
@@ -101,8 +117,8 @@ class MockMeetingSocket {
     return () => this.unregister("stateChange", handler);
   }
 
-  emitSummary(data: any) {
-    this.handlers.meetingSummary.forEach((h) => h(data));
+  emitEnded(message?: string, summary?: SummaryData | null) {
+    this.handlers.meetingEnded.forEach((h) => h(message, summary));
   }
 
   private setState(state: "connected" | "connecting" | "disconnected" | "ended" | "not_started") {
@@ -148,13 +164,13 @@ describe("useMeetingSocket", () => {
     vi.clearAllMocks();
   });
 
-  it("moves to summary state when meeting_summary message arrives", async () => {
+  it("extracts summary from meeting_ended message (atomic message format)", async () => {
     let hookState:
       | ReturnType<typeof useMeetingSocket>
       | null = null;
 
     function TestComponent() {
-      hookState = useMeetingSocket("meeting-123", "fp-abc");
+      hookState = useMeetingSocket("meeting-456", "fp-xyz");
       return null;
     }
 
@@ -169,24 +185,67 @@ describe("useMeetingSocket", () => {
 
     expect(socket).not.toBeNull();
 
+    // Emit meeting_ended with embedded summary (new atomic format with nested meeting)
     await act(async () => {
-      socket!.emitSummary({
-        meeting_id: "meeting-123",
-        city_name: "Paris",
-        meeting_room_name: "Louvre",
-        ms_teams_invite_url: "https://teams.test",
-        start_ts: "2024-01-01T10:00:00Z",
-        end_ts: "2024-01-01T11:00:00Z",
-        duration_minutes: 60,
-        max_participants: 5,
-        normalized_engagement: 0.8,
-        engagement_level: "high",
+      socket!.emitEnded("The meeting has ended.", {
+        meeting: {
+          id: "meeting-456",
+          city_name: "London",
+          meeting_room_name: "Tower",
+          ms_teams: { invite_url: "https://teams.example.com" },
+          start_ts: "2024-02-01T09:00:00Z",
+          end_ts: "2024-02-01T10:30:00Z",
+        },
+        duration_minutes: 90,
+        max_participants: 12,
+        normalized_engagement: 0.65,
+        engagement_level: "healthy",
       });
     });
 
-    expect(hookState?.summaryData?.meetingId).toBe("meeting-123");
-    expect(hookState?.summaryData?.cityName).toBe("Paris");
+    // Summary should be extracted from the meeting_ended message
+    expect(hookState?.summaryData?.meetingId).toBe("meeting-456");
+    expect(hookState?.summaryData?.cityName).toBe("London");
+    expect(hookState?.summaryData?.meetingRoomName).toBe("Tower");
+    expect(hookState?.summaryData?.durationMinutes).toBe(90);
+    expect(hookState?.summaryData?.maxParticipants).toBe(12);
+    expect(hookState?.summaryData?.normalizedEngagement).toBe(0.65);
+    expect(hookState?.summaryData?.engagementLevel).toBe("healthy");
     expect(hookState?.meetingEnded).toBe(true);
+    // No error should be set when summary is present
+    expect(hookState?.error).toBeNull();
+  });
+
+  it("sets error message when meeting_ended has no summary (connecting to ended meeting)", async () => {
+    let hookState:
+      | ReturnType<typeof useMeetingSocket>
+      | null = null;
+
+    function TestComponent() {
+      hookState = useMeetingSocket("meeting-789", "fp-def");
+      return null;
+    }
+
+    root = createRoot(container!);
+
+    await act(async () => {
+      root!.render(<TestComponent />);
+    });
+
+    const { __getLastSocket } = await import("../services/meetingSocket");
+    const socket = __getLastSocket() as MockMeetingSocket | null;
+
+    expect(socket).not.toBeNull();
+
+    // Emit meeting_ended without summary (e.g., connecting to already-ended meeting)
+    await act(async () => {
+      socket!.emitEnded("The meeting has already ended.", null);
+    });
+
+    // Should set error message when no summary is present
+    expect(hookState?.meetingEnded).toBe(true);
+    expect(hookState?.summaryData).toBeNull();
+    expect(hookState?.error).toBe("The meeting has already ended.");
   });
 });
 
