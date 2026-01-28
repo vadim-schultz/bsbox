@@ -1,10 +1,24 @@
 # Production Dockerfile for frontend
 ARG DOCKER_REGISTRY=docker.io
 ARG NPM_REGISTRY=https://registry.npmjs.org/
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG NO_PROXY=
 
 # Stage 1: Build the frontend
 FROM ${DOCKER_REGISTRY}/node:20-slim AS build
 ARG NPM_REGISTRY
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+# Set proxy environment variables (both uppercase and lowercase for compatibility)
+ENV HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    no_proxy=${NO_PROXY}
 
 # Install necessary packages for git
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,6 +34,10 @@ COPY frontend /app/frontend
 
 # Install dependencies and build package
 WORKDIR /app/frontend
+
+# Set API base URL for production (nginx expects /api prefix)
+ENV VITE_API_BASE=/api
+
 RUN npm install -g typescript vite && \
     npm install && \
     npm run build

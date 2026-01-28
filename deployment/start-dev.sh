@@ -61,6 +61,9 @@ export DEV_GID
 export DOCKER_REGISTRY="${DOCKER_REGISTRY:-docker.io}"
 export NPM_REGISTRY="${NPM_REGISTRY:-https://registry.npmjs.org/}"
 export PYPI_INDEX_URL="${PYPI_INDEX_URL:-https://pypi.org/simple}"
+export HTTP_PROXY="${HTTP_PROXY:-}"
+export HTTPS_PROXY="${HTTPS_PROXY:-}"
+export NO_PROXY="${NO_PROXY:-}"
 
 echo "Starting bsbox in development mode..."
 echo ""

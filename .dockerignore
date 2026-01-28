@@ -22,8 +22,8 @@ frontend/.vite
 .vscode
 *.code-workspace
 
-# Git (large history not needed for build)
-.git
+# Git - kept for setuptools-scm version resolution in backend build
+# .git
 
 # Local databases
 *.db

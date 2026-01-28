@@ -122,7 +122,8 @@ export class MeetingSocket {
     this.setConnectionState("connecting");
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const url = `${protocol}://${window.location.host}/ws/meetings/${meetingId}`;
+    const apiBase = import.meta.env.VITE_API_BASE ?? "";
+    const url = `${protocol}://${window.location.host}${apiBase}/ws/meetings/${meetingId}`;
 
     return new Promise((resolve, reject) => {
       console.log("[WS] Connecting to:", url);

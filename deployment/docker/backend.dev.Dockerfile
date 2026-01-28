@@ -1,11 +1,28 @@
 ARG DOCKER_REGISTRY=docker.io
 ARG PYPI_INDEX_URL=https://pypi.org/simple
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG NO_PROXY=
 
 FROM ${DOCKER_REGISTRY}/python:3.11-slim
+
+# Re-declare ARGs after FROM (they don't persist across stages)
+ARG PYPI_INDEX_URL
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
 
 # Use ARG variables to capture the user ID from the build command
 ARG USER_ID=1000
 ARG GROUP_ID=1000
+
+# Set proxy environment variables (both uppercase and lowercase for compatibility)
+ENV HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    no_proxy=${NO_PROXY}
 
 # Create a non-root user for development (skip if running as root)
 # The UID and GID will be passed at build time from the host machine

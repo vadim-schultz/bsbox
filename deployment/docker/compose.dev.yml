@@ -27,6 +27,9 @@ services:
         - GROUP_ID=${DEV_GID:-1000}
         - DOCKER_REGISTRY=${DOCKER_REGISTRY:-docker.io}
         - PYPI_INDEX_URL=${PYPI_INDEX_URL:-https://pypi.org/simple}
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
     container_name: bsbox-backend-dev
     ports:
       - "8000:8000"
@@ -40,6 +43,12 @@ services:
           - bsbox-backend-dev
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-bsbox}:${POSTGRES_PASSWORD:-bsbox}@postgres:5432/${POSTGRES_DB:-bsbox}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${HTTP_PROXY:-}
+      https_proxy: ${HTTPS_PROXY:-}
+      no_proxy: ${NO_PROXY:-}
     volumes:
       - ../../backend:/app/backend
       - ../../.git:/app/.git
@@ -53,6 +62,9 @@ services:
         - GROUP_ID=${DEV_GID:-1000}
         - DOCKER_REGISTRY=${DOCKER_REGISTRY:-docker.io}
         - NPM_REGISTRY=${NPM_REGISTRY:-https://registry.npmjs.org/}
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
     container_name: bsbox-frontend-dev
     ports:
       - "5173:5173"
@@ -62,6 +74,13 @@ services:
           - frontend
     depends_on:
       - backend
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${HTTP_PROXY:-}
+      https_proxy: ${HTTPS_PROXY:-}
+      no_proxy: ${NO_PROXY:-}
     volumes:
       - ../../frontend:/app/frontend
       # keep node_modules inside container (anonymous volume)

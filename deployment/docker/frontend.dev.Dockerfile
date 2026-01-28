@@ -1,11 +1,27 @@
 ARG DOCKER_REGISTRY=docker.io
 ARG NPM_REGISTRY=https://registry.npmjs.org/
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
+ARG NO_PROXY=
 
 FROM ${DOCKER_REGISTRY}/node:20
 
+# Re-declare ARGs after FROM (they don't persist across stages)
+ARG NPM_REGISTRY
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
 WORKDIR /app/frontend
 
-ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY} \
+# Set proxy environment variables (both uppercase and lowercase for compatibility)
+ENV HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    no_proxy=${NO_PROXY} \
+    NPM_CONFIG_REGISTRY=${NPM_REGISTRY} \
     NPM_CONFIG_FUND=false \
     NPM_CONFIG_AUDIT=false
 
