@@ -1,2 +1,0 @@
-export { InteractiveCard } from "./InteractiveCard";
-

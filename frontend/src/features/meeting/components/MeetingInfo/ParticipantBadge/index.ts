@@ -1,2 +1,0 @@
-export { ParticipantBadge } from "./ParticipantBadge";
-
