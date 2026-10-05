@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { expectedResult } from './groundTruth';
 import { MIN_AUDIENCE_A, personasA, personasB } from './personas';
 
-const total = (list: { count: number }[]) => list.reduce((n, p) => n + p.count, 0);
+const total = (list: readonly { count: number }[]) => list.reduce((n, p) => n + p.count, 0);
 
 describe('session A personas', () => {
   it('has 18 bots in the documented mix', () => {
