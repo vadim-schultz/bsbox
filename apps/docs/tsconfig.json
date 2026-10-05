@@ -1,4 +1,9 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src", "scripts", ".astro/types.d.ts", "astro.config.mjs"]
 }

@@ -4,3 +4,4 @@ pnpm-lock.yaml
 .plans
 .claude
 bsbox.code-workspace
+.astro
