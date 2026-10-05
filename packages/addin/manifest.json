@@ -19,6 +19,14 @@
     "full": "Add BSBox to a meeting invite so attendees can share how engaged they are, anonymously and live, and everyone sees the result afterwards."
   },
   "icons": { "color": "icons/color.png", "outline": "icons/outline.png" },
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://bsbox.example.com/host/teams/config",
+      "canUpdateConfiguration": false,
+      "scopes": ["groupChat"],
+      "context": ["meetingSidePanel"]
+    }
+  ],
   "accentColor": "#0F6CBD",
   "validDomains": ["bsbox.example.com"],
   "extensions": [

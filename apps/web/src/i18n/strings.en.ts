@@ -85,6 +85,16 @@ export const en = {
   'host.read.title': 'BSBox results',
   'host.read.none': 'No BSBox session is attached to this meeting.',
   'host.read.open': 'Open meeting page',
+  'host.teams.loading': 'Opening BSBox…',
+  'host.teams.config': 'BSBox will appear in the meeting side panel. Select Save.',
+  'host.teams.outside.title': 'Open BSBox inside Teams',
+  'host.teams.outside.body':
+    'This panel only works inside a Teams meeting. Open the meeting in Teams and add BSBox from the meeting side panel.',
+  'host.teams.error.title': 'BSBox could not start',
+  'host.teams.error.body':
+    'The meeting could not be connected to BSBox. Close the panel and open it again.',
+  'host.teams.share.title': 'Share with others',
+  'host.teams.share.qr': 'QR code for {url}',
   'locale.label': 'Language',
   'locale.en': 'English',
   'locale.de': 'Deutsch',

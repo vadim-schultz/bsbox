@@ -94,6 +94,16 @@ export const de: Catalogue = {
   'host.read.title': 'BSBox-Ergebnisse',
   'host.read.none': 'Diesem Meeting ist keine BSBox-Sitzung zugeordnet.',
   'host.read.open': 'Meeting-Seite öffnen',
+  'host.teams.loading': 'BSBox wird geöffnet…',
+  'host.teams.config': 'BSBox erscheint im Seitenbereich des Meetings. Wählen Sie Speichern.',
+  'host.teams.outside.title': 'BSBox in Teams öffnen',
+  'host.teams.outside.body':
+    'Dieser Bereich funktioniert nur in einem Teams-Meeting. Öffnen Sie das Meeting in Teams und fügen Sie BSBox im Seitenbereich hinzu.',
+  'host.teams.error.title': 'BSBox konnte nicht gestartet werden',
+  'host.teams.error.body':
+    'Das Meeting konnte nicht mit BSBox verbunden werden. Schließen Sie den Bereich und öffnen Sie ihn erneut.',
+  'host.teams.share.title': 'Mit anderen teilen',
+  'host.teams.share.qr': 'QR-Code für {url}',
   'locale.label': 'Sprache',
   'locale.en': 'English',
   'locale.de': 'Deutsch',
