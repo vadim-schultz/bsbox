@@ -15,3 +15,4 @@ export const isDrifting = (offsetMs: number): boolean => Math.abs(offsetMs) > DR
 
 export * from './chartData';
 export * from './smoothing';
+export * from './resultUtils';

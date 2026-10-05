@@ -3,6 +3,7 @@ import {
   serverMessageSchema,
   type PhaseState,
   type SessionInfo,
+  type SessionResult,
   type VoteStatus,
   type WsErrorCode,
 } from '@bsbox/shared';
@@ -16,6 +17,7 @@ export type Connection = 'connecting' | 'open' | 'reconnecting';
 export function useLiveSession(session: SessionInfo) {
   const [phase, setPhase] = useState<PhaseState>(session.state);
   const [timeline, setTimeline] = useState<MinuteSample[]>([]);
+  const [result, setResult] = useState<SessionResult | null>(null);
   const [presence, setPresence] = useState(0);
   const [myStatus, setMyStatus] = useState<VoteStatus>('disengaged');
   const [connection, setConnection] = useState<Connection>('connecting');
@@ -43,8 +45,10 @@ export function useLiveSession(session: SessionInfo) {
           setTimeline((t) => mergeTick(t, m));
           setPresence(m.present);
         } else if (m.type === 'phase') setPhase(m.state);
-        else if (m.type === 'ended') setPhase('ended');
-        else if (m.type === 'error') {
+        else if (m.type === 'ended') {
+          setResult(m.result);
+          setPhase('ended');
+        } else if (m.type === 'error') {
           setError(m.code);
           setMyStatus(confirmedRef.current);
         }
@@ -66,5 +70,5 @@ export function useLiveSession(session: SessionInfo) {
     [myStatus],
   );
 
-  return { phase, timeline, presence, myStatus, vote, connection, error };
+  return { phase, result, timeline, presence, myStatus, vote, connection, error };
 }

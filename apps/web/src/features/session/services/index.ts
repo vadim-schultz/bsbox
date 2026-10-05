@@ -1,1 +1,1 @@
-export {};
+export { getSession } from './sessionApi';
