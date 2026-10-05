@@ -30,3 +30,30 @@ export type ReadState =
   | { status: 'none' }
   | { status: 'found'; code: string; joinUrl: string }
   | { status: 'unavailable' };
+
+/** Slice of the teams-js app context BSBox uses. */
+export interface TeamsContext {
+  theme?: string;
+  locale?: string;
+  meetingId?: string;
+  chatId?: string;
+}
+
+export interface TeamsMeeting {
+  joinUrl?: string;
+  title?: string;
+  threadId?: string;
+  start?: Date;
+  end?: Date;
+}
+
+export interface TeamsHostInfo {
+  context: TeamsContext;
+  meeting: TeamsMeeting | null;
+}
+
+export type TeamsPanelState =
+  | { status: 'loading' }
+  | { status: 'outside' }
+  | { status: 'error' }
+  | { status: 'ready'; code: string; joinUrl: string; host: TeamsHostInfo };

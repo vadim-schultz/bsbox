@@ -1,7 +1,7 @@
 import { Route, Routes, useParams } from 'react-router-dom';
 import { Layout, LandingPage, NotFoundPage } from '../features/shell';
 import { SessionContainer } from '../features/session';
-import { ComposePane, HostLocale, ReadPane } from '../features/host';
+import { ComposePane, HostLocale, ReadPane, TeamsConfig, TeamsPanel } from '../features/host';
 
 function SessionRoute() {
   const { code = '' } = useParams();
@@ -30,6 +30,8 @@ export function AppRoutes() {
             </HostLocale>
           }
         />
+        <Route path="/host/teams" element={<TeamsPanel />} />
+        <Route path="/host/teams/config" element={<TeamsConfig />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Layout>

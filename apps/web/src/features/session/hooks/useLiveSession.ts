@@ -9,7 +9,7 @@ import {
 } from '@bsbox/shared';
 import { createSocket, wsUrl, type SocketHandle } from '../../../lib';
 import { mergeTick, type MinuteSample } from '../utils/chartData';
-import { readToken, storeToken } from './token';
+import { readToken, storeToken } from '../services';
 
 export type Connection = 'connecting' | 'open' | 'reconnecting';
 

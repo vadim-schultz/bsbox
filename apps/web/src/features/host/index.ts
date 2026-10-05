@@ -1,1 +1,1 @@
-export { ComposePane, ReadPane, HostLocale } from './containers';
+export { ComposePane, ReadPane, HostLocale, TeamsPanel, TeamsConfig } from './containers';
