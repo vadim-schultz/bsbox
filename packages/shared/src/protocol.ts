@@ -3,7 +3,13 @@ import { z } from 'zod';
 export const voteStatusSchema = z.enum(['speaking', 'engaged', 'disengaged']);
 export const phaseStateSchema = z.enum(['scheduled', 'live', 'ended']);
 export const levelSchema = z.enum(['high', 'healthy', 'passive', 'low']);
-export const wsErrorCodeSchema = z.enum(['bad_token', 'rate_limited', 'not_found']);
+export const wsErrorCodeSchema = z.enum([
+  'bad_token',
+  'bad_message',
+  'not_live',
+  'rate_limited',
+  'not_found',
+]);
 
 export const minuteSchema = z.object({
   minuteIdx: z.number().int().min(0),
