@@ -1,0 +1,15 @@
+{
+  "name": "bsbox-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Local-only D1 binding; the real database id is a manual owner step (manual-steps.md).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bsbox-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+}
