@@ -1,0 +1,122 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "0.1.0",
+  "id": "5b0c2f58-6d1e-4c1b-9a5b-0a6c3f2f8d11",
+  "localizationInfo": {
+    "defaultLanguageTag": "en",
+    "additionalLanguages": [{ "languageTag": "de", "file": "de.json" }]
+  },
+  "developer": {
+    "name": "BSBox",
+    "websiteUrl": "https://bsbox.example.com",
+    "privacyUrl": "https://bsbox.example.com/en/privacy",
+    "termsOfUseUrl": "https://bsbox.example.com/en/terms"
+  },
+  "name": { "short": "BSBox", "full": "BSBox meeting engagement" },
+  "description": {
+    "short": "Anonymous live engagement for your meetings.",
+    "full": "Add BSBox to a meeting invite so attendees can share how engaged they are, anonymously and live, and everyone sees the result afterwards."
+  },
+  "icons": { "color": "icons/color.png", "outline": "icons/outline.png" },
+  "accentColor": "#0F6CBD",
+  "validDomains": ["bsbox.example.com"],
+  "extensions": [
+    {
+      "requirements": {
+        "scopes": ["mail"],
+        "capabilities": [{ "name": "Mailbox", "minVersion": "1.10" }]
+      },
+      "runtimes": [
+        {
+          "id": "ComposeRuntime",
+          "type": "general",
+          "code": { "page": "https://bsbox.example.com/host/compose" },
+          "lifetime": "short",
+          "actions": [{ "id": "openCompose", "type": "openPage", "view": "composePane" }]
+        },
+        {
+          "id": "ReadRuntime",
+          "type": "general",
+          "code": { "page": "https://bsbox.example.com/host/read" },
+          "lifetime": "short",
+          "actions": [{ "id": "openRead", "type": "openPage", "view": "readPane" }]
+        }
+      ],
+      "ribbons": [
+        {
+          "contexts": ["mailCompose"],
+          "tabs": [
+            {
+              "builtInTabId": "TabDefault",
+              "groups": [
+                {
+                  "id": "bsboxComposeGroup",
+                  "label": "BSBox",
+                  "icons": [
+                    { "size": 16, "url": "https://bsbox.example.com/addin/icon-16.png" },
+                    { "size": 32, "url": "https://bsbox.example.com/addin/icon-32.png" },
+                    { "size": 80, "url": "https://bsbox.example.com/addin/icon-80.png" }
+                  ],
+                  "controls": [
+                    {
+                      "id": "addBsbox",
+                      "type": "button",
+                      "label": "Add BSBox",
+                      "icons": [
+                        { "size": 16, "url": "https://bsbox.example.com/addin/icon-16.png" },
+                        { "size": 32, "url": "https://bsbox.example.com/addin/icon-32.png" },
+                        { "size": 80, "url": "https://bsbox.example.com/addin/icon-80.png" }
+                      ],
+                      "supertip": {
+                        "title": "Add BSBox",
+                        "description": "Add an anonymous engagement link to this invite."
+                      },
+                      "actionId": "openCompose"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "contexts": ["mailRead"],
+          "tabs": [
+            {
+              "builtInTabId": "TabDefault",
+              "groups": [
+                {
+                  "id": "bsboxReadGroup",
+                  "label": "BSBox",
+                  "icons": [
+                    { "size": 16, "url": "https://bsbox.example.com/addin/icon-16.png" },
+                    { "size": 32, "url": "https://bsbox.example.com/addin/icon-32.png" },
+                    { "size": 80, "url": "https://bsbox.example.com/addin/icon-80.png" }
+                  ],
+                  "controls": [
+                    {
+                      "id": "openBsboxResults",
+                      "type": "button",
+                      "label": "Open results",
+                      "icons": [
+                        { "size": 16, "url": "https://bsbox.example.com/addin/icon-16.png" },
+                        { "size": 32, "url": "https://bsbox.example.com/addin/icon-32.png" },
+                        { "size": 80, "url": "https://bsbox.example.com/addin/icon-80.png" }
+                      ],
+                      "supertip": {
+                        "title": "Open results",
+                        "description": "See the engagement results of this meeting."
+                      },
+                      "actionId": "openRead"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
