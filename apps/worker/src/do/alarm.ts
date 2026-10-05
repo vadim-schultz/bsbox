@@ -24,6 +24,18 @@ export function nextAlarmAt(p: AlarmPlan): number | null {
   return p.dirty ? Math.min(p.end, p.now + TICK_INTERVAL_SEC) : p.end;
 }
 
+/**
+ * True when a still-pending alarm is already due no later than `wantMs`. Re-arming on every
+ * vote must not push it back, or a busy room would never reach its tick.
+ */
+export function keepsPendingAlarm(
+  currentMs: number | null,
+  wantMs: number,
+  nowMs: number,
+): boolean {
+  return currentMs !== null && currentMs > nowMs && currentMs <= wantMs;
+}
+
 export interface AlarmDeps {
   store: Store;
   d1: D1Database;

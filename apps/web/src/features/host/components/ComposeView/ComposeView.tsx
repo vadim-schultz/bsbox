@@ -1,3 +1,4 @@
+import { TextLink } from '../../../../components';
 import { Button } from '@fluentui/react-components';
 import { useLocale } from '../../../../i18n';
 import type { ComposeState, SyncState } from '../../types';
@@ -19,7 +20,7 @@ export function ComposeView({ state, sync, onAdd, onSync, onCopy, copied }: Comp
         <h1>{t('host.compose.title')}</h1>
         <p>{t('host.compose.added')}</p>
         <p>
-          {t('host.compose.link')}: <a href={state.joinUrl}>{state.joinUrl}</a>
+          {t('host.compose.link')}: <TextLink href={state.joinUrl}>{state.joinUrl}</TextLink>
         </p>
         <Button onClick={() => onCopy(state.joinUrl)}>{t('host.compose.copy')}</Button>
         <Button onClick={onSync} disabled={sync === 'syncing'}>

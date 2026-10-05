@@ -8,9 +8,12 @@ const SESSION_ID = /^[0-9A-Za-z]+-\d+$/;
 
 export type RoomResolver = (env: Env, sessionId: string) => DurableObjectStub;
 
-/** Production resolver: one room per session, pinned to the EU jurisdiction (D8). */
+/**
+ * Production resolver: one room per session, pinned to the EU jurisdiction (D8). Local workerd
+ * (wrangler dev) has no jurisdictions, so ENVIRONMENT=test uses the plain namespace.
+ */
 export const euRoom: RoomResolver = (env, id) => {
-  const ns = env.SESSION_ROOM.jurisdiction('eu');
+  const ns = env.ENVIRONMENT === 'test' ? env.SESSION_ROOM : env.SESSION_ROOM.jurisdiction('eu');
   return ns.get(ns.idFromName(id));
 };
 

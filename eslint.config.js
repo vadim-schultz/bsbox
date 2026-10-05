@@ -3,7 +3,18 @@ import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/.astro/**', '**/node_modules/**', '.plans/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/.astro/**',
+      '**/.wrangler/**',
+      '.e2e-state/**',
+      '**/test-results/**',
+      '**/playwright-report/**',
+      '**/node_modules/**',
+      '.plans/**',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

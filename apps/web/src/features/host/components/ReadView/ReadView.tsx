@@ -1,3 +1,4 @@
+import { TextLink } from '../../../../components';
 import { useLocale } from '../../../../i18n';
 import type { ReadState } from '../../types';
 import type { ReactNode } from 'react';
@@ -19,7 +20,7 @@ export function ReadView({
       {state.status === 'found' ? (
         <>
           <p>
-            <a href={state.joinUrl}>{t('host.read.open')}</a>
+            <TextLink href={state.joinUrl}>{t('host.read.open')}</TextLink>
           </p>
           {history(state.code)}
         </>

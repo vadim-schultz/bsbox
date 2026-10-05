@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { Env } from '../env';
-import { rearm, runAlarm, type AlarmDeps } from './alarm';
+import { keepsPendingAlarm, rearm, runAlarm, type AlarmDeps } from './alarm';
 import { handleFrame, type HandlerCtx } from './handlers';
 import { createStore, type Store } from './store';
 
@@ -73,11 +73,16 @@ export class SessionRoom extends DurableObject<Env> {
         this.store.clearAll();
         await this.ctx.storage.deleteAlarm();
       },
-      setAlarm: (at) => {
-        if (at === null) void this.ctx.storage.deleteAlarm();
-        else void this.ctx.storage.setAlarm(at * 1000);
-      },
+      setAlarm: (at) => void this.schedule(at),
     };
+  }
+
+  private async schedule(at: number | null): Promise<void> {
+    if (at === null) return this.ctx.storage.deleteAlarm();
+    const wantMs = at * 1000;
+    const current = await this.ctx.storage.getAlarm();
+    if (keepsPendingAlarm(current, wantMs, Date.now())) return;
+    await this.ctx.storage.setAlarm(wantMs);
   }
 
   private nowSec(): number {

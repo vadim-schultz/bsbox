@@ -6,6 +6,7 @@ import { sessionsController, type SessionsVars } from './controllers/sessions';
 import type { Env } from './env';
 import { notFoundProblem, onProblem } from './middleware/problem';
 import { createMinutesRepo, createSeriesRepo, createSessionsRepo } from './repos';
+import { clockFor } from './testClock';
 import { createSeriesService } from './services/seriesService';
 import { createSessionsService } from './services/sessionsService';
 
@@ -19,12 +20,13 @@ export interface AppOptions {
 export function createApp(opts: AppOptions = {}) {
   const app = new Hono<{ Bindings: Env; Variables: SeriesVars & SessionsVars }>();
   app.use('/api/*', async (c, next) => {
+    const now = clockFor(c.env, c.req.url, opts.now);
     c.set(
       'seriesService',
       createSeriesService({
         series: createSeriesRepo(c.env.DB),
         sessions: createSessionsRepo(c.env.DB),
-        ...(opts.now && { now: opts.now }),
+        now,
       }),
     );
     c.set(
@@ -33,7 +35,7 @@ export function createApp(opts: AppOptions = {}) {
         series: createSeriesRepo(c.env.DB),
         sessions: createSessionsRepo(c.env.DB),
         minutes: createMinutesRepo(c.env.DB),
-        ...(opts.now && { now: opts.now }),
+        now,
       }),
     );
     await next();

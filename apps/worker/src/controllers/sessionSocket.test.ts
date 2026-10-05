@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../app';
 import { createSessionsRepo } from '../repos';
 import { seedSeries } from '../repos/testSeed';
+import { euRoom } from './sessionSocket';
 
 const app = createApp({
   roomFor: (e, id) => e.SESSION_ROOM.get(e.SESSION_ROOM.idFromName(id)),
@@ -58,5 +59,29 @@ describe('session socket controller', () => {
     ws.send('{"type":"hello","token":"bad"}');
     expect(await p).toMatchObject({ type: 'error', code: 'bad_token' });
     ws.close();
+  });
+});
+
+describe('euRoom', () => {
+  const fakeNs = (calls: string[]) =>
+    ({
+      jurisdiction: (j: string) => {
+        calls.push(j);
+        return fakeNs(calls);
+      },
+      idFromName: (n: string) => n,
+      get: () => ({}),
+    }) as unknown as DurableObjectNamespace;
+
+  it('pins production rooms to the eu jurisdiction', () => {
+    const calls: string[] = [];
+    euRoom({ ...env, SESSION_ROOM: fakeNs(calls), ENVIRONMENT: 'production' }, 'A-1');
+    expect(calls).toEqual(['eu']);
+  });
+
+  it('skips the jurisdiction only when ENVIRONMENT is test (local workerd has none)', () => {
+    const calls: string[] = [];
+    euRoom({ ...env, SESSION_ROOM: fakeNs(calls), ENVIRONMENT: 'test' }, 'A-1');
+    expect(calls).toEqual([]);
   });
 });
