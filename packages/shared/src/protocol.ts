@@ -60,6 +60,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
 ]);
 
 export type VoteStatus = z.infer<typeof voteStatusSchema>;
+export type WsErrorCode = z.infer<typeof wsErrorCodeSchema>;
 export type PhaseState = z.infer<typeof phaseStateSchema>;
 export type SessionResult = z.infer<typeof resultSchema>;
 export type SessionInfo = z.infer<typeof sessionInfoSchema>;

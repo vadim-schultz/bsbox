@@ -2,14 +2,28 @@ import type { SeriesResponse } from '@bsbox/shared';
 import { useLocale, type StringKey } from '../../../i18n';
 import { useSeries, type SeriesErrorKind } from '../../series';
 import { ErrorState } from '../../shell/components';
-import { Lobby, LivePlaceholder, ResultPlaceholder } from '../components';
-import { useServerNow, useSessionPhase } from '../hooks';
+import { Live, Lobby, ResultPlaceholder } from '../components';
+import { useLiveSession, useServerNow } from '../hooks';
 import { isDrifting } from '../utils';
 
 function SessionView({ series, offsetMs }: { series: SeriesResponse; offsetMs: number }) {
-  const { phase, present } = useSessionPhase(series.session);
+  const live = useLiveSession(series.session);
+  const { phase, presence: present } = live;
   const serverNow = useServerNow(offsetMs);
-  if (phase === 'live') return <LivePlaceholder />;
+  if (phase === 'live') {
+    const { session } = series;
+    return (
+      <Live
+        title={series.title}
+        timeline={live.timeline}
+        totalMinutes={Math.max(1, Math.ceil((session.end - session.start) / 60))}
+        myStatus={live.myStatus}
+        connection={live.connection}
+        error={live.error}
+        onVote={live.vote}
+      />
+    );
+  }
   if (phase === 'ended') return <ResultPlaceholder />;
   return (
     <Lobby

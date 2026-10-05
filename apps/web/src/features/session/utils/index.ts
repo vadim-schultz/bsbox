@@ -12,3 +12,6 @@ export function formatCountdown(remainingMs: number): string {
 
 /** Device clock ahead (positive) or behind (negative) of the server; offset = server - device. */
 export const isDrifting = (offsetMs: number): boolean => Math.abs(offsetMs) > DRIFT_WARN_MS;
+
+export * from './chartData';
+export * from './smoothing';
