@@ -1,1 +1,1 @@
-export {};
+export { useSeries } from './useSeries';

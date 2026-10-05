@@ -1,1 +1,1 @@
-export {};
+export { SessionContainer } from './containers';
