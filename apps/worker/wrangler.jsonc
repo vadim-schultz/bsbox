@@ -12,4 +12,12 @@
       "migrations_dir": "migrations",
     },
   ],
+  // 10 series creations per minute per IP (chapter 05).
+  "ratelimits": [
+    {
+      "name": "SERIES_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
 }
