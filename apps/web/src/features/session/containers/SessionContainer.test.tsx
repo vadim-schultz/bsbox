@@ -54,7 +54,7 @@ describe('SessionContainer', () => {
     expect(screen.getByTestId('countdown').textContent).toBe('1:30');
     expect(screen.queryByRole('status')).toBeNull();
     act(() => mocks.onMessage?.({ type: 'phase', state: 'live', at: SERVER_NOW + 90 }));
-    expect(screen.getByText('The meeting is live.')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'How engaged are you?' })).toBeTruthy();
   });
 
   it('warns about a skewed device clock while the countdown still follows the server', async () => {

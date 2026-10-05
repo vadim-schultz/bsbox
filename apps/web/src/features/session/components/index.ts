@@ -1,2 +1,3 @@
 export { Lobby, type LobbyProps } from './Lobby';
-export { LivePlaceholder, ResultPlaceholder } from './Placeholders';
+export { Live, type LiveProps } from './Live';
+export { ResultPlaceholder } from './Placeholders';
