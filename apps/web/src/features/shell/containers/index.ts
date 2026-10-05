@@ -1,1 +1,1 @@
-export { LandingPage, SessionPlaceholderPage, NotFoundPage } from './Pages';
+export { LandingPage, NotFoundPage } from './Pages';

@@ -1,1 +1,1 @@
-export {};
+export { getSeries } from './seriesApi';

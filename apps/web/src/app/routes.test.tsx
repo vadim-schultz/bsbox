@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProviders } from './AppProviders';
@@ -19,9 +19,14 @@ describe('routes', () => {
     expect(screen.getByRole('heading', { name: 'BSBox' })).toBeTruthy();
   });
 
-  it('renders the session placeholder with the code', () => {
+  it('renders the join flow at /m/:code', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    );
     at('/m/ABC123');
-    expect(screen.getByText(/ABC123/)).toBeTruthy();
+    expect(screen.getByText('Loading meeting…')).toBeTruthy();
+    vi.unstubAllGlobals();
   });
 
   it('renders not found for unknown paths', () => {

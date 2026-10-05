@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useLocale } from '../../../i18n';
 
 export function LandingPage() {
@@ -10,12 +10,6 @@ export function LandingPage() {
       <p>{t('landing.cta')}</p>
     </>
   );
-}
-
-export function SessionPlaceholderPage() {
-  const { t } = useLocale();
-  const { code = '' } = useParams();
-  return <p>{t('session.placeholder', { code })}</p>;
 }
 
 export function NotFoundPage() {
