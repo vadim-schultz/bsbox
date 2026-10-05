@@ -1,0 +1,12 @@
+node_modules
+dist
+pnpm-lock.yaml
+.plans
+.claude
+bsbox.code-workspace
+.astro
+.wrangler
+.e2e-state
+test-results
+playwright-report
+apps/worker/.assets

@@ -1,0 +1,64 @@
+.bsbox-cards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  margin: 16px 0;
+}
+.bsbox-card {
+  min-height: 72px;
+  min-width: 48px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid #605e5c;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.bsbox-card[aria-pressed='true'] {
+  border-color: #0072b2;
+  background: #0072b2;
+  color: #fff;
+}
+.bsbox-spring {
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bsbox-spring[aria-pressed='true'] {
+  transform: scale(1.04);
+}
+.bsbox-banner,
+.bsbox-nudge {
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  border: 1px solid currentColor;
+}
+.bsbox-nudge button {
+  min-height: 48px;
+  min-width: 48px;
+  margin-inline-end: 8px;
+}
+.bsbox-chart {
+  width: 100%;
+  height: auto;
+}
+.bsbox-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+}
+.bsbox-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

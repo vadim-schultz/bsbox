@@ -1,56 +1,17 @@
-# Python
-__pycache__/
-*.pyc
-.venv/
-backend/.venv/
-*.db
-.pytest_cache/
-
-# Node / Vite
-frontend/node_modules/
-frontend/dist/
+node_modules/
+dist/
 .pnpm-store/
 *.log
-
-# OS
+.env
+.env.*
+.wrangler/
 .DS_Store
 Thumbs.db
-
-# Packaging artifacts
-*.egg-info/
-# Virtual environments
-.venv/
-env/
-venv/
-
-# Python cache
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Build / dist artifacts
-*.egg-info/
-*.egg
-build/
-dist/
-
-# Local database
-bsbox.db
-
-# Environment files (may contain corporate URLs)
-.env
-deployment/.env
-
-# IDE / editor
 .vscode/
 .idea/
-*.swp
-*.swo
+.astro/
 
-# Test / coverage
-.pytest_cache/
-.tox/
-htmlcov/
-.coverage*
-coverage.xml
-
+.e2e-state/
+e2e/test-results/
+e2e/playwright-report/
+.assets/

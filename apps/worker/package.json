@@ -1,0 +1,25 @@
+{
+  "name": "@bsbox/worker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bsbox/shared": "workspace:*",
+    "drizzle-orm": "^0.45.3",
+    "hono": "^4.13.13",
+    "rrule": "^2.8.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.14",
+    "@cloudflare/workers-types": "^5.20261005.1",
+    "@types/node": "^22.20.5",
+    "drizzle-kit": "^0.31.11",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.147.0"
+  }
+}

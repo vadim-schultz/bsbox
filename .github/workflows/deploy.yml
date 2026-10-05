@@ -1,0 +1,83 @@
+name: Deploy
+
+# Runs only after a merge to main. Pull requests and the loop branch never deploy.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  # Fails safe: without the owner's Cloudflare secrets (M3, M4) every later job is skipped.
+  check-secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.probe.outputs.enabled }}
+    steps:
+      - id: probe
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare secrets absent: deploy skipped (see docs/operations/runbook.md)."
+          fi
+
+  staging:
+    needs: check-secrets
+    if: needs.check-secrets.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: node scripts/stage-assets.mjs
+      - run: pnpm exec wrangler d1 migrations apply DB --env staging --remote
+        working-directory: apps/worker
+      - run: pnpm exec wrangler deploy --env staging
+        working-directory: apps/worker
+      - name: Smoke test staging
+        run: |
+          curl --fail --retry 5 --retry-delay 5 --retry-all-errors \
+            "https://${{ vars.STAGING_HOST }}/api/health"
+
+  # The `production` GitHub environment requires a manual approval (configured by the owner, M11).
+  production:
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: node scripts/stage-assets.mjs
+      - run: pnpm exec wrangler d1 migrations apply DB --env production --remote
+        working-directory: apps/worker
+      - run: pnpm exec wrangler deploy --env production
+        working-directory: apps/worker
+      - name: Smoke test production
+        run: |
+          curl --fail --retry 5 --retry-delay 5 --retry-all-errors \
+            "https://${{ vars.PRODUCTION_HOST }}/api/health"

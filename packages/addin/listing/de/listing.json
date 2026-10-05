@@ -1,0 +1,6 @@
+{
+  "title": "BSBox - Meeting-Engagement",
+  "shortDescription": "Anonymes Live-Feedback für Ihre Meetings.",
+  "longDescription": "Mit BSBox zeigen Teilnehmende während eines Meetings anonym und in Echtzeit, wie engagiert sie sind. Fügen Sie es einer Outlook-Einladung oder einem Teams-Meeting hinzu; alle sehen das Live-Diagramm, und nach dem Meeting fasst ein Score zusammen, wie es lief. Es sind keine Konten nötig und es werden keine einzelnen Stimmen gespeichert.",
+  "screenshots": ["screenshots/lobby.png", "screenshots/live.png", "screenshots/result.png"]
+}

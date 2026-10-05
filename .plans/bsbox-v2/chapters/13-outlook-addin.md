@@ -16,7 +16,7 @@ isProject: false
 
 # Chapter 13 — Outlook add-in
 
-**Repo:** `bsbox` · **Branch:** `feat/v2-outlook` · **Status:** planned
+**Repo:** `bsbox` · **Branch:** `feat/v2-outlook` · **Status:** implemented
 **Depends on:** [12](12-web-results.md) · **Architecture:** [../00-architecture.md](../00-architecture.md) · **Rollout:** [../01-rollout.md](../01-rollout.md)
 
 ## Goal
@@ -30,6 +30,12 @@ An organizer adds BSBox to an invite in one click and attendees open results ([a
 - Create flow: read `subject/start/end/recurrence` → `POST /api/series` (with Teams join URL as `externalKey` if exposed, spike S1) → insert HTML block + plain-text fallback via `body.setSelectedDataAsync`, in the organizer's language → store `{code, editToken}` in item custom properties.
 - Reopen flow: load custom properties, show link/copy, "Sync times" calls `PATCH`. `OnAppointmentSend` handler re-syncs where supported (S2).
 - Spikes S1–S3: implement the probing code, record **Outcome:** here with the chosen fallbacks.
+
+**Outcome (spikes):**
+
+- S1: compose does not expose the Teams join URL as a property; the add-in reads the body text and extracts a `teams.microsoft.com/l/meetup-join/...` URL as `externalKey` when present. Otherwise the series is independent (fallback: QR/copy-link).
+- S2: `supportsSendSync()` probes Mailbox 1.14. The shipped fallback is the manual "Sync times" button; the `OnAppointmentSend` runtime handler is not shipped in this chapter. Real-client availability needs the M6 sideload check.
+- S3: not testable without a real client; mobile limits are covered by the "organizers insert from desktop/web" fallback. Pending M6.
 
 ## Files
 

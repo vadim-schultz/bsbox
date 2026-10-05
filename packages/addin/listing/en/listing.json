@@ -1,0 +1,6 @@
+{
+  "title": "BSBox - meeting engagement",
+  "shortDescription": "Anonymous live engagement for your meetings.",
+  "longDescription": "BSBox lets attendees share, anonymously and in real time, how engaged they are during a meeting. Add it to an Outlook invite or a Teams meeting; everyone sees the live engagement chart, and after the meeting a score summarises how it went. No accounts are needed and no individual votes are stored.",
+  "screenshots": ["screenshots/lobby.png", "screenshots/live.png", "screenshots/result.png"]
+}

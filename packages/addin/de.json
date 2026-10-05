@@ -1,0 +1,14 @@
+{
+  "name.short": "BSBox",
+  "name.full": "BSBox Meeting-Engagement",
+  "description.short": "Anonymes Live-Engagement für Ihre Meetings.",
+  "description.full": "Fügen Sie BSBox einer Meeting-Einladung hinzu, damit Teilnehmende anonym und live teilen können, wie engagiert sie sind, und alle danach das Ergebnis sehen.",
+  "extensions[0].ribbons[0].tabs[0].groups[0].label": "BSBox",
+  "extensions[0].ribbons[0].tabs[0].groups[0].controls[0].label": "BSBox hinzufügen",
+  "extensions[0].ribbons[0].tabs[0].groups[0].controls[0].supertip.title": "BSBox hinzufügen",
+  "extensions[0].ribbons[0].tabs[0].groups[0].controls[0].supertip.description": "Fügt dieser Einladung einen anonymen Engagement-Link hinzu.",
+  "extensions[0].ribbons[1].tabs[0].groups[0].label": "BSBox",
+  "extensions[0].ribbons[1].tabs[0].groups[0].controls[0].label": "Ergebnisse öffnen",
+  "extensions[0].ribbons[1].tabs[0].groups[0].controls[0].supertip.title": "Ergebnisse öffnen",
+  "extensions[0].ribbons[1].tabs[0].groups[0].controls[0].supertip.description": "Zeigt die Engagement-Ergebnisse dieses Meetings."
+}
