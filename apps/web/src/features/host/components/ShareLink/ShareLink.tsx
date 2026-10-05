@@ -1,3 +1,4 @@
+import { TextLink } from '../../../../components';
 import { useState } from 'react';
 import { Button } from '@fluentui/react-components';
 import qrcode from 'qrcode-generator';
@@ -44,7 +45,7 @@ export function ShareLink({ joinUrl }: { joinUrl: string }) {
     <section aria-label={t('host.teams.share.title')}>
       <h2>{t('host.teams.share.title')}</h2>
       <p>
-        <a href={joinUrl}>{joinUrl}</a>
+        <TextLink href={joinUrl}>{joinUrl}</TextLink>
       </p>
       <Button onClick={() => void copy()}>{t('host.compose.copy')}</Button>
       <p role="status">

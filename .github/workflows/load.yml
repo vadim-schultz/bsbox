@@ -1,0 +1,43 @@
+name: Load test
+
+# Manual only. Runs against a local `wrangler dev` inside the runner; it never touches a
+# Cloudflare account. Free-tier behaviour (spike S5) is recorded in docs/runbook, not here.
+on:
+  workflow_dispatch:
+    inputs:
+      clients:
+        description: Simulated clients
+        default: '100'
+      duration_s:
+        description: Test duration in seconds
+        default: '60'
+      p95_ms:
+        description: Max tick latency p95 (ms)
+        default: '6500'
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start local worker
+        run: |
+          bash e2e/scripts/start-worker.sh > worker.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:8788/api/health && exit 0
+            sleep 2
+          done
+          cat worker.log
+          exit 1
+      - name: Run load script
+        env:
+          CLIENTS: ${{ inputs.clients }}
+          DURATION_S: ${{ inputs.duration_s }}
+          P95_MS: ${{ inputs.p95_ms }}
+        run: pnpm --filter @bsbox/e2e run load

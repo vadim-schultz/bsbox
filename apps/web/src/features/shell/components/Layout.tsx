@@ -16,9 +16,9 @@ export function Layout({ children }: { children: ReactNode }) {
   const styles = useStyles();
   return (
     <div className={styles.root}>
-      <div className={styles.bar}>
+      <header className={styles.bar}>
         <LocaleSwitcher />
-      </div>
+      </header>
       <main>{children}</main>
     </div>
   );

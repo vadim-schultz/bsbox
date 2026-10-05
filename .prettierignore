@@ -5,3 +5,7 @@ pnpm-lock.yaml
 .claude
 bsbox.code-workspace
 .astro
+.wrangler
+.e2e-state
+test-results
+playwright-report

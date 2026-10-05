@@ -3,7 +3,14 @@ import { env } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { createSessionsRepo } from '../repos';
 import { seedSeries } from '../repos/testSeed';
-import { nextAlarmAt, runAlarm, TICK_INTERVAL_SEC, PURGE_DELAY_SEC, type AlarmDeps } from './alarm';
+import {
+  keepsPendingAlarm,
+  nextAlarmAt,
+  runAlarm,
+  TICK_INTERVAL_SEC,
+  PURGE_DELAY_SEC,
+  type AlarmDeps,
+} from './alarm';
 import { handleFrame } from './handlers';
 import type { Store } from './store';
 import { END, SESSION_ID, START, withCtx } from './testKit';
@@ -132,4 +139,17 @@ describe('late joiner', () => {
       expect(res.replies.map((m) => m.type)).toEqual(['welcome', 'phase', 'ended']);
       expect(res.replies[2]).toEqual(ended);
     }));
+});
+
+describe('keepsPendingAlarm', () => {
+  it('keeps an already pending earlier alarm so frequent votes cannot starve ticks', () => {
+    expect(keepsPendingAlarm(10_000, 12_000, 8_000)).toBe(true);
+    expect(keepsPendingAlarm(12_000, 12_000, 8_000)).toBe(true);
+  });
+
+  it('replaces a later, missing or already due alarm', () => {
+    expect(keepsPendingAlarm(20_000, 12_000, 8_000)).toBe(false);
+    expect(keepsPendingAlarm(null, 12_000, 8_000)).toBe(false);
+    expect(keepsPendingAlarm(7_000, 12_000, 8_000)).toBe(false);
+  });
 });
