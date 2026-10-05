@@ -2,9 +2,10 @@ import type { SeriesResponse } from '@bsbox/shared';
 import { useLocale, type StringKey } from '../../../i18n';
 import { useSeries, type SeriesErrorKind } from '../../series';
 import { ErrorState } from '../../shell/components';
-import { Live, Lobby, ResultPlaceholder } from '../components';
+import { Live, Lobby } from '../components';
 import { useLiveSession, useServerNow } from '../hooks';
 import { isDrifting } from '../utils';
+import { ResultContainer } from './ResultContainer';
 
 function SessionView({ series, offsetMs }: { series: SeriesResponse; offsetMs: number }) {
   const live = useLiveSession(series.session);
@@ -24,7 +25,16 @@ function SessionView({ series, offsetMs }: { series: SeriesResponse; offsetMs: n
       />
     );
   }
-  if (phase === 'ended') return <ResultPlaceholder />;
+  if (phase === 'ended') {
+    return (
+      <ResultContainer
+        sessionId={series.session.id}
+        title={series.title}
+        start={series.session.start}
+        result={live.result}
+      />
+    );
+  }
   return (
     <Lobby
       title={series.title}

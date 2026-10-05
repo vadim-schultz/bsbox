@@ -12,10 +12,12 @@ const NOT_ENGAGED = '#e69f00';
 export interface EngagementChartProps {
   points: readonly ChartPoint[];
   totalMinutes: number;
+  /** Show the "now" marker; off for finished sessions. */
+  showNow?: boolean;
 }
 
 /** Stacked share of engaged vs. not engaged, smoothed overall line, now marker, empty future. */
-export function EngagementChart({ points, totalMinutes }: EngagementChartProps) {
+export function EngagementChart({ points, totalMinutes, showNow = true }: EngagementChartProps) {
   const { t } = useLocale();
   const x = scaleLinear()
     .domain([0, Math.max(1, totalMinutes - 1)])
@@ -47,7 +49,7 @@ export function EngagementChart({ points, totalMinutes }: EngagementChartProps) 
         <path d={notEngaged ?? ''} fill={NOT_ENGAGED} fillOpacity={0.5} />
         <path d={engaged ?? ''} fill={ENGAGED} fillOpacity={0.6} />
         <path d={overall ?? ''} fill="none" stroke="currentColor" strokeWidth={3} />
-        {last ? (
+        {last && showNow ? (
           <g>
             <line
               x1={px(last)}
