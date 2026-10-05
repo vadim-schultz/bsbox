@@ -5,6 +5,7 @@ import { seriesController, type SeriesVars } from './controllers/series';
 import { sessionsController, type SessionsVars } from './controllers/sessions';
 import type { Env } from './env';
 import { notFoundProblem, onProblem } from './middleware/problem';
+import { securityHeaders } from './middleware/securityHeaders';
 import { createMinutesRepo, createSeriesRepo, createSessionsRepo } from './repos';
 import { clockFor } from './testClock';
 import { createSeriesService } from './services/seriesService';
@@ -19,6 +20,7 @@ export interface AppOptions {
 
 export function createApp(opts: AppOptions = {}) {
   const app = new Hono<{ Bindings: Env; Variables: SeriesVars & SessionsVars }>();
+  app.use('*', securityHeaders);
   app.use('/api/*', async (c, next) => {
     const now = clockFor(c.env, c.req.url, opts.now);
     c.set(
