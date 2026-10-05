@@ -38,3 +38,22 @@ describe('security headers', () => {
     }
   });
 });
+
+describe('static assets behind the worker', () => {
+  const assets = { fetch: async () => new Response('<html></html>') } as unknown as Fetcher;
+  const viaAssets = (path: string) =>
+    createApp().request(`https://bsbox.test${path}`, {}, { ...env, ASSETS: assets });
+
+  it('applies the worker CSP to SPA pages so framing stays host-only', async () => {
+    const spa = (await viaAssets('/m/ABC')).headers.get('content-security-policy') ?? '';
+    expect(spa).toContain("frame-ancestors 'none'");
+    const host = (await viaAssets('/host/compose')).headers.get('content-security-policy') ?? '';
+    expect(host).toContain('https://outlook.office.com');
+  });
+
+  it('never hands unknown /api paths to the assets binding', async () => {
+    const res = await viaAssets('/api/nope');
+    expect(res.status).toBe(404);
+    expect(res.headers.get('content-type')).toContain('problem+json');
+  });
+});

@@ -1,4 +1,5 @@
 import type { ProblemCode } from '@bsbox/shared';
+import { logEvent } from '../observability';
 
 /** Error carrying an RFC 9457 problem with a stable, client-translatable code. */
 export class ProblemError extends Error {
@@ -34,7 +35,13 @@ export function problemResponse(status: number, code: ProblemCode, detail?: stri
 /** Hono `onError` handler: known problems keep their code; anything else is a 500. */
 export function onProblem(err: Error): Response {
   if (err instanceof ProblemError) return problemResponse(err.status, err.code, err.detail);
-  console.error(err);
+  logEvent({
+    level: 'error',
+    event: 'unhandled_error',
+    code: 'internal_error',
+    durationMs: 0,
+    errorName: err.name,
+  });
   return problemResponse(500, 'internal_error');
 }
 

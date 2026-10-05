@@ -4,6 +4,10 @@ export interface Env {
   SESSION_ROOM: DurableObjectNamespace;
   /** HMAC key for participant tokens; a Worker secret in deployed environments (M5). */
   TOKEN_HMAC_KEY: string;
+  /** Analytics Engine dataset; unbound in local and test runs. */
+  EVENTS?: AnalyticsEngineDataset;
+  /** Static assets (SPA and docs); unbound in local and test runs. */
+  ASSETS?: Fetcher;
   /** `test` enables the request clock override (testClock.ts); unset or any other value disables it. */
   ENVIRONMENT?: string;
 }

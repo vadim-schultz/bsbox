@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import type { Env } from '../env';
 import { keepsPendingAlarm, rearm, runAlarm, type AlarmDeps } from './alarm';
 import { handleFrame, type HandlerCtx } from './handlers';
+import { recordMetric } from '../observability';
 import { createStore, type Store } from './store';
 
 /** Window headers set by the socket controller when it forwards the upgrade. */
@@ -35,12 +36,24 @@ export class SessionRoom extends DurableObject<Env> {
     const res = await handleFrame(this.handlerCtx(), pid ?? undefined, message);
     if (res.pid && res.pid !== pid) ws.serializeAttachment(res.pid);
     for (const reply of res.replies) ws.send(JSON.stringify(reply));
+    this.measure(message, res.replies);
     if (res.close) ws.close(res.close.code, res.close.reason);
     rearm(this.alarmDeps());
   }
 
   async alarm(): Promise<void> {
+    const wasEnded = this.store.getSession()?.phase === 'ended';
     await runAlarm(this.alarmDeps());
+    if (!wasEnded && this.store.getSession()?.phase === 'ended') recordMetric(this.env, 'finalize');
+  }
+
+  /** Analytics Engine counters for joins, votes and error codes; never records identities. */
+  private measure(message: string, replies: readonly { type: string; code?: string }[]): void {
+    for (const r of replies) {
+      if (r.type === 'welcome') recordMetric(this.env, 'join');
+      if (r.type === 'error') recordMetric(this.env, 'error', r.code);
+    }
+    if (replies.length === 0 && message.includes('"vote"')) recordMetric(this.env, 'vote');
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
