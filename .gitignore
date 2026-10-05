@@ -15,3 +15,4 @@ Thumbs.db
 e2e/test-results/
 e2e/playwright-report/
 .assets/
+e2e/demo/.logs/

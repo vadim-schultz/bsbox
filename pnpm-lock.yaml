@@ -148,6 +148,10 @@ importers:
         version: 4.147.0(@cloudflare/workers-types@5.20261005.1)(@types/node@22.20.5)
 
   e2e:
+    dependencies:
+      '@bsbox/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.13.0

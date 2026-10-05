@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// Playwright owns tests/*.spec.ts; vitest only covers the load script's unit tests.
-export default defineConfig({ test: { include: ['load/**/*.test.ts'], testTimeout: 30_000 } });
+// Playwright owns tests/*.spec.ts; vitest covers unit tests of the load script and the demo.
+export default defineConfig({
+  test: { include: ['load/**/*.test.ts', 'demo/**/*.test.ts'], testTimeout: 30_000 },
+});
