@@ -30,3 +30,50 @@ export function localizationProblems(manifest: Json, german: Record<string, stri
   }
   return problems;
 }
+
+interface DomainManifest {
+  validDomains?: string[];
+  developer?: Record<string, string | undefined>;
+}
+
+const hostOf = (url: string | undefined): string | null => {
+  try {
+    return url ? new URL(url).hostname : null;
+  } catch {
+    return null;
+  }
+};
+
+/** validDomains must be wildcard-free and cover the legal URLs. */
+export function domainProblems(manifest: Json): string[] {
+  const { validDomains = [], developer = {} } = manifest as DomainManifest;
+  const problems = validDomains
+    .filter((d) => d.includes('*'))
+    .map((d) => `validDomains has wildcard: ${d}`);
+  for (const key of ['privacyUrl', 'termsOfUseUrl']) {
+    const host = hostOf(developer[key]);
+    if (!host || !validDomains.includes(host)) {
+      problems.push(`developer.${key} is not on a valid domain`);
+    }
+  }
+  return problems;
+}
+
+export const LISTING_LANGUAGES = ['en', 'de'] as const;
+const LISTING_FIELDS = ['title', 'shortDescription', 'longDescription'] as const;
+
+export type Listing = Partial<Record<(typeof LISTING_FIELDS)[number], string>> & {
+  screenshots?: string[];
+};
+
+/** Every listing field must be filled in both languages, with at least one screenshot. */
+export function listingProblems(listings: Partial<Record<string, Listing>>): string[] {
+  return LISTING_LANGUAGES.flatMap((lang) => {
+    const l = listings[lang];
+    if (!l) return [`${lang} listing: missing`];
+    const missing = LISTING_FIELDS.filter((f) => !l[f]?.trim()).map(
+      (f) => `${lang} listing: missing ${f}`,
+    );
+    return l.screenshots?.length ? missing : [...missing, `${lang} listing: no screenshots`];
+  });
+}
