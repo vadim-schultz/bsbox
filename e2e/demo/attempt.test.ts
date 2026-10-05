@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attempt, expectEqual } from './attempt';
+import { attempt, expectEqual, withTimeout } from './attempt';
 
 describe('attempt', () => {
   it('passes with the returned detail', async () => {
@@ -21,5 +21,18 @@ describe('expectEqual', () => {
   it('throws a readable message on mismatch', () => {
     expect(() => expectEqual('status', 201, 200)).toThrow('status: expected 201, got 200');
     expect(() => expectEqual('status', 201, 201)).not.toThrow();
+  });
+});
+
+describe('withTimeout', () => {
+  it('rejects a step that outlives its budget', async () => {
+    const slow = new Promise((r) => setTimeout(r, 200));
+    await expect(withTimeout(slow, 10, 'slow step')).rejects.toThrow(
+      'slow step timed out after 10 ms',
+    );
+  });
+
+  it('passes through a step that finishes in time', async () => {
+    await expect(withTimeout(Promise.resolve(5), 100, 'quick')).resolves.toBe(5);
   });
 });

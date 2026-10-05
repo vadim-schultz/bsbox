@@ -3,6 +3,12 @@ import { createSession, wsUrl } from './api';
 import { connectBot, type Bot } from './bot';
 import type { Check } from './types';
 
+export interface AdversarialRun {
+  checks: Check[];
+  /** Series code and session id of the lobby-only room, reused by the stale-token probe. */
+  room: { code: string; sessionId: string };
+}
+
 const CLOSE_BAD_TOKEN = 4401;
 
 async function expectCode(bot: Bot, code: string): Promise<void> {
@@ -52,7 +58,7 @@ const plainGet = async (api: string, sessionId: string) => {
 };
 
 /** Malformed or hostile clients, run against two dedicated lobby-only sessions. */
-export async function adversarialChecks(api: string): Promise<Check[]> {
+export async function adversarialChecks(api: string): Promise<AdversarialRun> {
   const [x, y] = await Promise.all(
     ['Adversarial room', 'Foreign room'].map((title) =>
       createSession(api, { title, startInSec: 3600, durationMin: 5 }),
@@ -60,7 +66,7 @@ export async function adversarialChecks(api: string): Promise<Check[]> {
   );
   if (!x || !y) throw new Error('adversarial sessions were not created');
   const [url, other] = [wsUrl(api, x.sessionId), wsUrl(api, y.sessionId)];
-  return [
+  const checks = [
     await attempt('vote before hello -> bad_message', () => voteBeforeHello(url)),
     await attempt('vote in lobby -> not_live', () => voteInLobby(url)),
     await attempt('malformed JSON -> bad_message, socket stays open', () => malformedJson(url)),
@@ -68,4 +74,5 @@ export async function adversarialChecks(api: string): Promise<Check[]> {
     await attempt('token from another session -> 4401', () => foreignToken(url, other)),
     await attempt('non-upgrade GET on /ws -> 400', () => plainGet(api, x.sessionId)),
   ];
+  return { checks, room: { code: x.code, sessionId: x.sessionId } };
 }

@@ -52,7 +52,7 @@ export function startParticipant(room: Room, persona: Persona): Participant {
     connected: Promise.resolve(),
     finished: Promise.resolve(),
   };
-  p.connected = join(room, p);
+  p.connected = join(room, p).catch((e: Error) => void p.problems.push(`connect: ${e.message}`));
   p.finished = p.connected.then(() => act(room, p));
   return p;
 }
