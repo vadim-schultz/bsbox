@@ -1,11 +1,5 @@
-import {
-  finalScore,
-  level,
-  rawScore,
-  type Level,
-  type MinuteCount,
-  type VoteStatus,
-} from '@bsbox/shared';
+import { finalScore, level, rawScore, type Level, type MinuteCount } from '@bsbox/shared/scoring';
+import type { VoteStatus } from '@bsbox/shared';
 import type { Persona, Tap } from './types';
 
 export interface ExpectedMinute extends MinuteCount {

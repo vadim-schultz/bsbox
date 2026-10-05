@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { finalScore, level, rawScore } from '@bsbox/shared';
+import { finalScore, level, rawScore } from '@bsbox/shared/scoring';
 import { expectedResult } from './groundTruth';
 import type { Persona } from './types';
 
