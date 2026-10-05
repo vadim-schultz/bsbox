@@ -23,10 +23,12 @@ export async function handleHello(ctx: HandlerCtx, msg: Hello): Promise<HandlerR
     pid = crypto.randomUUID();
   }
   ctx.store.ensureParticipant(pid, now);
+  ctx.store.markDirty();
   const token =
     msg.token ??
     (await signToken({ pid, sessionId: ctx.sessionId, exp: now + TOKEN_TTL_SEC }, ctx.secret));
   const session = ctx.store.getSession();
+  const final = ctx.store.getResult();
   return {
     pid,
     replies: [
@@ -42,6 +44,12 @@ export async function handleHello(ctx: HandlerCtx, msg: Hello): Promise<HandlerR
         },
         timeline: [],
       },
+      ...(final
+        ? ([
+            { type: 'phase', state: 'ended', at: final.finalizedAt },
+            { type: 'ended', result: final.result },
+          ] as const)
+        : []),
     ],
   };
 }

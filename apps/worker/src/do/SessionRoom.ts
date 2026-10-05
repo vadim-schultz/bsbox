@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { Env } from '../env';
+import { rearm, runAlarm, type AlarmDeps } from './alarm';
 import { handleFrame, type HandlerCtx } from './handlers';
 import { createStore, type Store } from './store';
 
@@ -24,6 +25,7 @@ export class SessionRoom extends DurableObject<Env> {
     this.syncSession(req);
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1]);
+    rearm(this.alarmDeps());
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
@@ -34,11 +36,48 @@ export class SessionRoom extends DurableObject<Env> {
     if (res.pid && res.pid !== pid) ws.serializeAttachment(res.pid);
     for (const reply of res.replies) ws.send(JSON.stringify(reply));
     if (res.close) ws.close(res.close.code, res.close.reason);
+    rearm(this.alarmDeps());
+  }
+
+  async alarm(): Promise<void> {
+    await runAlarm(this.alarmDeps());
   }
 
   async webSocketClose(ws: WebSocket): Promise<void> {
     const pid = ws.deserializeAttachment() as string | null;
-    if (pid) this.store.markLeft(pid, this.nowSec());
+    if (pid) {
+      this.store.markLeft(pid, this.nowSec());
+      this.store.markDirty();
+      rearm(this.alarmDeps());
+    }
+  }
+
+  private alarmDeps(): AlarmDeps {
+    return {
+      store: this.store,
+      d1: this.env.DB,
+      now: () => this.nowSec(),
+      openIds: () =>
+        this.ctx.getWebSockets().flatMap((w) => {
+          const pid = w.deserializeAttachment() as string | null;
+          return pid ? [pid] : [];
+        }),
+      broadcast: (msg) => {
+        const raw = JSON.stringify(msg);
+        for (const w of this.ctx.getWebSockets()) w.send(raw);
+      },
+      closeAll: () => {
+        for (const w of this.ctx.getWebSockets()) w.close(1000, 'ended');
+      },
+      purge: async () => {
+        this.store.clearAll();
+        await this.ctx.storage.deleteAlarm();
+      },
+      setAlarm: (at) => {
+        if (at === null) void this.ctx.storage.deleteAlarm();
+        else void this.ctx.storage.setAlarm(at * 1000);
+      },
+    };
   }
 
   private nowSec(): number {

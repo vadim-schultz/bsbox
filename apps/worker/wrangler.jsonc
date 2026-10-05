@@ -24,5 +24,7 @@
   "durable_objects": {
     "bindings": [{ "name": "SESSION_ROOM", "class_name": "SessionRoom" }],
   },
+  // Daily retention sweep (chapter 07).
+  "triggers": { "crons": ["17 3 * * *"] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionRoom"] }],
 }

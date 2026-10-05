@@ -10,5 +10,6 @@ export function handleVote(ctx: HandlerCtx, pid: string, msg: Vote): HandlerResu
   if (!session || phaseOf(ctx.store, now) !== 'live') return errorReply('not_live');
   const minuteIdx = Math.floor((now - session.start) / 60);
   ctx.store.recordVote(pid, minuteIdx, msg.status, now);
+  ctx.store.markDirty();
   return { pid, replies: [] };
 }
