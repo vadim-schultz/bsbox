@@ -1,9 +1,10 @@
-import type { VoteStatus } from '@bsbox/shared';
+import type { SessionResult, VoteStatus } from '@bsbox/shared';
 
 export interface Participant {
   id: string;
   joinedAt: number;
   lastSeenAt: number;
+  leftAt: number | null;
   lastStatus: VoteStatus;
   voted: boolean;
 }
@@ -35,6 +36,7 @@ function toParticipant(r: Row): Participant {
     id: r.id as string,
     joinedAt: r.joined_at as number,
     lastSeenAt: r.last_seen_at as number,
+    leftAt: (r.left_at as number | null) ?? null,
     lastStatus: r.last_status as VoteStatus,
     voted: r.voted === 1,
   };
@@ -57,6 +59,37 @@ export function createStore(sql: SqlStorage) {
     },
     saveSession(meta: SessionMeta): void {
       this.setMeta('session', JSON.stringify(meta));
+    },
+    listParticipants(): Participant[] {
+      return rows('SELECT * FROM participants').map(toParticipant);
+    },
+    allVotes(): { participantId: string; minuteIdx: number; status: VoteStatus }[] {
+      return rows('SELECT participant_id, minute_idx, status FROM votes').map((r) => ({
+        participantId: r.participant_id as string,
+        minuteIdx: r.minute_idx as number,
+        status: r.status as VoteStatus,
+      }));
+    },
+    /** Set when a vote or presence change happened since the last tick. */
+    markDirty(): void {
+      this.setMeta('dirty', '1');
+    },
+    isDirty(): boolean {
+      return this.getMeta('dirty') === '1';
+    },
+    clearDirty(): void {
+      this.setMeta('dirty', '0');
+    },
+    getResult(): { result: SessionResult; finalizedAt: number } | null {
+      const raw = this.getMeta('result');
+      return raw ? (JSON.parse(raw) as { result: SessionResult; finalizedAt: number }) : null;
+    },
+    saveResult(result: SessionResult, finalizedAt: number): void {
+      this.setMeta('result', JSON.stringify({ result, finalizedAt }));
+    },
+    /** Delete all hot-path data (purge, 24 h after finalize). */
+    clearAll(): void {
+      for (const t of ['participants', 'votes', 'meta']) sql.exec(`DELETE FROM ${t}`);
     },
     getParticipant(id: string): Participant | null {
       const r = rows('SELECT * FROM participants WHERE id = ?', id)[0];

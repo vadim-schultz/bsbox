@@ -8,8 +8,8 @@ export interface Minute {
   engaged: number;
 }
 
-// D1 allows at most 100 bound parameters per statement; 3 columns per row.
-const CHUNK = 30;
+// D1 allows at most 100 bound parameters per statement; 4 columns per row.
+const CHUNK = 24;
 
 export function createMinutesRepo(d1: D1Database) {
   const db = drizzle(d1);
