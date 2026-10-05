@@ -9,9 +9,9 @@ export function agreedResult(bots: readonly Bot[]): { result?: SessionResult; ag
   return { result: first, agree };
 }
 
-/** How many sockets did not end with the server's normal close (1000). */
+/** Sockets the server should have closed at the end that did not close with 1000. */
 export function mismatchedClose(bots: readonly Bot[]): number {
-  return bots.filter((b) => b.closeCode !== 1000).length;
+  return bots.filter((b) => !b.closedByClient && b.closeCode !== 1000).length;
 }
 
 /** Ticks a bot received before the first `phase live` message. */

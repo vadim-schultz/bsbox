@@ -32,6 +32,10 @@ describe('mismatchedClose', () => {
     ];
     expect(mismatchedClose(bots)).toBe(2);
   });
+
+  it('ignores sockets the client closed itself', () => {
+    expect(mismatchedClose([bot({ closeCode: 1005, closedByClient: true })])).toBe(0);
+  });
 });
 
 const tick = { type: 'tick', minuteIdx: 0, present: 1, engaged: 1, speaking: 0 } as const;

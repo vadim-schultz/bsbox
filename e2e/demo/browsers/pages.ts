@@ -26,6 +26,14 @@ const expectText = (path: string, web: string, text: string, browser: Browser) =
     await expect(page.getByText(text)).toBeVisible({ timeout: 15_000 });
   });
 
+/** Outside Outlook the compose pane renders, but adding fails with its error message. */
+const composeOutside = (browser: Browser, web: string) =>
+  onFreshPage(browser, async (page) => {
+    await page.goto(`${web}/host/compose`);
+    await page.getByRole('button', { name: 'Add BSBox' }).click();
+    await expect(page.getByRole('alert')).toContainText('could not be added', { timeout: 15_000 });
+  });
+
 /** A fresh visitor after the end sees the stored result (served over REST, then the socket). */
 async function lateJoin(
   browser: Browser,
@@ -56,8 +64,8 @@ export async function pageChecks(
     await browserCheck('unknown code shows the 404 page', () =>
       expectHeading('/m/NOSUCHCODE1', web, 'Meeting not found', browser),
     ),
-    await browserCheck('/host/compose is unavailable outside Outlook', () =>
-      expectText('/host/compose', web, 'This page only works inside Outlook.', browser),
+    await browserCheck('/host/compose cannot add BSBox outside Outlook', () =>
+      composeOutside(browser, web),
     ),
     await browserCheck('/host/read is unavailable outside Outlook', () =>
       expectText('/host/read', web, 'This page only works inside Outlook.', browser),

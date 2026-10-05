@@ -7,6 +7,8 @@ export interface Bot {
   token?: string;
   result?: SessionResult;
   closeCode?: number;
+  /** True once this client initiated the close (leave or drop). */
+  closedByClient?: boolean;
   vote: (status: VoteStatus) => void;
   sendRaw: (text: string) => void;
   close: () => void;
@@ -34,7 +36,10 @@ function makeBot(ws: WebSocket): Bot {
     messages: [],
     vote: (status) => ws.send(JSON.stringify({ type: 'vote', status })),
     sendRaw: (text) => ws.send(text),
-    close: () => ws.close(1000),
+    close: () => {
+      bot.closedByClient = true;
+      ws.close(1000);
+    },
     isOpen: () => ws.readyState === WebSocket.OPEN,
     next: async (pred, ms = 10_000) => {
       const find = () => bot.messages.find(pred);
