@@ -1,2 +1,0 @@
-export { MeetingSummary } from "./MeetingSummary";
-
