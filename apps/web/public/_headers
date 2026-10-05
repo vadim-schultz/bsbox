@@ -1,2 +1,0 @@
-/*
-  Content-Security-Policy: frame-ancestors 'self' https://teams.microsoft.com https://*.teams.microsoft.com https://*.office.com https://*.office365.com https://outlook.office.com https://outlook.office365.com https://*.cloud.microsoft https://*.microsoft365.com

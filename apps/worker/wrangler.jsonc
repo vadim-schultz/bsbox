@@ -3,7 +3,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat"],
-  // Local-only D1 binding; the real database id is a manual owner step (manual-steps.md).
+  // Top level is the local/test configuration. It has no assets, route or secrets check.
+  // The database id is a placeholder; real ids belong to the staging/production blocks (M2-M5).
   "d1_databases": [
     {
       "binding": "DB",
@@ -27,4 +28,78 @@
   // Daily retention sweep (chapter 07).
   "triggers": { "crons": ["17 3 * * *"] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionRoom"] }],
+
+  // Deployed environments do not inherit bindings, so each one repeats them.
+  // PLACEHOLDER values (database_id, namespace_id, route pattern) are replaced by the owner
+  // during M2-M5 (see .plans/bsbox-v2/manual-steps.md). Assets are staged by scripts/stage-assets.mjs.
+  "env": {
+    "staging": {
+      "name": "bsbox-staging",
+      "vars": { "ENVIRONMENT": "staging" },
+      "secrets": { "required": ["TOKEN_HMAC_KEY"] },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "bsbox-staging",
+          "database_id": "PLACEHOLDER-staging-d1-id-00000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "SERIES_RATE_LIMITER",
+          "namespace_id": "2001",
+          "simple": { "limit": 10, "period": 60 },
+        },
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "SESSION_ROOM", "class_name": "SessionRoom" }],
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionRoom"] }],
+      "triggers": { "crons": ["17 3 * * *"] },
+      "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "bsbox_events_staging" }],
+      "assets": {
+        "directory": ".assets",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true,
+      },
+      "observability": { "enabled": true },
+      "routes": [{ "pattern": "staging.bsbox.example.com", "custom_domain": true }],
+    },
+    "production": {
+      "name": "bsbox-production",
+      "vars": { "ENVIRONMENT": "production" },
+      "secrets": { "required": ["TOKEN_HMAC_KEY"] },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "bsbox-production",
+          "database_id": "PLACEHOLDER-production-d1-id-0000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "ratelimits": [
+        {
+          "name": "SERIES_RATE_LIMITER",
+          "namespace_id": "3001",
+          "simple": { "limit": 10, "period": 60 },
+        },
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "SESSION_ROOM", "class_name": "SessionRoom" }],
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionRoom"] }],
+      "triggers": { "crons": ["17 3 * * *"] },
+      "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "bsbox_events_production" }],
+      "assets": {
+        "directory": ".assets",
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": true,
+      },
+      "observability": { "enabled": true },
+      "routes": [{ "pattern": "bsbox.example.com", "custom_domain": true }],
+    },
+  },
 }

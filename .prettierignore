@@ -9,3 +9,4 @@ bsbox.code-workspace
 .e2e-state
 test-results
 playwright-report
+apps/worker/.assets

@@ -8,6 +8,7 @@ export default tseslint.config(
       '**/dist/**',
       '**/.astro/**',
       '**/.wrangler/**',
+      '**/.assets/**',
       '.e2e-state/**',
       '**/test-results/**',
       '**/playwright-report/**',
