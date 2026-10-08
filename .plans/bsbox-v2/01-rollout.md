@@ -6,7 +6,7 @@ isProject: false
 
 **Architecture:** [00-architecture.md](00-architecture.md) · **Decisions:** [gaps-and-decisions.md](gaps-and-decisions.md) · **Manual steps:** [manual-steps.md](manual-steps.md) · **Chapters:** [chapters/](chapters/) · **Ledger:** [run-ledger.md](run-ledger.md)
 
-Chief-of-staff runs chapters via [`.claude/skills/chief-of-staff/SKILL.md`](../../.claude/skills/chief-of-staff/SKILL.md) (plan folder `.plans/bsbox-v2`).
+Chief of staff: invoke the **user** Cursor skill `chief-of-staff` with plan folder `.plans/bsbox-v2/` (see `~/.cursor/skills/chief-of-staff/SKILL.md`). Each chapter runs via the **user** `chapter-implementer` agent.
 
 **Loop branch:** `feat/plans-bsbox-v2`
 
