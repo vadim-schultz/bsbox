@@ -30,7 +30,7 @@ v1 is completely superseded ([D12](../gaps-and-decisions.md)). After this chapte
 
 - Create annotated tag `legacy-v1` on the current `main` tip and push it **before** deleting anything. If the tag already exists, stop and report.
 - Delete: `backend/`, `frontend/`, `deployment/`, `.cursor/`, stale `README.md`, old `.github/workflows/ci.yml`, `.dockerignore`, `.env*` examples, any v1-only root config (tox, alembic, pyproject).
-- Keep: `.plans/`, `.claude/`, `.git*`, `LICENSE` if present.
+- Keep: `.plans/`, `.git*`, `LICENSE` if present. Plan orchestration is user-level (`~/.cursor/skills/chief-of-staff/`, `~/.cursor/agents/chapter-implementer.md`).
 - Write a minimal `README.md` (what BSBox v2 is, link to `.plans/bsbox-v2/`, note: "v1 is superseded; see tag `legacy-v1`") and a `CLAUDE.md` that describes **v2 only** (stack, commands `pnpm`/`./ci.sh`, layer rules from architecture §9, EN+DE rule). Nothing in `CLAUDE.md` may mention Litestar, Chakra, Docker, fingerprinting or Postgres.
 - Add a root `ci.sh` that exits 0 after printing `no workspaces yet` (replaced in chapter 02) and a minimal `ci.yml` that runs it, so the gate stays green.
 
